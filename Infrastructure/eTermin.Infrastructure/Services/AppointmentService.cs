@@ -143,8 +143,8 @@ public class AppointmentService : IAppointmentService
     }
 
     public async Task<bool> UpdateAsync(
-        int id,
-        AppointmentDto appointmentDto)
+    int id,
+    AppointmentDto appointmentDto)
     {
         var appointment = await _context.Appointments
             .FindAsync(id);
@@ -152,8 +152,37 @@ public class AppointmentService : IAppointmentService
         if (appointment == null)
             return false;
 
-        appointment.StartTime = appointmentDto.StartTime;
-        appointment.Status = appointmentDto.Status;
+        var service = await _context.Services
+            .FirstOrDefaultAsync(x =>
+                x.Id == appointment.ServiceId);
+
+        if (service == null)
+            throw new Exception("Usluga ne postoji.");
+
+        var startTime = appointmentDto.StartTime;
+
+        var endTime = startTime.AddMinutes(
+            service.DurationInMinutes);
+
+        var overlappingAppointment =
+            await _context.Appointments.AnyAsync(a =>
+                a.Id != id &&
+                a.EmployeeId == appointment.EmployeeId &&
+                a.Status != "Cancelled" &&
+                a.StartTime < endTime &&
+                a.EndTime > startTime);
+
+        if (overlappingAppointment)
+            throw new Exception(
+                "Zaposlenik već ima termin u odabranom vremenu.");
+
+        appointment.StartTime = startTime;
+        appointment.EndTime = endTime;
+
+        if (!string.IsNullOrWhiteSpace(appointmentDto.Status))
+        {
+            appointment.Status = appointmentDto.Status;
+        }
 
         await _context.SaveChangesAsync();
 

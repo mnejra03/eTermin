@@ -71,11 +71,37 @@ public class AppointmentsController : ControllerBase
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAppointment(
-        int id,
-        AppointmentDto appointmentDto)
+    int id,
+    AppointmentDto appointmentDto)
     {
         try
         {
+            var userIdClaim = User.FindFirst(
+                System.Security.Claims.ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            var userId = int.Parse(userIdClaim.Value);
+
+            var existingAppointment =
+                await _appointmentService.GetByIdAsync(id);
+
+            if (existingAppointment == null)
+                return NotFound();
+
+            if (existingAppointment.UserId != userId &&
+                !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
+            appointmentDto.UserId = existingAppointment.UserId;
+            appointmentDto.SalonId = existingAppointment.SalonId;
+            appointmentDto.EmployeeId = existingAppointment.EmployeeId;
+            appointmentDto.ServiceId = existingAppointment.ServiceId;
+            appointmentDto.Price = existingAppointment.Price;
+
             var updated =
                 await _appointmentService.UpdateAsync(
                     id,
