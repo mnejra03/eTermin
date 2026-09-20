@@ -162,4 +162,31 @@ public class AppointmentsController : ControllerBase
 
         return Ok(myAppointments);
     }
+
+    [HttpGet("available-slots")]
+    [Authorize]
+    public async Task<ActionResult<List<AvailableSlotDto>>> GetAvailableSlots(
+    int salonId,
+    int employeeId,
+    int serviceId,
+    DateTime date)
+    {
+        try
+        {
+            var slots = await _appointmentService.GetAvailableSlotsAsync(
+                salonId,
+                employeeId,
+                serviceId,
+                date);
+
+            return Ok(slots);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
 }

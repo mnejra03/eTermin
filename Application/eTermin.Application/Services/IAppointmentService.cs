@@ -13,4 +13,10 @@ public interface IAppointmentService
     Task<bool> UpdateAsync(int id, AppointmentDto appointmentDto);
 
     Task<bool> DeleteAsync(int id);
+
+    Task<List<AvailableSlotDto>> GetAvailableSlotsAsync(
+    int salonId,
+    int employeeId,
+    int serviceId,
+    DateTime date);
 }

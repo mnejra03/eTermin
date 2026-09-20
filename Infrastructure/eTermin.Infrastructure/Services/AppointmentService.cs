@@ -267,4 +267,88 @@ public class AppointmentService : IAppointmentService
 
         return true;
     }
+
+    public async Task<List<AvailableSlotDto>> GetAvailableSlotsAsync(
+    int salonId,
+    int employeeId,
+    int serviceId,
+    DateTime date)
+    {
+        // Provjera zaposlenika
+        var employee = await _context.Employees
+            .FirstOrDefaultAsync(x =>
+                x.Id == employeeId &&
+                x.SalonId == salonId &&
+                x.IsActive);
+
+        if (employee == null)
+            throw new Exception(
+                "Zaposlenik ne postoji ili ne pripada odabranom salonu.");
+
+        // Provjera usluge
+        var service = await _context.Services
+            .FirstOrDefaultAsync(x =>
+                x.Id == serviceId &&
+                x.SalonId == salonId &&
+                x.IsActive);
+
+        if (service == null)
+            throw new Exception(
+                "Usluga ne postoji ili ne pripada odabranom salonu.");
+
+        // Za sada koristimo WorkingHours zaposlenika.
+        // Očekivani format: "08:00-16:00"
+        if (string.IsNullOrWhiteSpace(employee.WorkingHours))
+            throw new Exception(
+                "Radno vrijeme zaposlenika nije definisano.");
+
+        var parts = employee.WorkingHours.Split('-');
+
+        if (parts.Length != 2 ||
+            !TimeSpan.TryParse(parts[0], out var workStart) ||
+            !TimeSpan.TryParse(parts[1], out var workEnd))
+        {
+            throw new Exception(
+                "Radno vrijeme mora biti u formatu HH:mm-HH:mm.");
+        }
+
+        var dayStart = date.Date.Add(workStart);
+        var dayEnd = date.Date.Add(workEnd);
+
+        // Uzimamo postojeće aktivne termine tog zaposlenika za taj dan
+        var appointments = await _context.Appointments
+            .Where(x =>
+                x.EmployeeId == employeeId &&
+                x.StartTime.Date == date.Date &&
+                x.Status != "Cancelled")
+            .OrderBy(x => x.StartTime)
+            .ToListAsync();
+
+        var availableSlots = new List<AvailableSlotDto>();
+
+        var currentStart = dayStart;
+
+        while (currentStart.AddMinutes(service.DurationInMinutes) <= dayEnd)
+        {
+            var currentEnd =
+                currentStart.AddMinutes(service.DurationInMinutes);
+
+            var overlaps = appointments.Any(a =>
+                a.StartTime < currentEnd &&
+                a.EndTime > currentStart);
+
+            if (!overlaps)
+            {
+                availableSlots.Add(new AvailableSlotDto
+                {
+                    StartTime = currentStart,
+                    EndTime = currentEnd
+                });
+            }
+
+            currentStart = currentStart.AddMinutes(30);
+        }
+
+        return availableSlots;
+    }
 }
