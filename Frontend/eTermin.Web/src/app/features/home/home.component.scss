@@ -1,13 +1,462 @@
 .home-page {
   min-height: 100vh;
-  padding: 40px;
-  background: #f5f5f5;
+  background: #faf9fb;
+  color: #29232d;
+}
 
-  h1 {
-    margin-bottom: 10px;
+.hero-section {
+  padding: 80px 8% 90px;
+  background: linear-gradient(
+    135deg,
+    #f4eafa 0%,
+    #faf9fb 55%,
+    #f0e5f5 100%
+  );
+}
+
+.hero-content {
+  max-width: 850px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hero-label {
+  display: inline-block;
+  margin-bottom: 15px;
+
+  color: #9c27b0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.hero-content h1 {
+  margin: 0;
+
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -2px;
+}
+
+.hero-content p {
+  max-width: 620px;
+  margin: 25px auto 35px;
+
+  color: #706a73;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.search-box {
+  max-width: 680px;
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+
+  padding: 7px;
+
+  background: white;
+  border: 1px solid #e5dfe7;
+  border-radius: 14px;
+
+  box-shadow: 0 10px 30px rgba(60, 30, 70, 0.08);
+}
+
+.search-icon {
+  padding-left: 18px;
+  font-size: 25px;
+  color: #9c27b0;
+}
+
+.search-box input {
+  flex: 1;
+
+  padding: 15px;
+
+  border: none;
+  outline: none;
+
+  font-size: 15px;
+  background: transparent;
+}
+
+.search-box button {
+  padding: 13px 24px;
+
+  border: none;
+  border-radius: 9px;
+
+  background: #9c27b0;
+  color: white;
+
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 65px 30px 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  margin-bottom: 28px;
+}
+
+.section-label {
+  display: block;
+  margin-bottom: 8px;
+
+  color: #9c27b0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.section h2 {
+  margin: 0;
+
+  font-size: 30px;
+  letter-spacing: -0.5px;
+}
+
+.view-all {
+  color: #9c27b0;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.quick-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+
+  padding: 22px;
+
+  background: white;
+  border: 1px solid #eee7f0;
+  border-radius: 14px;
+
+  text-decoration: none;
+  color: inherit;
+
+  transition: 0.2s ease;
+}
+
+.quick-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(60, 30, 70, 0.08);
+}
+
+.quick-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #f3e5f6;
+  color: #9c27b0;
+
+  font-size: 23px;
+}
+
+.quick-card h3 {
+  margin: 0 0 5px;
+  font-size: 16px;
+}
+
+.quick-card p {
+  margin: 0;
+  color: #777;
+  font-size: 13px;
+}
+
+.salon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.salon-card {
+  overflow: hidden;
+
+  background: white;
+  border: 1px solid #eee7f0;
+  border-radius: 15px;
+
+  transition: 0.2s ease;
+}
+
+.salon-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(60, 30, 70, 0.09);
+}
+
+.salon-image {
+  height: 190px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: linear-gradient(
+    135deg,
+    #dfc5e6,
+    #f5eaf7
+  );
+
+  color: #8b4b99;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.salon-info {
+  padding: 20px;
+}
+
+.salon-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.salon-title h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.salon-info p {
+  margin: 8px 0;
+  color: #777;
+}
+
+.location {
+  color: #999;
+  font-size: 13px;
+}
+
+.rating {
+  white-space: nowrap;
+  color: #d18b00;
+  font-size: 14px;
+}
+
+.salon-info button {
+  width: 100%;
+  margin-top: 18px;
+
+  padding: 11px;
+
+  border: 1px solid #9c27b0;
+  border-radius: 8px;
+
+  background: white;
+  color: #9c27b0;
+
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recommendations-section {
+  margin-top: 20px;
+}
+
+.recommendation-card {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+
+  padding: 25px;
+
+  background: white;
+  border: 1px solid #eee7f0;
+  border-radius: 15px;
+}
+
+.recommendation-icon {
+  width: 58px;
+  height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #f3e5f6;
+  color: #9c27b0;
+
+  font-size: 25px;
+}
+
+.recommendation-content {
+  flex: 1;
+}
+
+.recommendation-content > span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9c27b0;
+  letter-spacing: 1px;
+}
+
+.recommendation-content h3 {
+  margin: 6px 0;
+}
+
+.recommendation-content p {
+  margin: 0 0 10px;
+  color: #777;
+}
+
+.recommendation-details {
+  display: flex;
+  gap: 20px;
+
+  color: #777;
+}
+
+.recommendation-details strong {
+  color: #29232d;
+}
+
+.recommendation-card button {
+  padding: 12px 22px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #9c27b0;
+  color: white;
+
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.next-appointment {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+
+  padding: 25px;
+
+  background: #29232d;
+  color: white;
+
+  border-radius: 15px;
+}
+
+.appointment-date {
+  width: 70px;
+  height: 75px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+  background: #9c27b0;
+}
+
+.appointment-date span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.appointment-date strong {
+  font-size: 27px;
+}
+
+.appointment-info {
+  flex: 1;
+}
+
+.appointment-status {
+  font-size: 10px;
+  color: #d9a6e2;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.appointment-info h3 {
+  margin: 5px 0;
+}
+
+.appointment-info p {
+  margin: 0;
+  color: #c8c2ca;
+}
+
+.next-appointment a {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .quick-actions,
+  .salon-grid {
+    grid-template-columns: 1fr;
   }
 
-  p {
-    color: #666;
+  .hero-section {
+    padding: 60px 25px;
+  }
+}
+
+@media (max-width: 600px) {
+  .section {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .search-box {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .search-icon {
+    display: none;
+  }
+
+  .search-box button {
+    width: 100%;
+  }
+
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .recommendation-card,
+  .next-appointment {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .recommendation-card button {
+    width: 100%;
   }
 }

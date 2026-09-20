@@ -1,9 +1,260 @@
-<div class="home-page">
+<app-navbar></app-navbar>
 
-  <h1>Dobrodošli u eTermin</h1>
+<main class="home-page">
 
-  <p>
-    Uspješno ste prijavljeni.
-  </p>
+  <!-- HERO -->
+  <section class="hero-section">
+
+    <div class="hero-content">
+
+      <span class="hero-label">
+        eTermin
+      </span>
+
+      <h1>
+        Pronađite termin<br />
+        koji vam odgovara.
+      </h1>
+
+      <p>
+        Pronađite salon, odaberite uslugu i rezervišite
+        svoj termin brzo i jednostavno.
+      </p>
+
+      <div class="search-box">
+
+        <span class="search-icon">⌕</span>
+
+        <input
+          type="text"
+          placeholder="Pretraži salon ili uslugu..."
+        />
+
+        <button type="button">
+          Pretraži
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- QUICK ACTIONS -->
+  <section class="section">
+
+    <div class="section-header">
+      <div>
+        <span class="section-label">BRZI PRISTUP</span>
+        <h2>Šta želite uraditi?</h2>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+
+      <a routerLink="/salons" class="quick-card">
+        <div class="quick-icon">⌕</div>
+
+        <div>
+          <h3>Pronađi salon</h3>
+          <p>Pregledajte dostupne salone</p>
+        </div>
+      </a>
+
+      <a routerLink="/appointments" class="quick-card">
+        <div class="quick-icon">□</div>
+
+        <div>
+          <h3>Moji termini</h3>
+          <p>Pregledajte svoje rezervacije</p>
+        </div>
+      </a>
+
+      <a routerLink="/notifications" class="quick-card">
+        <div class="quick-icon">♧</div>
+
+        <div>
+          <h3>Obavijesti</h3>
+          <p>Pregledajte najnovije obavijesti</p>
+        </div>
+      </a>
+
+    </div>
+
+  </section>
+
+
+  <!-- POPULAR SALONS -->
+  <section class="section">
+
+    <div class="section-header">
+
+      <div>
+        <span class="section-label">ISTRAŽITE</span>
+        <h2>Popularni saloni</h2>
+      </div>
+
+      <a routerLink="/salons" class="view-all">
+        Pogledaj sve →
+      </a>
+
+    </div>
+
+    <div class="salon-grid">
+
+  <div
+    class="loading-message"
+    *ngIf="isLoading"
+  >
+    Učitavanje salona...
+  </div>
+
+  <div
+    class="error-message"
+    *ngIf="!isLoading && errorMessage"
+  >
+    {{ errorMessage }}
+  </div>
+
+  <article
+    class="salon-card"
+    *ngFor="let salon of salons"
+  >
+
+    <div class="salon-image">
+
+      <img
+        *ngIf="salon.imageUrl"
+        [src]="salon.imageUrl"
+        [alt]="salon.name"
+      />
+
+      <span *ngIf="!salon.imageUrl">
+        Salon
+      </span>
+
+    </div>
+
+    <div class="salon-info">
+
+      <div class="salon-title">
+
+        <h3>
+          {{ salon.name }}
+        </h3>
+
+      </div>
+
+      <p>
+        {{ salon.description }}
+      </p>
+
+      <span class="location">
+        {{ salon.city }}, {{ salon.address }}
+      </span>
+
+      <button
+        type="button"
+        [routerLink]="['/salons', salon.id]"
+      >
+        Pogledaj salon
+      </button>
+
+    </div>
+
+  </article>
 
 </div>
+
+  </section>
+
+
+  <!-- RECOMMENDATIONS -->
+  <section class="section recommendations-section">
+
+    <div class="section-header">
+
+      <div>
+        <span class="section-label">ZA VAS</span>
+        <h2>Preporučeno za vas</h2>
+      </div>
+
+      <a routerLink="/recommendations" class="view-all">
+        Pogledaj sve →
+      </a>
+
+    </div>
+
+    <div class="recommendation-card">
+
+      <div class="recommendation-icon">
+        ✦
+      </div>
+
+      <div class="recommendation-content">
+
+        <span>PREPORUČENA USLUGA</span>
+
+        <h3>Farbanje kose</h3>
+
+        <p>
+          Farbanje i njega kose
+        </p>
+
+        <div class="recommendation-details">
+          <span>90 min</span>
+          <strong>40 KM</strong>
+        </div>
+
+      </div>
+
+      <button type="button">
+        Rezerviši
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- NEXT APPOINTMENT -->
+  <section class="section">
+
+    <div class="section-header">
+
+      <div>
+        <span class="section-label">VAŠ RASPORED</span>
+        <h2>Sljedeći termin</h2>
+      </div>
+
+    </div>
+
+    <div class="next-appointment">
+
+      <div class="appointment-date">
+        <span>SEP</span>
+        <strong>22</strong>
+      </div>
+
+      <div class="appointment-info">
+
+        <span class="appointment-status">
+          POTVRĐEN TERMIN
+        </span>
+
+        <h3>Aquamar Beauty</h3>
+
+        <p>Šišanje · 12:00</p>
+
+      </div>
+
+      <a routerLink="/appointments">
+        Pogledaj termin →
+      </a>
+
+    </div>
+
+  </section>
+
+</main>
