@@ -18,6 +18,18 @@ namespace eTemin.Api
             var builder = WebApplication.CreateBuilder(args);
 
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AngularClient", policy =>
+                {
+                    policy
+                        .WithOrigins("http://localhost:4200")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
+
+
             var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException(
         "JWT Key nije konfigurisan.");
@@ -109,8 +121,13 @@ namespace eTemin.Api
 
             app.UseHttpsRedirection();
 
+            app.UseCors("AngularClient");
+
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.MapControllers();
+            app.Run();
 
             app.MapControllers();
 
