@@ -1,0 +1,41 @@
+<nav class="navbar">
+
+  <a class="logo" routerLink="/home">
+    eTermin
+  </a>
+
+  <div class="nav-links">
+
+    <a routerLink="/home">
+      Početna
+    </a>
+
+    <a routerLink="/salons">
+      Saloni
+    </a>
+
+    <a routerLink="/appointments">
+      Moji termini
+    </a>
+
+    <a routerLink="/notifications">
+      Obavijesti
+    </a>
+
+  </div>
+
+  <div class="user-section">
+
+    <span *ngIf="authService.getUser() as user">
+      {{ user.firstName }} {{ user.lastName }}
+    </span>
+
+    <button
+      type="button"
+      (click)="logout()">
+      Odjavi se
+    </button>
+
+  </div>
+
+</nav>

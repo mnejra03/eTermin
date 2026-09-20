@@ -1,0 +1,427 @@
+﻿<Window x:Class="eTermin.Desktop.DashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="eTermin - Dashboard"
+        Height="750"
+        Width="1250"
+        WindowStartupLocation="CenterScreen"
+        Background="#F7F4F8">
+
+    <Grid>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="230"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+
+        <!-- SIDEBAR -->
+
+        <Border Grid.Column="0"
+                Background="#29232D">
+
+            <Grid>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+
+                <!-- LOGO -->
+
+                <StackPanel Margin="25,30">
+
+                    <TextBlock
+                        Text="eTermin"
+                        Foreground="White"
+                        FontSize="28"
+                        FontWeight="Bold"/>
+
+                    <TextBlock
+                        Text="Administracija"
+                        Foreground="#BDB5C0"
+                        FontSize="13"
+                        Margin="0,5,0,0"/>
+
+                </StackPanel>
+
+
+                <!-- MENU -->
+
+                <StackPanel Grid.Row="1"
+                            Margin="15,20">
+
+                    <Button Content="Dashboard"
+                            Height="45"
+                            Margin="0,0,0,8"
+                            Background="#9C27B0"
+                            Foreground="White"
+                            BorderThickness="0"
+                            FontWeight="SemiBold"/>
+
+                    <Button Content="Saloni"
+                            Height="45"
+                            Margin="0,0,0,8"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"/>
+
+                    <Button Content="Zaposlenici"
+                            Height="45"
+                            Margin="0,0,0,8"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"/>
+
+                    <Button Content="Usluge"
+                            Height="45"
+                            Margin="0,0,0,8"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"/>
+
+                    <Button Content="Termini"
+                            Height="45"
+                            Margin="0,0,0,8"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"/>
+
+                    <Button Content="Statistika"
+                            Height="45"
+                            Margin="0,0,0,8"
+                            Background="Transparent"
+                            Foreground="White"
+                            BorderThickness="0"/>
+
+                </StackPanel>
+
+
+                <!-- LOGOUT -->
+
+                <Button Grid.Row="2"
+                        Content="Odjavi se"
+                        Height="42"
+                        Margin="20"
+                        Background="Transparent"
+                        Foreground="White"
+                        BorderBrush="#5B5260"
+                        Click="LogoutButton_Click"/>
+
+            </Grid>
+
+        </Border>
+
+
+        <!-- MAIN CONTENT -->
+
+        <ScrollViewer Grid.Column="1"
+                      VerticalScrollBarVisibility="Auto">
+
+            <StackPanel Margin="35">
+
+
+                <!-- HEADER -->
+
+                <Grid Margin="0,0,0,30">
+
+                    <StackPanel>
+
+                        <TextBlock
+                            Text="Dashboard"
+                            FontSize="32"
+                            FontWeight="Bold"
+                            Foreground="#29232D"/>
+
+                        <TextBlock
+                            Text="Pregled stanja eTermin sistema"
+                            FontSize="14"
+                            Foreground="#777777"
+                            Margin="0,5,0,0"/>
+
+                    </StackPanel>
+
+                </Grid>
+
+
+                <!-- STATISTICS CARDS -->
+
+                <UniformGrid Columns="4"
+                             Margin="0,0,0,25">
+
+
+                    <!-- APPOINTMENTS -->
+
+                    <Border
+                        Background="White"
+                        CornerRadius="12"
+                        Margin="0,0,12,0"
+                        Padding="20">
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="TERMINI DANAS"
+                                FontSize="11"
+                                Foreground="#9C27B0"
+                                FontWeight="Bold"/>
+
+                            <TextBlock
+                                Text="12"
+                                FontSize="32"
+                                FontWeight="Bold"
+                                Margin="0,8,0,0"/>
+
+                            <TextBlock
+                                Text="Ukupno danas"
+                                Foreground="#888888"
+                                FontSize="12"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- USERS -->
+
+                    <Border
+                        Background="White"
+                        CornerRadius="12"
+                        Margin="0,0,12,0"
+                        Padding="20">
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="KORISNICI"
+                                FontSize="11"
+                                Foreground="#9C27B0"
+                                FontWeight="Bold"/>
+
+                            <TextBlock
+                                Text="48"
+                                FontSize="32"
+                                FontWeight="Bold"
+                                Margin="0,8,0,0"/>
+
+                            <TextBlock
+                                Text="Ukupno korisnika"
+                                Foreground="#888888"
+                                FontSize="12"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- SALONS -->
+
+                    <Border
+                        Background="White"
+                        CornerRadius="12"
+                        Margin="0,0,12,0"
+                        Padding="20">
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="SALONI"
+                                FontSize="11"
+                                Foreground="#9C27B0"
+                                FontWeight="Bold"/>
+
+                            <TextBlock
+                                Text="6"
+                                FontSize="32"
+                                FontWeight="Bold"
+                                Margin="0,8,0,0"/>
+
+                            <TextBlock
+                                Text="Aktivni saloni"
+                                Foreground="#888888"
+                                FontSize="12"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- REVENUE -->
+
+                    <Border
+                        Background="White"
+                        CornerRadius="12"
+                        Padding="20">
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="PRIHOD"
+                                FontSize="11"
+                                Foreground="#9C27B0"
+                                FontWeight="Bold"/>
+
+                            <TextBlock
+                                Text="850 KM"
+                                FontSize="32"
+                                FontWeight="Bold"
+                                Margin="0,8,0,0"/>
+
+                            <TextBlock
+                                Text="Ukupni prihod"
+                                Foreground="#888888"
+                                FontSize="12"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                </UniformGrid>
+
+
+                <!-- LOWER AREA -->
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+
+
+                    <!-- TODAY APPOINTMENTS -->
+
+                    <Border Grid.Column="0"
+                            Background="White"
+                            CornerRadius="12"
+                            Padding="25"
+                            Margin="0,0,15,0">
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="Današnji termini"
+                                FontSize="20"
+                                FontWeight="Bold"
+                                Margin="0,0,0,20"/>
+
+                            <Border
+                                Background="#F7F4F8"
+                                CornerRadius="8"
+                                Padding="15"
+                                Margin="0,0,0,10">
+
+                                <Grid>
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+
+                                        <TextBlock
+                                            Text="Sara Kovač"
+                                            FontWeight="SemiBold"/>
+
+                                        <TextBlock
+                                            Text="Šišanje • Aquamar Beauty"
+                                            Foreground="#777777"
+                                            FontSize="12"
+                                            Margin="0,5,0,0"/>
+
+                                    </StackPanel>
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="12:00"
+                                        FontWeight="Bold"
+                                        Foreground="#9C27B0"/>
+
+                                </Grid>
+
+                            </Border>
+
+
+                            <Border
+                                Background="#F7F4F8"
+                                CornerRadius="8"
+                                Padding="15"
+                                Margin="0,0,0,10">
+
+                                <Grid>
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+
+                                        <TextBlock
+                                            Text="Amar Hadžić"
+                                            FontWeight="SemiBold"/>
+
+                                        <TextBlock
+                                            Text="Farbanje kose • Aquamar Beauty"
+                                            Foreground="#777777"
+                                            FontSize="12"
+                                            Margin="0,5,0,0"/>
+
+                                    </StackPanel>
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="14:00"
+                                        FontWeight="Bold"
+                                        Foreground="#9C27B0"/>
+
+                                </Grid>
+
+                            </Border>
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- POPULAR SERVICE -->
+
+                    <Border Grid.Column="1"
+                            Background="White"
+                            CornerRadius="12"
+                            Padding="25">
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="Najpopularnija usluga"
+                                FontSize="20"
+                                FontWeight="Bold"/>
+
+                            <TextBlock
+                                Text="Šišanje"
+                                FontSize="28"
+                                FontWeight="Bold"
+                                Foreground="#9C27B0"
+                                Margin="0,25,0,5"/>
+
+                            <TextBlock
+                                Text="3 rezervacije"
+                                Foreground="#777777"/>
+
+                        </StackPanel>
+
+                    </Border>
+
+                </Grid>
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+    </Grid>
+
+</Window>
