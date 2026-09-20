@@ -1,11 +1,13 @@
 ﻿using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace eTermin.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
@@ -36,10 +38,20 @@ public class AppointmentsController : ControllerBase
 
     [HttpPost]
     public async Task<ActionResult<AppointmentDto>> CreateAppointment(
-        AppointmentDto appointmentDto)
+    AppointmentDto appointmentDto)
     {
         try
         {
+            var userIdClaim = User.FindFirst(
+                System.Security.Claims.ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            var userId = int.Parse(userIdClaim.Value);
+
+            appointmentDto.UserId = userId;
+
             var appointment =
                 await _appointmentService.CreateAsync(appointmentDto);
 
@@ -93,5 +105,35 @@ public class AppointmentsController : ControllerBase
             return NotFound();
 
         return NoContent();
+    }
+
+    [HttpGet("admin")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<AppointmentDto>>> GetAllAppointmentsForAdmin()
+    {
+        var appointments = await _appointmentService.GetAllAsync();
+
+        return Ok(appointments);
+    }
+
+    [HttpGet("my")]
+    public async Task<ActionResult<List<AppointmentDto>>> GetMyAppointments()
+    {
+        var userIdClaim = User.FindFirst(
+            System.Security.Claims.ClaimTypes.NameIdentifier);
+
+        if (userIdClaim == null)
+            return Unauthorized();
+
+        var userId = int.Parse(userIdClaim.Value);
+
+        var appointments = await _appointmentService
+            .GetAllAsync();
+
+        var myAppointments = appointments
+            .Where(x => x.UserId == userId)
+            .ToList();
+
+        return Ok(myAppointments);
     }
 }
