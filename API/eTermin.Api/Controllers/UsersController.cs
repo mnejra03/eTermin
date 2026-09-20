@@ -17,6 +17,16 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
+    [HttpGet("admin")]
+    [Authorize(Roles = "Admin")]
+    public IActionResult AdminTest()
+    {
+        return Ok(new
+        {
+            message = "Pristup administratora je uspješan."
+        });
+    }
+
     [HttpGet]
     public async Task<ActionResult<List<UserDto>>> GetUsers()
     {
