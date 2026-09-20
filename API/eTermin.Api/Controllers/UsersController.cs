@@ -2,8 +2,10 @@
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
+using Microsoft.AspNetCore.Authorization;
 namespace eTermin.Api.Controllers;
 
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class UsersController : ControllerBase
