@@ -110,6 +110,7 @@ public class AppointmentService : IAppointmentService
             throw new Exception(
                 "Zaposlenik već ima termin u odabranom vremenu.");
 
+        // Kreiranje termina
         var appointment = new Appointment
         {
             UserId = appointmentDto.UserId,
@@ -125,6 +126,25 @@ public class AppointmentService : IAppointmentService
 
         _context.Appointments.Add(appointment);
 
+        // Prvo moramo sačuvati Appointment
+        // kako bi SQL Server generisao njegov Id.
+        await _context.SaveChangesAsync();
+
+        // Tek sada appointment.Id postoji.
+        var notification = new Notification
+        {
+            UserId = appointment.UserId,
+            AppointmentId = appointment.Id,
+            Title = "Termin uspješno rezervisan",
+            Message =
+                $"Vaš termin je uspješno rezervisan za {appointment.StartTime:dd.MM.yyyy. HH:mm}.",
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Notifications.Add(notification);
+
+        // Čuvamo automatski kreiranu notifikaciju
         await _context.SaveChangesAsync();
 
         return new AppointmentDto
@@ -147,23 +167,28 @@ public class AppointmentService : IAppointmentService
     AppointmentDto appointmentDto)
     {
         var appointment = await _context.Appointments
-            .FindAsync(id);
+            .FirstOrDefaultAsync(x => x.Id == id);
 
         if (appointment == null)
             return false;
 
+        // Zapamtimo stari status
+        var oldStatus = appointment.Status;
+
+        // Uzimamo postojeću uslugu termina
         var service = await _context.Services
-            .FirstOrDefaultAsync(x =>
-                x.Id == appointment.ServiceId);
+            .FirstOrDefaultAsync(x => x.Id == appointment.ServiceId);
 
         if (service == null)
             throw new Exception("Usluga ne postoji.");
 
+        // Backend sam računa EndTime
         var startTime = appointmentDto.StartTime;
 
         var endTime = startTime.AddMinutes(
             service.DurationInMinutes);
 
+        // Provjera preklapanja
         var overlappingAppointment =
             await _context.Appointments.AnyAsync(a =>
                 a.Id != id &&
@@ -176,12 +201,51 @@ public class AppointmentService : IAppointmentService
             throw new Exception(
                 "Zaposlenik već ima termin u odabranom vremenu.");
 
+        // Mijenjamo samo dozvoljene podatke
         appointment.StartTime = startTime;
         appointment.EndTime = endTime;
 
         if (!string.IsNullOrWhiteSpace(appointmentDto.Status))
         {
             appointment.Status = appointmentDto.Status;
+        }
+
+        // Ako se status promijenio,
+        // kreiramo automatsku notifikaciju.
+        if (oldStatus != appointment.Status)
+        {
+            string? title = null;
+            string? message = null;
+
+            if (appointment.Status == "Confirmed")
+            {
+                title = "Termin potvrđen";
+
+                message =
+                    $"Vaš termin je potvrđen za {appointment.StartTime:dd.MM.yyyy. HH:mm}.";
+            }
+            else if (appointment.Status == "Cancelled")
+            {
+                title = "Termin otkazan";
+
+                message =
+                    $"Vaš termin za {appointment.StartTime:dd.MM.yyyy. HH:mm} je otkazan.";
+            }
+
+            if (title != null && message != null)
+            {
+                var notification = new Notification
+                {
+                    UserId = appointment.UserId,
+                    AppointmentId = appointment.Id,
+                    Title = title,
+                    Message = message,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Notifications.Add(notification);
+            }
         }
 
         await _context.SaveChangesAsync();
