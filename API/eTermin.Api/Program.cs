@@ -61,7 +61,8 @@ namespace eTemin.Api
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
-            builder.Services.AddScoped<IStatisticsService,StatisticsService>();
+            builder.Services.AddScoped<IStatisticsService,StatisticsService>(); 
+            builder.Services.AddScoped<IRecommendationService,RecommendationService>();
 
             builder.Services.AddControllers();
 
