@@ -60,6 +60,7 @@ namespace eTemin.Api
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
 
             builder.Services.AddControllers();
 
