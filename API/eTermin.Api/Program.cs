@@ -1,7 +1,10 @@
-using eTermin.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using eTermin.Application.Services;
+using eTermin.Application.Validators;
+using eTermin.Infrastructure.Data;
 using eTermin.Infrastructure.Services;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace eTemin.Api
 {
@@ -16,17 +19,21 @@ namespace eTemin.Api
                     builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddScoped<ISalonService, SalonService>();
+            builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+            builder.Services.AddScoped<IServiceService, ServiceService>();
+            builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+            builder.Services.AddScoped<IUserService, UserService>();
 
-            // Add services to the container.
             builder.Services.AddControllers();
 
-            // Swagger
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<SalonValidator>();
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
