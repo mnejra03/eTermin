@@ -1,9 +1,10 @@
 ﻿<Window x:Class="eTermin.Desktop.DashboardWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         Title="eTermin - Dashboard"
-        Height="750"
-        Width="1250"
+        Height="996"
+        Width="1260"
         WindowStartupLocation="CenterScreen"
         Background="#F7F4F8">
 
@@ -11,8 +12,8 @@
 
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="85"/>
-            <ColumnDefinition Width="907*"/>
-            <ColumnDefinition Width="113*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="285"/>
         </Grid.ColumnDefinitions>
 
 
@@ -259,7 +260,7 @@
         <!-- MAIN CONTENT -->
 
         <ScrollViewer Grid.Column="1"
-                      VerticalScrollBarVisibility="Auto" Grid.ColumnSpan="2">
+              VerticalScrollBarVisibility="Auto">
 
             <StackPanel Margin="35">
 
@@ -543,135 +544,84 @@ VerticalAlignment="Top" Height="38" Margin="102,-13,0,0" Width="18"/>
                 </UniformGrid>
 
 
-                <!-- LOWER AREA -->
 
-                <Grid>
+                <!-- CHARTS -->
+
+                <Grid Margin="0,0,0,25">
 
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="1.35*"/>
                         <ColumnDefinition Width="1*"/>
                     </Grid.ColumnDefinitions>
 
 
-                    <!-- TODAY APPOINTMENTS -->
+                    <!-- BROJ REZERVACIJA PO DANIMA -->
 
-                    <Border Grid.Column="0"
-                            Background="White"
-                            CornerRadius="12"
-                            Padding="25"
-                            Margin="0,0,15,0">
+                    <Border
+        Grid.Column="0"
+        Background="White"
+        CornerRadius="12"
+        Padding="20"
+        Margin="0,0,12,0">
 
                         <StackPanel>
 
-                            <TextBlock
-                                Text="Današnji termini"
-                                FontSize="20"
-                                FontWeight="Bold"
-                                Margin="0,0,0,20"/>
+                            <Grid Margin="0,0,0,10">
 
-                            <ItemsControl x:Name="TodayAppointmentsItemsControl">
+                                <TextBlock
+                    Text="Broj rezervacija po danima"
+                    FontSize="18"
+                    FontWeight="Bold"
+                    Foreground="#2D1B36"/>
 
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
+                                <TextBlock
+                    Text="Posljednjih 7 dana"
+                    FontSize="11"
+                    Foreground="#B0AAB3"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"/>
 
-                                        <Border
-                Background="#F7F4F8"
-                CornerRadius="8"
-                Padding="15"
-                Margin="0,0,0,10">
-
-                                            <Grid>
-
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
+                            </Grid>
 
 
-                                                <StackPanel>
+                            <lvc:CartesianChart
+                x:Name="ReservationsByDayChart"
+                Height="230"
+                LegendPosition="Hidden"
+                TooltipPosition="Top">
 
-                                                    <TextBlock
-        Text="{Binding UserName}"
-        FontWeight="SemiBold"/>
-
-                                                    <TextBlock
-        Text="{Binding ServiceName}"
-        Foreground="#777777"
-        FontSize="12"
-        Margin="0,5,0,0"/>
-
-                                                    <TextBlock
-        Text="{Binding SalonName}"
-        Foreground="#777777"
-        FontSize="12"
-        Margin="0,3,0,0"/>
-
-                                                    <TextBlock
-        Text="{Binding Status}"
-        Foreground="#777777"
-        FontSize="12"
-        Margin="0,3,0,0"/>
-
-                                                </StackPanel>
-
-
-                                                <StackPanel Grid.Column="1">
-
-                                                    <TextBlock
-        Text="{Binding StartTime, StringFormat={}{0:HH:mm}}"
-        FontWeight="Bold"
-        Foreground="#9C27B0"/>
-
-                                                    <TextBlock
-        Text="{Binding Price, StringFormat={}{0:0.00} KM}"
-        FontSize="11"
-        Foreground="#777777"
-        HorizontalAlignment="Right"/>
-
-                                                </StackPanel>
-
-
-                                            </Grid>
-
-                                        </Border>
-
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-
-                            </ItemsControl>
-
+                            </lvc:CartesianChart>
 
                         </StackPanel>
 
                     </Border>
 
 
-                    <!-- POPULAR SERVICE -->
+                    <!-- STATUS REZERVACIJA -->
 
-                    <Border Grid.Column="1"
-                            Background="White"
-                            CornerRadius="12"
-                            Padding="25">
+                    <Border
+        Grid.Column="1"
+        Background="White"
+        CornerRadius="12"
+        Padding="20">
 
                         <StackPanel>
 
                             <TextBlock
-                                Text="Najpopularnija usluga"
-                                FontSize="20"
-                                FontWeight="Bold"/>
+                Text="Status rezervacija"
+                FontSize="18"
+                FontWeight="Bold"
+                Foreground="#2D1B36"
+                Margin="0,0,0,10"/>
 
-                            <TextBlock
-    x:Name="MostPopularServiceText"
-    Text="-"
-    FontSize="28"
-                                FontWeight="Bold"
-                                Foreground="#9C27B0"
-                                Margin="0,25,0,5"/>
 
-                            <TextBlock
-    x:Name="MostPopularServiceCountText"
-    Text="0 rezervacija"
-    Foreground="#777777"/>
+                            <lvc:PieChart
+                x:Name="ReservationStatusChart"
+                Height="200"
+                LegendPosition="Bottom"
+                TooltipPosition="Center">
+
+                            </lvc:PieChart>
 
                         </StackPanel>
 
@@ -679,9 +629,750 @@ VerticalAlignment="Top" Height="38" Margin="102,-13,0,0" Width="18"/>
 
                 </Grid>
 
+
+
+                <!-- LOWER AREA -->
+
+                <!-- HIGHLIGHT STATISTICS -->
+
+                <Grid Margin="0,0,0,25">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+
+                    <!-- NAJPOPULARNIJA USLUGA -->
+
+                    <Border
+        Grid.Column="0"
+        Background="White"
+        CornerRadius="12"
+        Padding="22"
+        Margin="0,0,10,0">
+
+                        <StackPanel>
+
+                            <TextBlock
+                Text="Najpopularnija usluga"
+                FontSize="17"
+                FontWeight="Bold"
+                Foreground="#2D1B36"/>
+
+                            <TextBlock
+                Text="Najviše rezervacija"
+                FontSize="11"
+                Foreground="#999999"
+                Margin="0,5,0,15"/>
+
+
+                            <Grid>
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="55"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+
+                                <!-- IKONA -->
+
+                                <Border
+                    Grid.Column="0"
+                    Width="48"
+                    Height="48"
+                    Background="#F3E9F8"
+                    CornerRadius="24"
+                    HorizontalAlignment="Left">
+
+                                    <TextBlock
+                        Text="&#xE7B8;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="22"
+                        Foreground="#9C27B0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+
+                                </Border>
+
+
+                                <!-- PODACI -->
+
+                                <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Margin="10,0,0,0">
+
+                                    <TextBlock
+                        x:Name="MostPopularServiceText"
+                        Text="Šišanje"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Foreground="#9C27B0"/>
+
+                                    <TextBlock
+                        x:Name="MostPopularServiceCountText"
+                        Text="58 rezervacija"
+                        FontSize="11"
+                        Foreground="#777777"
+                        Margin="0,3,0,0"/>
+
+                                </StackPanel>
+
+                            </Grid>
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- NAJAKTIVNIJI KORISNIK -->
+
+                    <Border
+        Grid.Column="1"
+        Background="White"
+        CornerRadius="12"
+        Padding="22"
+        Margin="5,0,5,0">
+
+                        <StackPanel>
+
+                            <TextBlock
+                Text="Najaktivniji korisnik"
+                FontSize="17"
+                FontWeight="Bold"
+                Foreground="#2D1B36"/>
+
+                            <TextBlock
+                Text="Najviše rezervacija"
+                FontSize="11"
+                Foreground="#999999"
+                Margin="0,5,0,15"/>
+
+
+                            <Grid>
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="55"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+
+                                <!-- IKONA -->
+
+                                <Border
+                    Grid.Column="0"
+                    Width="48"
+                    Height="48"
+                    Background="#F3E9F8"
+                    CornerRadius="24"
+                    HorizontalAlignment="Left">
+
+                                    <TextBlock
+                        Text="&#xE77B;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="22"
+                        Foreground="#9C27B0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+
+                                </Border>
+
+
+                                <!-- PODACI -->
+
+                                <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Margin="10,0,0,0">
+
+                                    <TextBlock
+                        x:Name="MostActiveUserText"
+                        Text="Amra Hodžić"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Foreground="#9C27B0"/>
+
+                                    <TextBlock
+                        x:Name="MostActiveUserCountText"
+                        Text="24 rezervacije"
+                        FontSize="11"
+                        Foreground="#777777"
+                        Margin="0,3,0,0"/>
+
+                                </StackPanel>
+
+                            </Grid>
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- NAJAKTIVNIJI SALON -->
+
+                    <Border
+        Grid.Column="2"
+        Background="White"
+        CornerRadius="12"
+        Padding="22"
+        Margin="10,0,0,0">
+
+                        <StackPanel>
+
+                            <TextBlock
+                Text="Najaktivniji salon"
+                FontSize="17"
+                FontWeight="Bold"
+                Foreground="#2D1B36"/>
+
+                            <TextBlock
+                Text="Najviše rezervacija"
+                FontSize="11"
+                Foreground="#999999"
+                Margin="0,5,0,15"/>
+
+
+                            <Grid>
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="55"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+
+                                <!-- IKONA -->
+
+                                <Border
+                    Grid.Column="0"
+                    Width="48"
+                    Height="48"
+                    Background="#F3E9F8"
+                    CornerRadius="24"
+                    HorizontalAlignment="Left">
+
+                                    <TextBlock
+                        Text="&#xE7F1;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="22"
+                        Foreground="#9C27B0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+
+                                </Border>
+
+
+                                <!-- PODACI -->
+
+                                <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Margin="10,0,0,0">
+
+                                    <TextBlock
+                        x:Name="MostActiveSalonText"
+                        Text="Aquamar Beauty"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Foreground="#9C27B0"/>
+
+                                    <TextBlock
+                        x:Name="MostActiveSalonCountText"
+                        Text="42 rezervacije"
+                        FontSize="11"
+                        Foreground="#777777"
+                        Margin="0,3,0,0"/>
+
+                                </StackPanel>
+
+                            </Grid>
+
+                        </StackPanel>
+
+                    </Border>
+
+                </Grid>
+
+
+                <!-- TODAY APPOINTMENTS -->
+
+                <Border
+    Background="White"
+    CornerRadius="12"
+    Padding="25">
+
+                    <StackPanel>
+
+                        <Grid Margin="0,0,0,20">
+
+                            <TextBlock
+                Text="Današnji termini"
+                FontSize="20"
+                FontWeight="Bold"
+                Foreground="#2D1B36"/>
+
+                            <TextBlock
+                Text="Pogledaj sve →"
+                FontSize="12"
+                Foreground="#9C27B0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Cursor="Hand"/>
+
+                        </Grid>
+
+
+                        <ItemsControl x:Name="TodayAppointmentsItemsControl">
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <Border
+                        Background="#F7F4F8"
+                        CornerRadius="8"
+                        Padding="15"
+                        Margin="0,0,0,10">
+
+                                        <Grid>
+
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+
+                                            <!-- LIJEVA STRANA -->
+
+                                            <StackPanel>
+
+                                                <TextBlock
+                                    Text="{Binding UserName}"
+                                    FontWeight="SemiBold"
+                                    Foreground="#2D1B36"/>
+
+                                                <TextBlock
+                                    Text="{Binding ServiceName}"
+                                    Foreground="#777777"
+                                    FontSize="12"
+                                    Margin="0,5,0,0"/>
+
+                                                <TextBlock
+                                    Text="{Binding SalonName}"
+                                    Foreground="#777777"
+                                    FontSize="12"
+                                    Margin="0,3,0,0"/>
+
+                                                <TextBlock
+                                    Text="{Binding Status}"
+                                    Foreground="#777777"
+                                    FontSize="12"
+                                    Margin="0,3,0,0"/>
+
+                                            </StackPanel>
+
+
+                                            <!-- DESNA STRANA -->
+
+                                            <StackPanel
+                                Grid.Column="1"
+                                VerticalAlignment="Center">
+
+                                                <TextBlock
+                                    Text="{Binding StartTime, StringFormat={}{0:HH:mm}}"
+                                    FontWeight="Bold"
+                                    FontSize="16"
+                                    Foreground="#9C27B0"/>
+
+                                                <TextBlock
+                                    Text="{Binding Price, StringFormat={}{0:0.00} KM}"
+                                    FontSize="11"
+                                    Foreground="#777777"
+                                    HorizontalAlignment="Right"
+                                    Margin="0,4,0,0"/>
+
+                                            </StackPanel>
+
+                                        </Grid>
+
+                                    </Border>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                    </StackPanel>
+
+                </Border>
+
             </StackPanel>
 
         </ScrollViewer>
+
+
+        <!-- RIGHT SIDEBAR -->
+
+        <Border Grid.Column="2"
+        Background="White"
+        BorderBrush="#EAE5ED"
+        BorderThickness="1,0,0,0">
+
+            <ScrollViewer
+        VerticalScrollBarVisibility="Auto"
+        HorizontalScrollBarVisibility="Disabled">
+
+                <StackPanel Margin="22,30,22,30">
+                    <Grid>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- OBAVIJESTI -->
+
+                        <Button
+            Grid.Column="1"
+            Margin="5,0,5,10"
+            Background="Transparent"
+            BorderThickness="0"
+            Cursor="Hand"
+            ToolTip="Obavijesti">
+
+                            <Grid>
+
+                                <TextBlock
+                    Text="&#xE7ED;"
+                    FontFamily="Segoe MDL2 Assets"
+                    FontSize="20"
+                    Foreground="#3F214F"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" RenderTransformOrigin="0.225,0.527"/>
+
+                                <!-- BROJ OBAVIJESTI -->
+
+                                <Border
+                    Width="8"
+                    Height="8"
+                    Background="#9C27B0"
+                    CornerRadius="4"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,4,3,0"/>
+
+                            </Grid>
+
+                        </Button>
+
+
+                        <!-- PROFIL -->
+
+                        <Button
+            Grid.Column="2"
+            Background="Transparent"
+            BorderThickness="0"
+            Cursor="Hand"
+            ToolTip="Profil" Margin="0,0,10,10">
+
+                            <TextBlock
+                Text="&#xE77B;"
+                FontFamily="Segoe MDL2 Assets"
+                FontSize="21"
+                Foreground="#3F214F"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"/>
+
+                        </Button>
+                    </Grid>
+
+
+
+                    <!-- PROFIL / HEADER -->
+
+                    <StackPanel Margin="0,0,0,30">
+
+                        <TextBlock
+                    Text="eTermin"
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Foreground="#3F214F" Width="77"/>
+
+                        <TextBlock
+                    Text="Brzi pristup"
+                    FontSize="12"
+                    Foreground="#999999"
+                    Margin="0,5,0,0" Width="60"/>
+
+                    </StackPanel>
+
+
+                    <!-- BRZE AKCIJE -->
+
+                    <TextBlock
+                Text="Brze akcije"
+                FontSize="12"
+                FontWeight="Bold"
+                Foreground="#2D1B36"/>
+
+                    <TextBlock
+                Text="Najčešće korištene opcije"
+                FontSize="10"
+                Foreground="#999999"
+                Margin="0,1,0,18"/>
+
+
+                    <!-- DODAJ USLUGU -->
+
+                    <Button
+                        
+                Height="62"
+                Margin="0,0,0,10"
+                Background="#F7F2FA"
+                BorderThickness="0"
+                Cursor="Hand"
+                ToolTip="Dodaj uslugu"
+>
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="45"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                        Grid.Column="0"
+                        Text="&#xE710;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="21"
+                        Foreground="#9C27B0"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Left" RenderTransformOrigin="-0.351,0.463"/>
+
+                            <StackPanel
+                        VerticalAlignment="Center" Grid.ColumnSpan="2" Margin="34,0,0,0">
+
+                                <TextBlock
+                            Text="Dodaj uslugu"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#333333"/>
+
+
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </Button>
+
+
+                    <!-- DODAJ ZAPOSLENIKA -->
+
+                    <Button
+                Height="62"
+                Margin="0,0,0,10"
+                Background="#F7F2FA"
+                BorderThickness="0"
+                Cursor="Hand"
+                ToolTip="Dodaj zaposlenika">
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="45"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                        Grid.Column="0"
+                        Text="&#xE716;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="21"
+                        Foreground="#9C27B0"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Left" Grid.ColumnSpan="2" Margin="29,0,0,0"/>
+
+                            <StackPanel
+                        Grid.Column="1"
+                        VerticalAlignment="Center" Margin="19,0,0,0">
+
+                                <TextBlock
+                            Text="Dodaj zaposlenika"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#333333"/>
+
+
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </Button>
+
+
+                    <!-- PREGLED TERMINA -->
+
+                    <Button
+                Height="62"
+                Margin="0,0,0,10"
+                Background="#F7F2FA"
+                BorderThickness="0"
+                Cursor="Hand"
+                ToolTip="Pregled termina">
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="45"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                        Grid.Column="0"
+                        Text="&#xE787;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="21"
+                        Foreground="#9C27B0"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Left" Margin="10,0,0,0"/>
+
+                            <StackPanel
+                        Grid.Column="1"
+                        VerticalAlignment="Center" Margin="0,0,-7,0">
+
+                                <TextBlock
+                            Text="Pregled termina"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#333333"/>
+
+
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </Button>
+
+
+                    <!-- DODAJ SALON -->
+
+                    <Button
+                Height="62"
+                Margin="0,0,0,25"
+                Background="#F7F2FA"
+                BorderThickness="0"
+                Cursor="Hand"
+                ToolTip="Dodaj salon">
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="45"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                        Text="&#xE7F1;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="21"
+                        Foreground="#9C27B0"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Left" RenderTransformOrigin="0.067,0.487" Width="25" Margin="14,0,0,0"/>
+
+                            <StackPanel
+                        Grid.Column="1"
+                        VerticalAlignment="Center" Margin="5,0,21,0">
+
+                                <TextBlock
+                            Text="Dodaj salon"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#333333"/>
+
+
+                            </StackPanel>
+
+                        </Grid>
+
+                    </Button>
+
+
+                    <!-- SLOBODNI TERMINI -->
+
+                    <Border
+                Background="#F7F2FA"
+                CornerRadius="12"
+                Padding="18">
+
+                        <StackPanel>
+
+                            <TextBlock
+                        Text="Slobodni termini danas"
+                        FontSize="17"
+                        FontWeight="Bold"
+                        Foreground="#2D1B36"/>
+
+
+
+
+                            <StackPanel
+                        Orientation="Horizontal">
+
+                                <TextBlock
+                            Text="12"
+                            FontSize="32"
+                            FontWeight="Bold"
+                            Foreground="#9C27B0"/>
+
+                                <TextBlock
+                            Text=" / 30"
+                            FontSize="15"
+                            Foreground="#999999"
+                            VerticalAlignment="Bottom"
+                            Margin="3,0,0,5"/>
+
+                            </StackPanel>
+
+
+                            <ProgressBar
+                        Height="8"
+                        Value="40"
+                        Maximum="100"
+                        Margin="0,14,0,10"
+                        Foreground="#9C27B0"
+                        Background="#E5DDE9"/>
+
+
+                            <Grid>
+
+                                <TextBlock
+                            Text="Dostupno"
+                            FontSize="11"
+                            Foreground="#999999"/>
+
+                                <TextBlock
+                            Text="40%"
+                            FontSize="11"
+                            Foreground="#9C27B0"
+                            HorizontalAlignment="Right"/>
+
+                            </Grid>
+
+                        </StackPanel>
+
+                    </Border>
+
+                </StackPanel>
+
+            </ScrollViewer>
+
+        </Border>
 
     </Grid>
 

@@ -1,6 +1,8 @@
 ﻿using System.Windows;
 using eTermin.Desktop.Models;
 using eTermin.Desktop.Services;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
 
 namespace eTermin.Desktop;
 
@@ -9,6 +11,37 @@ public partial class DashboardWindow : Window
     private readonly ApiService _apiService;
     private readonly AuthResponse _currentUser;
     private bool _isLoadingDashboard;
+
+    private void LoadChartsDemo()
+    {
+        ReservationsByDayChart.Series =
+        [
+            new LineSeries<int>
+        {
+            Values = [12, 18, 15, 22, 30, 25, 10],
+            Fill = null
+        }
+        ];
+
+        ReservationStatusChart.Series =
+        [
+            new PieSeries<int>
+        {
+            Values = [40],
+            Name = "Završeno"
+        },
+        new PieSeries<int>
+        {
+            Values = [15],
+            Name = "Čekanje"
+        },
+        new PieSeries<int>
+        {
+            Values = [8],
+            Name = "Otkazano"
+        }
+        ];
+    }
 
     public DashboardWindow(
         ApiService apiService,
@@ -20,6 +53,8 @@ public partial class DashboardWindow : Window
         _currentUser = currentUser;
 
         Loaded += DashboardWindow_Loaded;
+
+
     }
 
     private async void DashboardWindow_Loaded(
@@ -39,6 +74,7 @@ public partial class DashboardWindow : Window
 
         await LoadSalonsAsync();
         await LoadDashboardAsync();
+        LoadChartsDemo();
     }
 
     private async Task LoadSalonsAsync()
