@@ -313,4 +313,51 @@ public partial class DashboardWindow : Window
 
         await LoadDashboardAsync();
     }
+
+
+
+
+
+
+    private async void AddServiceButton_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new AddServiceWindow(_apiService)
+        {
+            Owner = this
+        };
+
+        var result = window.ShowDialog();
+
+        if (result == true)
+        {
+            await LoadDashboardAsync();
+        }
+    }
+    private async void AddEmployeeButton_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new AddEmployeeWindow(_apiService)
+        {
+            Owner = this
+        };
+
+        var result = window.ShowDialog();
+
+        if (result == true)
+        {
+            await LoadDashboardAsync();
+        }
+    }
+    private void AppointmentsButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        var window = new AppointmentsWindow(
+            _apiService,
+            _currentUser)
+        {
+            Owner = this
+        };
+
+        window.ShowDialog();
+    }
 }

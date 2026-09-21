@@ -1,0 +1,149 @@
+﻿<Window x:Class="eTermin.Desktop.AddServiceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Dodaj uslugu"
+        Width="509"
+        Height="640"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8F6FA">
+
+    <Border Margin="10,0,10,7"
+            Background="White"
+            CornerRadius="18"
+            Padding="25">
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- NASLOV -->
+            <StackPanel Grid.Row="0"
+                        Margin="0,0,0,25">
+
+                <TextBlock Text="Dodaj uslugu"
+                           FontSize="26"
+                           FontWeight="Bold"
+                           Foreground="#2F2635"/>
+
+                <TextBlock Text="Unesite podatke o novoj usluzi."
+                           Margin="0,6,0,0"
+                           FontSize="14"
+                           Foreground="#817784"/>
+
+            </StackPanel>
+
+
+            <!-- FORMA -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto">
+
+                <StackPanel>
+
+                    <!-- SALON -->
+                    <TextBlock Text="Salon"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <ComboBox x:Name="SalonComboBox"
+                              Height="42"
+                              Margin="0,0,0,18"
+                              Padding="10,0"/>
+
+
+                    <!-- NAZIV -->
+                    <TextBlock Text="Naziv usluge"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="NameTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,18"/>
+
+
+                    <!-- OPIS -->
+                    <TextBlock Text="Opis"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="DescriptionTextBox"
+                             Height="80"
+                             Padding="10"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Margin="0,0,0,18"/>
+
+
+                    <!-- TRAJANJE -->
+                    <TextBlock Text="Trajanje (minute)"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="DurationTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,18"/>
+
+
+                    <!-- CIJENA -->
+                    <TextBlock Text="Cijena (KM)"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="PriceTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,18"/>
+
+
+                    <!-- AKTIVNA -->
+                    <CheckBox x:Name="IsActiveCheckBox"
+                              Content="Usluga je aktivna"
+                              IsChecked="True"
+                              FontWeight="SemiBold"
+                              Foreground="#403747"
+                              Margin="0,0,0,10"/>
+
+                </StackPanel>
+
+            </ScrollViewer>
+
+
+            <!-- DUGMAD -->
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,20,0,0">
+
+                <Button Content="Otkaži"
+                        Width="110"
+                        Height="42"
+                        Margin="0,0,10,0"
+                        Click="CancelButton_Click"/>
+
+                <Button Content="Dodaj uslugu"
+                        Width="130"
+                        Height="42"
+                        Background="#6D4C73"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="AddButton_Click"/>
+
+            </StackPanel>
+
+        </Grid>
+
+    </Border>
+
+</Window>

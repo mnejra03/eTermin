@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                 xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         Title="eTermin - Dashboard"
-        Height="996"
+        Height="909"
         Width="1260"
         WindowStartupLocation="CenterScreen"
         Background="#F7F4F8">
@@ -1057,7 +1057,7 @@
 
                     <!-- PROFIL / HEADER -->
 
-                    <StackPanel Margin="0,0,0,30">
+                    <StackPanel Margin="0,0,0,40">
 
                         <TextBlock
                     Text="eTermin"
@@ -1080,13 +1080,14 @@
                 Text="Brze akcije"
                 FontSize="12"
                 FontWeight="Bold"
-                Foreground="#2D1B36"/>
+                Foreground="#2D1B36"
+                        Margin="0,80,0,0"/>
 
                     <TextBlock
                 Text="Najčešće korištene opcije"
                 FontSize="10"
                 Foreground="#999999"
-                Margin="0,1,0,18"/>
+                Margin="0,1,0,10"/>
 
 
                     <!-- DODAJ USLUGU -->
@@ -1099,6 +1100,7 @@
                 BorderThickness="0"
                 Cursor="Hand"
                 ToolTip="Dodaj uslugu"
+                        Click="AddServiceButton_Click"
 >
 
                         <Grid>
@@ -1143,7 +1145,8 @@
                 Background="#F7F2FA"
                 BorderThickness="0"
                 Cursor="Hand"
-                ToolTip="Dodaj zaposlenika">
+                ToolTip="Dodaj zaposlenika"
+                        Click="AddEmployeeButton_Click">
 
                         <Grid>
 
@@ -1188,7 +1191,8 @@
                 Background="#F7F2FA"
                 BorderThickness="0"
                 Cursor="Hand"
-                ToolTip="Pregled termina">
+                ToolTip="Pregled termina"
+                        Click="AppointmentsButton_Click">
 
                         <Grid>
 
@@ -1229,7 +1233,7 @@
 
                     <Button
                 Height="62"
-                Margin="0,0,0,25"
+                Margin="0,0,0,50"
                 Background="#F7F2FA"
                 BorderThickness="0"
                 Cursor="Hand"
@@ -1266,10 +1270,6 @@
                         </Grid>
 
                     </Button>
-
-
-                    <!-- SLOBODNI TERMINI -->
-
                     <Border
                 Background="#F7F2FA"
                 CornerRadius="12"
@@ -1332,6 +1332,9 @@
                         </StackPanel>
 
                     </Border>
+
+
+                    <!-- SLOBODNI TERMINI -->
 
                 </StackPanel>
 
