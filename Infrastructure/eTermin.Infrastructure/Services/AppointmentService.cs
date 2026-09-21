@@ -17,21 +17,21 @@ public class AppointmentService : IAppointmentService
 
     public async Task<List<AppointmentDto>> GetAllAsync()
     {
-        return await _context.Appointments
-            .Select(a => new AppointmentDto
-            {
-                Id = a.Id,
-                UserId = a.UserId,
-                SalonId = a.SalonId,
-                EmployeeId = a.EmployeeId,
-                ServiceId = a.ServiceId,
-                StartTime = a.StartTime,
-                EndTime = a.EndTime,
-                Status = a.Status,
-                Price = a.Price,
-                CreatedAt = a.CreatedAt
-            })
-            .ToListAsync();
+       return await _context.Appointments
+    .Select(a => new AppointmentDto
+    {
+        Id = a.Id,
+        UserId = a.UserId,
+        SalonId = a.SalonId,
+        EmployeeId = a.EmployeeId,
+        ServiceId = a.ServiceId,
+        StartTime = a.StartTime,
+        EndTime = a.EndTime,
+        Status = a.Status,
+        Price = a.Price,
+        CreatedAt = a.CreatedAt
+    })
+    .ToListAsync();
     }
 
     public async Task<AppointmentDto?> GetByIdAsync(int id)
@@ -350,5 +350,62 @@ public class AppointmentService : IAppointmentService
         }
 
         return availableSlots;
+    }
+
+    public async Task<List<DashboardAppointmentDto>> GetDashboardAppointmentsAsync(
+    DateTime date,
+    int? salonId)
+    {
+        var query = _context.Appointments
+            .Where(a =>
+                a.StartTime.Date == date.Date &&
+                a.Status != "Cancelled");
+
+        if (salonId.HasValue)
+        {
+            query = query.Where(a =>
+                a.SalonId == salonId.Value);
+        }
+
+        var appointments = await query
+            .OrderBy(a => a.StartTime)
+            .ToListAsync();
+
+        var result = new List<DashboardAppointmentDto>();
+
+        foreach (var appointment in appointments)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x => x.Id == appointment.UserId);
+
+            var salon = await _context.Salons
+                .FirstOrDefaultAsync(x => x.Id == appointment.SalonId);
+
+            var service = await _context.Services
+                .FirstOrDefaultAsync(x => x.Id == appointment.ServiceId);
+
+            result.Add(new DashboardAppointmentDto
+            {
+                Id = appointment.Id,
+
+                UserName = user == null
+                    ? "Nepoznat korisnik"
+                    : $"{user.FirstName} {user.LastName}",
+
+                SalonName = salon?.Name ?? "Nepoznat salon",
+
+                ServiceName = service?.Name ?? "Nepoznata usluga",
+
+                StartTime = appointment.StartTime,
+
+                EndTime = appointment.EndTime,
+
+                Status = appointment.Status,
+
+                Price = appointment.Price
+            });
+        }
+
+        return result;
     }
 }

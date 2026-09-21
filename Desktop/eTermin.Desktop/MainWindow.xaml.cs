@@ -60,10 +60,14 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var dashboardWindow = new DashboardWindow();
+            _apiService.SetToken(response.Token);
+
+            var dashboardWindow =
+    new DashboardWindow(
+        _apiService,
+        response);
 
             dashboardWindow.Show();
-
             Close();
         }
         catch
