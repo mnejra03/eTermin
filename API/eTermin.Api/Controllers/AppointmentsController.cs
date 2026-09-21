@@ -142,6 +142,19 @@ public class AppointmentsController : ControllerBase
         return Ok(appointments);
     }
 
+    [HttpGet("dashboard")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<DashboardAppointmentDto>>>
+    GetDashboardAppointments(int? salonId)
+    {
+        var appointments =
+            await _appointmentService.GetDashboardAppointmentsAsync(
+                DateTime.Today,
+                salonId);
+
+        return Ok(appointments);
+    }
+
     [HttpGet("my")]
     public async Task<ActionResult<List<AppointmentDto>>> GetMyAppointments()
     {

@@ -1,4 +1,5 @@
 ﻿using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
 namespace eTermin.Desktop.Services;
@@ -23,6 +24,11 @@ public class ApiService
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
     }
 
+    public void SetToken(string token)
+    {
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+    }
 
     public async Task<T?> GetAsync<T>(string endpoint)
     {
@@ -33,13 +39,9 @@ public class ApiService
         string endpoint,
         TRequest request)
     {
-        var response = await _httpClient.PostAsJsonAsync(
-            endpoint,
-            request);
-
+        var response = await _httpClient.PostAsJsonAsync(endpoint, request);
         response.EnsureSuccessStatusCode();
 
-        return await response.Content
-            .ReadFromJsonAsync<TResponse>();
+        return await response.Content.ReadFromJsonAsync<TResponse>();
     }
 }
