@@ -12,35 +12,80 @@ public partial class DashboardWindow : Window
     private readonly AuthResponse _currentUser;
     private bool _isLoadingDashboard;
 
-    private void LoadChartsDemo()
+    private void LoadCharts(DashboardStatistics statistics)
     {
+        // ==========================================
+        // GRAF 1 - REZERVACIJE PO DANIMA
+        // ==========================================
+
+        var orderedDays =
+            statistics.ReservationsByDay
+                .OrderBy(x => x.Date)
+                .ToList();
+
+        var dayLabels =
+            orderedDays
+                .Select(x =>
+                    $"{GetDayName(x.Date)}\n{x.Date:dd.MM.}")
+                .ToArray();
+
+        ReservationsByDayChart.XAxes =
+        [
+            new Axis
+        {
+            Labels = dayLabels
+        }
+        ];
+
+        ReservationsByDayChart.YAxes =
+        [
+            new Axis
+        {
+            Name = "Broj rezervacija"
+        }
+        ];
+
         ReservationsByDayChart.Series =
         [
             new LineSeries<int>
         {
-            Values = [12, 18, 15, 22, 30, 25, 10],
+            Values =
+                orderedDays
+                    .Select(x => x.Count)
+                    .ToArray(),
+
             Fill = null
         }
         ];
 
+
+        // ==========================================
+        // GRAF 2 - STATUSI REZERVACIJA
+        // ==========================================
+
         ReservationStatusChart.Series =
-        [
-            new PieSeries<int>
+            statistics.ReservationsByStatus
+                .Select(x => new PieSeries<int>
+                {
+                    Values = [x.Count],
+                    Name = x.Status
+                })
+                .ToArray();
+    }
+
+    private string GetDayName(DateTime date)
+    {
+        return date.DayOfWeek switch
         {
-            Values = [40],
-            Name = "Završeno"
-        },
-        new PieSeries<int>
-        {
-            Values = [15],
-            Name = "Čekanje"
-        },
-        new PieSeries<int>
-        {
-            Values = [8],
-            Name = "Otkazano"
-        }
-        ];
+            DayOfWeek.Monday => "PON",
+            DayOfWeek.Tuesday => "UTO",
+            DayOfWeek.Wednesday => "SRI",
+            DayOfWeek.Thursday => "ČET",
+            DayOfWeek.Friday => "PET",
+            DayOfWeek.Saturday => "SUB",
+            DayOfWeek.Sunday => "NED",
+            _ => ""
+        };
     }
 
     public DashboardWindow(
@@ -74,7 +119,6 @@ public partial class DashboardWindow : Window
 
         await LoadSalonsAsync();
         await LoadDashboardAsync();
-        LoadChartsDemo();
     }
 
     private async Task LoadSalonsAsync()
@@ -131,26 +175,48 @@ public partial class DashboardWindow : Window
                 SalonFilterComboBox.SelectedItem
                 as SalonFilterItem;
 
-            string statisticsEndpoint =
-                "Statistics/dashboard";
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
+
+            var chartFrom = today.AddDays(-6);
+
+
+            // ==========================================
+            // DANAŠNJA STATISTIKA - KPI KARTICE
+            // ==========================================
+
+            string todayStatisticsEndpoint =
+                $"Statistics/dashboard?from={today:yyyy-MM-dd}&to={tomorrow:yyyy-MM-dd}";
+
+
+            // ==========================================
+            // STATISTIKA ZA 7 DANA - GRAFOVI
+            // ==========================================
+
+            string chartStatisticsEndpoint =
+    $"Statistics/dashboard?from={chartFrom:yyyy-MM-dd}&to={tomorrow:yyyy-MM-dd}";
 
             string appointmentsEndpoint =
                 "Appointments/dashboard";
 
             if (selectedSalon?.Id.HasValue == true)
             {
-                statisticsEndpoint +=
-                    $"?salonId={selectedSalon.Id.Value}";
+                chartStatisticsEndpoint +=
+                    $"&salonId={selectedSalon.Id.Value}";
 
                 appointmentsEndpoint +=
                     $"?salonId={selectedSalon.Id.Value}";
             }
 
-            var statistics =
-                await _apiService.GetAsync<DashboardStatistics>(
-                    statisticsEndpoint);
+            var todayStatistics =
+    await _apiService.GetAsync<DashboardStatistics>(
+        todayStatisticsEndpoint);
 
-            if (statistics == null)
+            var chartStatistics =
+                await _apiService.GetAsync<DashboardStatistics>(
+                    chartStatisticsEndpoint);
+
+            if (todayStatistics == null || chartStatistics == null)
             {
                 MessageBox.Show(
                     "Nije moguće učitati statistiku.",
@@ -165,30 +231,48 @@ public partial class DashboardWindow : Window
                 await _apiService.GetAsync<List<DashboardAppointment>>(
                     appointmentsEndpoint);
 
-            // Današnji termini
-            TotalAppointmentsText.Text =
-                appointments?.Count.ToString() ?? "0";
+            // ==========================================
+            // STATISTIČKE KARTICE
+            // ==========================================
 
-            // Ostale statistike
+            TotalAppointmentsText.Text =
+    todayStatistics.TotalAppointments.ToString();
+
             TotalUsersText.Text =
-                statistics.TotalUsers.ToString();
+                todayStatistics.TotalUsers.ToString();
 
             TotalSalonsText.Text =
-                statistics.TotalSalons.ToString();
+                todayStatistics.TotalSalons.ToString();
 
             TotalRevenueText.Text =
-                $"{statistics.TotalRevenue:0.00} KM";
+                $"{todayStatistics.TotalRevenue:0.00} KM";
 
-            // Popularna usluga
             MostPopularServiceText.Text =
-                statistics.MostPopularService;
+                todayStatistics.MostPopularService;
 
             MostPopularServiceCountText.Text =
-                $"{statistics.MostPopularServiceCount} rezervacija";
+                $"{todayStatistics.MostPopularServiceCount} rezervacija";
+
+            // Najaktivniji korisnik
+            MostActiveUserText.Text =
+                todayStatistics.MostActiveUser ?? "Nema podataka";
+
+            MostActiveUserCountText.Text =
+                $"{todayStatistics.MostActiveUserCount} rezervacija";
+
+
+            // Najaktivniji salon
+            MostActiveSalonText.Text =
+                todayStatistics.MostActiveSalon ?? "Nema podataka";
+
+            MostActiveSalonCountText.Text =
+                $"{todayStatistics.MostActiveSalonCount} rezervacija";
 
             // Lista današnjih termina
             TodayAppointmentsItemsControl.ItemsSource =
                 appointments;
+
+            LoadCharts(chartStatistics);
         }
         catch (Exception ex)
         {

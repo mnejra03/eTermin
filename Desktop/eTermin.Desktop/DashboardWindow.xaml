@@ -363,51 +363,41 @@
 
                 </Grid>
 
-
                 <!-- STATISTICS CARDS -->
 
                 <UniformGrid Columns="4"
-                             Margin="0,0,0,25">
-
+             Margin="0,0,0,25">
 
                     <!-- APPOINTMENTS -->
 
                     <Border
-                        Background="White"
-                        CornerRadius="12"
-                        Margin="0,0,12,0"
-                        Padding="20">
+        Background="White"
+        CornerRadius="12"
+        Margin="0,0,12,0"
+        Padding="20">
 
                         <StackPanel>
-                            <TextBlock Text="&#xE787;"
-                   FontFamily="Segoe MDL2 Assets"
-                   FontSize="24"
-                   Foreground="#9C27B0"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Center"/>
-                            <Grid Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="134*"/>
-                                    <ColumnDefinition Width="9*"/>
-                                    <ColumnDefinition Width="79*"/>
-                                </Grid.ColumnDefinitions>
 
-                                <TextBlock x:Name="TotalAppointmentsText"
-                   Text="0"
-                   FontSize="28"
-                   FontWeight="Bold"
-                   Foreground="#9C27B0"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Top" Height="38" Margin="102,-13,0,0" Width="18"/>
-
-
-
-
-                            </Grid>
                             <TextBlock
-                                Text="Ukupno termina danas"
-                                Foreground="#888888"
-                                FontSize="16"/>
+                Text="&#xE787;"
+                FontFamily="Segoe MDL2 Assets"
+                FontSize="24"
+                Foreground="#9C27B0"
+                HorizontalAlignment="Left"/>
+
+                            <TextBlock
+                x:Name="TotalAppointmentsText"
+                Text="0"
+                FontSize="28"
+                FontWeight="Bold"
+                Foreground="#9C27B0"
+                Margin="0,12,0,4" Width="17"/>
+
+                            <TextBlock
+                Text="Ukupno termina danas"
+                Foreground="#888888"
+                FontSize="16"/>
+
                         </StackPanel>
 
                     </Border>
@@ -416,41 +406,33 @@
                     <!-- USERS -->
 
                     <Border
-     Background="White"
-     CornerRadius="12"
-     Margin="0,0,12,0"
-     Padding="20">
+        Background="White"
+        CornerRadius="12"
+        Margin="0,0,12,0"
+        Padding="20">
 
                         <StackPanel>
-                            <TextBlock Text="&#xE716;"
-                   FontFamily="Segoe MDL2 Assets"
-                   FontSize="24"
-                   Foreground="#9C27B0"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Center"/>
-                            <Grid Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="134*"/>
-                                    <ColumnDefinition Width="9*"/>
-                                    <ColumnDefinition Width="79*"/>
-                                </Grid.ColumnDefinitions>
 
-                                <TextBlock x:Name="TotalUsersText"
-Text="0"
-FontSize="28"
-FontWeight="Bold"
-Foreground="#9C27B0"
-HorizontalAlignment="Left"
-VerticalAlignment="Top" Height="38" Margin="102,-13,0,0" Width="18"/>
-
-
-
-
-                            </Grid>
                             <TextBlock
-             Text="Ukupno korisnika "
-             Foreground="#888888"
-             FontSize="16"/>
+                Text="&#xE716;"
+                FontFamily="Segoe MDL2 Assets"
+                FontSize="24"
+                Foreground="#9C27B0"
+                HorizontalAlignment="Left"/>
+
+                            <TextBlock
+                x:Name="TotalUsersText"
+                Text="0"
+                FontSize="28"
+                FontWeight="Bold"
+                Foreground="#9C27B0"
+                Margin="0,12,0,4" Width="17"/>
+
+                            <TextBlock
+                Text="Ukupno korisnika"
+                Foreground="#888888"
+                FontSize="16"/>
+
                         </StackPanel>
 
                     </Border>
@@ -459,41 +441,33 @@ VerticalAlignment="Top" Height="38" Margin="102,-13,0,0" Width="18"/>
                     <!-- SALONS -->
 
                     <Border
-     Background="White"
-     CornerRadius="12"
-     Margin="0,0,12,0"
-     Padding="20">
+        Background="White"
+        CornerRadius="12"
+        Margin="0,0,12,0"
+        Padding="20">
 
                         <StackPanel>
-                            <TextBlock Text="&#xE7F1;"
-                   FontFamily="Segoe MDL2 Assets"
-                   FontSize="24"
-                   Foreground="#9C27B0"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Center"/>
-                            <Grid Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="134*"/>
-                                    <ColumnDefinition Width="9*"/>
-                                    <ColumnDefinition Width="79*"/>
-                                </Grid.ColumnDefinitions>
 
-                                <TextBlock x:Name="TotalSalonsText"
-Text="0"
-FontSize="28"
-FontWeight="Bold"
-Foreground="#9C27B0"
-HorizontalAlignment="Left"
-VerticalAlignment="Top" Height="38" Margin="102,-13,0,0" Width="18"/>
-
-
-
-
-                            </Grid>
                             <TextBlock
-             Text="Broj salona "
-             Foreground="#888888"
-             FontSize="16"/>
+                Text="&#xE7F1;"
+                FontFamily="Segoe MDL2 Assets"
+                Foreground="#9C27B0"
+                FontSize="24"
+                HorizontalAlignment="Left"/>
+
+                            <TextBlock
+                x:Name="TotalSalonsText"
+                Text="0"
+                FontSize="28"
+                FontWeight="Bold"
+                Foreground="#9C27B0"
+                Margin="0,12,0,4" Width="17"/>
+
+                            <TextBlock
+                Text="Broj salona"
+                Foreground="#888888"
+                FontSize="16"/>
+
                         </StackPanel>
 
                     </Border>
@@ -502,47 +476,38 @@ VerticalAlignment="Top" Height="38" Margin="102,-13,0,0" Width="18"/>
                     <!-- REVENUE -->
 
                     <Border
-     Background="White"
-     CornerRadius="12"
-     Margin="0,0,12,0"
-     Padding="20">
+        Background="White"
+        CornerRadius="12"
+        Margin="0,0,12,0"
+        Padding="20">
 
                         <StackPanel>
-                            <TextBlock Text="&#xE8C8;"
-                   FontFamily="Segoe MDL2 Assets"
-                   FontSize="24"
-                   Foreground="#9C27B0"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Center"/>
-                            <Grid Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="134*"/>
-                                    <ColumnDefinition Width="9*"/>
-                                    <ColumnDefinition Width="79*"/>
-                                </Grid.ColumnDefinitions>
 
-                                <TextBlock x:Name="TotalRevenueText"
-Text="0"
-FontSize="28"
-FontWeight="Bold"
-Foreground="#9C27B0"
-HorizontalAlignment="Left"
-VerticalAlignment="Top" Height="38" Margin="102,-13,0,0" Width="18"/>
-
-
-
-
-                            </Grid>
                             <TextBlock
-             Text="Prihod (KM)"
-             Foreground="#888888"
-             FontSize="16"/>
+                Text="&#xE8C8;"
+                FontFamily="Segoe MDL2 Assets"
+                FontSize="24"
+                Foreground="#9C27B0"
+                HorizontalAlignment="Left"/>
+
+                            <TextBlock
+                x:Name="TotalRevenueText"
+                Text="0"
+                FontSize="28"
+                FontWeight="Bold"
+                Foreground="#9C27B0"
+                Margin="0,12,0,4" Width="17"/>
+
+                            <TextBlock
+                Text="Prihod (KM)"
+                Foreground="#888888"
+                FontSize="16"/>
+
                         </StackPanel>
 
                     </Border>
 
                 </UniformGrid>
-
 
 
                 <!-- CHARTS -->

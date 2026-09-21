@@ -20,6 +20,10 @@ public class StatisticsService : IStatisticsService
             DateTime? to,
             int? salonId)
     {
+        // ==========================================
+        // APPOINTMENTS QUERY
+        // ==========================================
+
         var appointmentsQuery =
             _context.Appointments
                 .AsQueryable();
@@ -40,6 +44,8 @@ public class StatisticsService : IStatisticsService
                     x.StartTime < endDate);
         }
 
+        // Ako je odabran salon,
+        // uzimamo samo njegove termine.
         if (salonId.HasValue)
         {
             appointmentsQuery =
@@ -47,19 +53,74 @@ public class StatisticsService : IStatisticsService
                     x.SalonId == salonId.Value);
         }
 
-        var appointments =
+        // ==========================================
+        // SVI TERMINI ZA GRAF STATUSA
+        // ==========================================
+
+        var allAppointments =
             await appointmentsQuery
-                .Where(x => x.Status != "Cancelled")
                 .ToListAsync();
+
+        // ==========================================
+        // AKTIVNI TERMINI ZA KPI STATISTIKU
+        // ==========================================
+
+        // Otkazani termini ne ulaze u:
+        // - ukupan broj rezervacija
+        // - prihod
+        // - najpopularniju uslugu
+        var appointments =
+            allAppointments
+                .Where(x => x.Status != "Cancelled")
+                .ToList();
+
+
+        // ==========================================
+        // UKUPAN BROJ REZERVACIJA
+        // ==========================================
 
         var totalAppointments =
             appointments.Count;
 
+
+        // ==========================================
+        // UKUPAN PRIHOD
+        // ==========================================
+
         var totalRevenue =
             appointments.Sum(x => x.Price);
 
-        var totalUsers =
-            await _context.Users.CountAsync();
+
+        // ==========================================
+        // KORISNICI
+        // ==========================================
+
+        int totalUsers;
+
+        if (salonId.HasValue)
+        {
+            // Kada je odabran salon,
+            // brojimo jedinstvene korisnike
+            // koji imaju rezervaciju u tom salonu.
+
+            totalUsers =
+                appointments
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .Count();
+        }
+        else
+        {
+            // "Svi saloni" -> svi korisnici sistema.
+
+            totalUsers =
+                await _context.Users.CountAsync();
+        }
+
+
+        // ==========================================
+        // SALONI
+        // ==========================================
 
         var totalSalonsQuery =
             _context.Salons
@@ -75,6 +136,11 @@ public class StatisticsService : IStatisticsService
         var totalSalons =
             await totalSalonsQuery.CountAsync();
 
+
+        // ==========================================
+        // NAJPOPULARNIJA USLUGA
+        // ==========================================
+
         var mostPopularService =
             appointments
                 .GroupBy(x => x.ServiceId)
@@ -82,6 +148,7 @@ public class StatisticsService : IStatisticsService
                 .FirstOrDefault();
 
         string? serviceName = null;
+
         var serviceCount = 0;
 
         if (mostPopularService != null)
@@ -92,21 +159,154 @@ public class StatisticsService : IStatisticsService
             var service =
                 await _context.Services
                     .FirstOrDefaultAsync(x =>
-                        x.Id ==
-                        mostPopularService.Key);
+                        x.Id == mostPopularService.Key);
 
             serviceName =
                 service?.Name;
         }
+        // ==========================================
+        // NAJAKTIVNIJI KORISNIK
+        // ==========================================
+
+        string? activeUserName = null;
+        var activeUserCount = 0;
+
+        var mostActiveUser =
+            appointments
+                .GroupBy(x => x.UserId)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+
+        if (mostActiveUser != null)
+        {
+            activeUserCount = mostActiveUser.Count();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x =>
+                    x.Id == mostActiveUser.Key);
+
+            if (user != null)
+            {
+                activeUserName =
+                    $"{user.FirstName} {user.LastName}";
+            }
+        }
+
+        // ==========================================
+        // NAJAKTIVNIJI SALON
+        // ==========================================
+
+        string? activeSalonName = null;
+        var activeSalonCount = 0;
+
+        var mostActiveSalon =
+            appointments
+                .GroupBy(x => x.SalonId)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault();
+
+        if (mostActiveSalon != null)
+        {
+            activeSalonCount = mostActiveSalon.Count();
+
+            var salon = await _context.Salons
+                .FirstOrDefaultAsync(x =>
+                    x.Id == mostActiveSalon.Key);
+
+            if (salon != null)
+            {
+                activeSalonName = salon.Name;
+            }
+        }
+
+
+        // ==========================================
+        // REZERVACIJE PO DANIMA
+        // ==========================================
+
+        var reservationsByDay = new List<DailyReservationDto>();
+
+        if (from.HasValue && to.HasValue)
+        {
+            var startDate = from.Value.Date;
+            var endDate = to.Value.Date.AddDays(1);
+
+            for (var date = startDate;
+                 date < endDate;
+                 date = date.AddDays(1))
+            {
+                var count =
+                    appointments.Count(x =>
+                        x.StartTime.Date == date);
+
+                reservationsByDay.Add(
+                    new DailyReservationDto
+                    {
+                        Date = date,
+                        Count = count
+                    });
+            }
+        }
+
+
+        // ==========================================
+        // REZERVACIJE PO STATUSU
+        // ==========================================
+
+        var reservationsByStatus =
+            allAppointments
+                .GroupBy(x => x.Status)
+                .OrderByDescending(g => g.Count())
+                .Select(g => new ReservationStatusDto
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToList();
+
+
+        // ==========================================
+        // REZULTAT
+        // ==========================================
 
         return new DashboardStatisticsDto
         {
-            TotalAppointments = totalAppointments,
-            TotalUsers = totalUsers,
-            TotalSalons = totalSalons,
-            TotalRevenue = totalRevenue,
-            MostPopularService = serviceName,
-            MostPopularServiceCount = serviceCount
+            TotalAppointments =
+         totalAppointments,
+
+            TotalUsers =
+         totalUsers,
+
+            TotalSalons =
+         totalSalons,
+
+            TotalRevenue =
+         totalRevenue,
+
+            MostPopularService =
+         serviceName,
+
+            MostPopularServiceCount =
+         serviceCount,
+
+            MostActiveUser =
+         activeUserName,
+
+            MostActiveUserCount =
+         activeUserCount,
+
+            MostActiveSalon =
+         activeSalonName,
+
+            MostActiveSalonCount =
+         activeSalonCount,
+
+            ReservationsByDay =
+         reservationsByDay,
+
+            ReservationsByStatus =
+         reservationsByStatus
         };
-    }
+    } 
 }
+    
