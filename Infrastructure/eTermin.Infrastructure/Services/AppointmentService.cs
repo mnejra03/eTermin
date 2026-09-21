@@ -34,6 +34,103 @@ public class AppointmentService : IAppointmentService
     .ToListAsync();
     }
 
+    public async Task<List<AppointmentListDto>> GetAllForListAsync()
+    {
+        return await _context.Appointments
+            .Select(a => new AppointmentListDto
+            {
+                Id = a.Id,
+
+                UserId = a.UserId,
+
+                SalonId = a.SalonId,
+
+                EmployeeId = a.EmployeeId,
+
+                ServiceId = a.ServiceId,
+
+                UserName = _context.Users
+                    .Where(u => u.Id == a.UserId)
+                    .Select(u => u.FirstName + " " + u.LastName)
+                    .FirstOrDefault() ?? "",
+
+                SalonName = _context.Salons
+                    .Where(s => s.Id == a.SalonId)
+                    .Select(s => s.Name)
+                    .FirstOrDefault() ?? "",
+
+                EmployeeName = _context.Employees
+                    .Where(e => e.Id == a.EmployeeId)
+                    .Select(e => e.FirstName + " " + e.LastName)
+                    .FirstOrDefault() ?? "",
+
+                ServiceName = _context.Services
+                    .Where(s => s.Id == a.ServiceId)
+                    .Select(s => s.Name)
+                    .FirstOrDefault() ?? "",
+
+                StartTime = a.StartTime,
+
+                EndTime = a.EndTime,
+
+                Status = a.Status,
+
+                Price = a.Price,
+
+                CreatedAt = a.CreatedAt
+            })
+            .ToListAsync();
+    }
+    public async Task<List<AppointmentListDto>> GetMyForListAsync(
+     int userId)
+    {
+        return await _context.Appointments
+            .Where(a => a.UserId == userId)
+            .Select(a => new AppointmentListDto
+            {
+                Id = a.Id,
+
+                UserId = a.UserId,
+
+                SalonId = a.SalonId,
+
+                EmployeeId = a.EmployeeId,
+
+                ServiceId = a.ServiceId,
+
+                UserName = _context.Users
+                    .Where(u => u.Id == a.UserId)
+                    .Select(u => u.FirstName + " " + u.LastName)
+                    .FirstOrDefault() ?? "",
+
+                SalonName = _context.Salons
+                    .Where(s => s.Id == a.SalonId)
+                    .Select(s => s.Name)
+                    .FirstOrDefault() ?? "",
+
+                EmployeeName = _context.Employees
+                    .Where(e => e.Id == a.EmployeeId)
+                    .Select(e => e.FirstName + " " + e.LastName)
+                    .FirstOrDefault() ?? "",
+
+                ServiceName = _context.Services
+                    .Where(s => s.Id == a.ServiceId)
+                    .Select(s => s.Name)
+                    .FirstOrDefault() ?? "",
+
+                StartTime = a.StartTime,
+
+                EndTime = a.EndTime,
+
+                Status = a.Status,
+
+                Price = a.Price,
+
+                CreatedAt = a.CreatedAt
+            })
+            .ToListAsync();
+    }
+
     public async Task<AppointmentDto?> GetByIdAsync(int id)
     {
         return await _context.Appointments
@@ -175,35 +272,69 @@ public class AppointmentService : IAppointmentService
         // Zapamtimo stari status
         var oldStatus = appointment.Status;
 
-        // Uzimamo postojeću uslugu termina
+        // Provjera da salon postoji
+        var salon = await _context.Salons
+            .FirstOrDefaultAsync(x => x.Id == appointmentDto.SalonId);
+
+        if (salon == null)
+            throw new Exception("Salon ne postoji.");
+
+        // Uzimamo NOVU odabranu uslugu
         var service = await _context.Services
-            .FirstOrDefaultAsync(x => x.Id == appointment.ServiceId);
+            .FirstOrDefaultAsync(x =>
+                x.Id == appointmentDto.ServiceId &&
+                x.SalonId == appointmentDto.SalonId);
 
         if (service == null)
-            throw new Exception("Usluga ne postoji.");
+            throw new Exception(
+                "Odabrana usluga ne postoji u odabranom salonu.");
+
+        // Provjera da zaposlenik postoji
+        var employee = await _context.Employees
+            .FirstOrDefaultAsync(x =>
+                x.Id == appointmentDto.EmployeeId &&
+                x.SalonId == appointmentDto.SalonId);
+
+        if (employee == null)
+            throw new Exception(
+                "Odabrani zaposlenik ne pripada odabranom salonu.");
 
         // Backend sam računa EndTime
+        // prema trajanju NOVE usluge.
         var startTime = appointmentDto.StartTime;
 
         var endTime = startTime.AddMinutes(
             service.DurationInMinutes);
 
-        // Provjera preklapanja
+        // Provjera preklapanja za NOVOG zaposlenika
         var overlappingAppointment =
             await _context.Appointments.AnyAsync(a =>
                 a.Id != id &&
-                a.EmployeeId == appointment.EmployeeId &&
+                a.EmployeeId == appointmentDto.EmployeeId &&
                 a.Status != "Cancelled" &&
                 a.StartTime < endTime &&
                 a.EndTime > startTime);
 
         if (overlappingAppointment)
+        {
             throw new Exception(
                 "Zaposlenik već ima termin u odabranom vremenu.");
+        }
 
-        // Mijenjamo samo dozvoljene podatke
+        // Ažuriranje termina
+        appointment.SalonId = appointmentDto.SalonId;
+
+        appointment.ServiceId = appointmentDto.ServiceId;
+
+        appointment.EmployeeId = appointmentDto.EmployeeId;
+
         appointment.StartTime = startTime;
+
         appointment.EndTime = endTime;
+
+        // Cijena dolazi iz odabrane usluge.
+        // Admin je ne unosi ručno.
+        appointment.Price = service.Price;
 
         if (!string.IsNullOrWhiteSpace(appointmentDto.Status))
         {
@@ -222,14 +353,16 @@ public class AppointmentService : IAppointmentService
                 title = "Termin potvrđen";
 
                 message =
-                    $"Vaš termin je potvrđen za {appointment.StartTime:dd.MM.yyyy. HH:mm}.";
+                    $"Vaš termin je potvrđen za " +
+                    $"{appointment.StartTime:dd.MM.yyyy. HH:mm}.";
             }
             else if (appointment.Status == "Cancelled")
             {
                 title = "Termin otkazan";
 
                 message =
-                    $"Vaš termin za {appointment.StartTime:dd.MM.yyyy. HH:mm} je otkazan.";
+                    $"Vaš termin za " +
+                    $"{appointment.StartTime:dd.MM.yyyy. HH:mm} je otkazan.";
             }
 
             if (title != null && message != null)

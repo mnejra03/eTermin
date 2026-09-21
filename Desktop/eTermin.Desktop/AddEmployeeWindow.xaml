@@ -1,0 +1,170 @@
+﻿<Window x:Class="eTermin.Desktop.AddEmployeeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Dodaj zaposlenika"
+        Width="520"
+        Height="700"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8F6FA">
+
+    <Border Margin="25"
+            Background="White"
+            CornerRadius="18"
+            Padding="25">
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- NASLOV -->
+            <StackPanel Grid.Row="0"
+                        Margin="0,0,0,22">
+
+                <TextBlock Text="Dodaj zaposlenika"
+                           FontSize="26"
+                           FontWeight="Bold"
+                           Foreground="#2F2635"/>
+
+                <TextBlock Text="Unesite podatke o novom zaposleniku."
+                           Margin="0,6,0,0"
+                           FontSize="14"
+                           Foreground="#817784"/>
+
+            </StackPanel>
+
+
+            <!-- FORMA -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto">
+
+                <StackPanel>
+
+                    <!-- SALON -->
+                    <TextBlock Text="Salon"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <ComboBox x:Name="SalonComboBox"
+                              Height="42"
+                              Margin="0,0,0,16"
+                              Padding="10,0"/>
+
+
+                    <!-- IME -->
+                    <TextBlock Text="Ime"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="FirstNameTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,16"/>
+
+
+                    <!-- PREZIME -->
+                    <TextBlock Text="Prezime"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="LastNameTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,16"/>
+
+
+                    <!-- EMAIL -->
+                    <TextBlock Text="E-mail"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="EmailTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,16"/>
+
+
+                    <!-- TELEFON -->
+                    <TextBlock Text="Telefon"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="PhoneNumberTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,16"/>
+
+
+                    <!-- POZICIJA -->
+                    <TextBlock Text="Pozicija"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="PositionTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,16"/>
+
+
+                    <!-- RADNO VRIJEME -->
+                    <TextBlock Text="Radno vrijeme"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <TextBox x:Name="WorkingHoursTextBox"
+                             Height="42"
+                             Padding="10"
+                             Margin="0,0,0,16"/>
+
+
+                    <!-- AKTIVAN -->
+                    <CheckBox x:Name="IsActiveCheckBox"
+                              Content="Zaposlenik je aktivan"
+                              IsChecked="True"
+                              FontWeight="SemiBold"
+                              Foreground="#403747"
+                              Margin="0,0,0,10"/>
+
+                </StackPanel>
+
+            </ScrollViewer>
+
+
+            <!-- DUGMAD -->
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,18,0,0">
+
+                <Button Content="Otkaži"
+                        Width="110"
+                        Height="42"
+                        Margin="0,0,10,0"
+                        Click="CancelButton_Click"/>
+
+                <Button Content="Dodaj zaposlenika"
+                        Width="145"
+                        Height="42"
+                        Background="#6D4C73"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Click="AddButton_Click"/>
+
+            </StackPanel>
+
+        </Grid>
+
+    </Border>
+
+</Window>

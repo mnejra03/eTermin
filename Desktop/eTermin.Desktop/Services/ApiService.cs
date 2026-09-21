@@ -44,4 +44,23 @@ public class ApiService
 
         return await response.Content.ReadFromJsonAsync<TResponse>();
     }
+
+    public async Task<bool> PutAsync<TRequest>(
+    string endpoint,
+    TRequest request)
+    {
+        var response =
+            await _httpClient.PutAsJsonAsync(endpoint, request);
+
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> DeleteAsync(
+    string endpoint)
+    {
+        var response =
+            await _httpClient.DeleteAsync(endpoint);
+
+        return response.IsSuccessStatusCode;
+    }
 }

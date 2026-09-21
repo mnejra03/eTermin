@@ -90,17 +90,24 @@ public class AppointmentsController : ControllerBase
             if (existingAppointment == null)
                 return NotFound();
 
-            if (existingAppointment.UserId != userId &&
-                !User.IsInRole("Admin"))
+            var isAdmin = User.IsInRole("Admin");
+
+            if (existingAppointment.UserId != userId && !isAdmin)
             {
                 return Forbid();
             }
 
+            // Korisnik ne može mijenjati vlasnika termina.
             appointmentDto.UserId = existingAppointment.UserId;
-            appointmentDto.SalonId = existingAppointment.SalonId;
-            appointmentDto.EmployeeId = existingAppointment.EmployeeId;
-            appointmentDto.ServiceId = existingAppointment.ServiceId;
-            appointmentDto.Price = existingAppointment.Price;
+
+            // Admin može mijenjati:
+            // SalonId
+            // EmployeeId
+            // ServiceId
+            // StartTime
+            // EndTime
+            // Status
+            // Price
 
             var updated =
                 await _appointmentService.UpdateAsync(
@@ -135,9 +142,10 @@ public class AppointmentsController : ControllerBase
 
     [HttpGet("admin")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<List<AppointmentDto>>> GetAllAppointmentsForAdmin()
+    public async Task<ActionResult<List<AppointmentListDto>>> GetAllAppointmentsForAdmin()
     {
-        var appointments = await _appointmentService.GetAllAsync();
+        var appointments =
+            await _appointmentService.GetAllForListAsync();
 
         return Ok(appointments);
     }
@@ -156,7 +164,7 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet("my")]
-    public async Task<ActionResult<List<AppointmentDto>>> GetMyAppointments()
+    public async Task<ActionResult<List<AppointmentListDto>>> GetMyAppointments()
     {
         var userIdClaim = User.FindFirst(
             System.Security.Claims.ClaimTypes.NameIdentifier);
@@ -166,14 +174,10 @@ public class AppointmentsController : ControllerBase
 
         var userId = int.Parse(userIdClaim.Value);
 
-        var appointments = await _appointmentService
-            .GetAllAsync();
+        var appointments =
+            await _appointmentService.GetMyForListAsync(userId);
 
-        var myAppointments = appointments
-            .Where(x => x.UserId == userId)
-            .ToList();
-
-        return Ok(myAppointments);
+        return Ok(appointments);
     }
 
     [HttpGet("available-slots")]
