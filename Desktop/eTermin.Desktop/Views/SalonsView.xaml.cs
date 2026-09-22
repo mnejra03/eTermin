@@ -1,6 +1,7 @@
-﻿using System.Windows;
-using eTermin.Desktop.Models;
+﻿using eTermin.Desktop.Models;
 using eTermin.Desktop.Services;
+using eTermin.Desktop.Windows;
+using System.Windows;
 
 namespace eTermin.Desktop.Views;
 
@@ -69,9 +70,14 @@ public partial class SalonsView : System.Windows.Controls.UserControl
     }
 
     private void SearchTextBox_TextChanged(
-        object sender,
-        System.Windows.Controls.TextChangedEventArgs e)
+    object sender,
+    System.Windows.Controls.TextChangedEventArgs e)
     {
+        SearchPlaceholderText.Visibility =
+            string.IsNullOrWhiteSpace(SearchTextBox.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
         var search =
             SearchTextBox.Text
                 .Trim()
@@ -97,14 +103,137 @@ public partial class SalonsView : System.Windows.Controls.UserControl
             filtered;
     }
 
-    private void AddSalonButton_Click(
+    private async void AddSalonButton_Click(
+     object sender,
+     RoutedEventArgs e)
+    {
+        var window =
+            new AddSalonWindow(_apiService)
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+        window.ShowDialog();
+
+        await LoadSalonsAsync();
+    }
+
+    private void DetailsSalonButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element)
+            return;
+
+        if (element.DataContext is not Salon salon)
+            return;
+
+        var window =
+            new SalonDetailsWindow(salon)
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+        window.ShowDialog();
+    }
+
+    private async void EditSalonButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element)
+            return;
+
+        if (element.DataContext is not Salon salon)
+            return;
+
+        var window =
+            new EditSalonWindow(
+                _apiService,
+                salon)
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+        var result = window.ShowDialog();
+
+        if (result == true)
+        {
+            await LoadSalonsAsync();
+        }
+    }
+
+    private async void DeleteSalonButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element)
+            return;
+
+        if (element.DataContext is not Salon salon)
+            return;
+
+        var result = MessageBox.Show(
+            $"Da li želite obrisati salon \"{salon.Name}\"?\n\n" +
+            "Ova radnja će trajno obrisati salon.",
+            "Brisanje salona",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            var deleted =
+                await _apiService.DeleteAsync(
+                    $"Salons/{salon.Id}");
+
+            if (!deleted)
+            {
+                MessageBox.Show(
+                    "Salon nije moguće obrisati.",
+                    "eTermin",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
+
+            MessageBox.Show(
+                "Salon je uspješno obrisan.",
+                "eTermin",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+
+            await LoadSalonsAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Greška pri brisanju salona:\n{ex.Message}",
+                "eTermin",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private void SearchTextBox_GotFocus(
+    object sender,
+    RoutedEventArgs e)
+    {
+        SearchPlaceholderText.Visibility =
+            Visibility.Collapsed;
+    }
+
+    private void SearchTextBox_LostFocus(
         object sender,
         RoutedEventArgs e)
     {
-        MessageBox.Show(
-            "Dodavanje salona ćemo implementirati u sljedećem koraku.",
-            "eTermin",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        if (string.IsNullOrWhiteSpace(SearchTextBox.Text))
+        {
+            SearchPlaceholderText.Visibility =
+                Visibility.Visible;
+        }
     }
 }

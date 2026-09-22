@@ -87,13 +87,27 @@
 
 
                 <!-- PRETRAGA -->
-                <TextBox x:Name="SearchTextBox"
-         Grid.Column="6"
-         Height="40"
-         Padding="10"
-         VerticalContentAlignment="Center"
-         ToolTip="Pretraži korisnika, uslugu ili salon..."
-         TextChanged="SearchTextBox_TextChanged"/>
+                <Grid Grid.Column="6">
+
+                    <TextBox
+        x:Name="SearchTextBox"
+        Height="40"
+        Padding="10"
+        VerticalContentAlignment="Center"
+        TextChanged="SearchTextBox_TextChanged"
+        GotFocus="SearchTextBox_GotFocus"
+        LostFocus="SearchTextBox_LostFocus"/>
+
+                    <TextBlock
+        x:Name="SearchPlaceholderText"
+        Text="Pretraži termine..."
+        Margin="10,0,0,0"
+        VerticalAlignment="Center"
+        Foreground="#999999"
+        FontSize="14"
+        IsHitTestVisible="False"/>
+
+                </Grid>
 
 
                 <!-- OSVJEŽI -->
