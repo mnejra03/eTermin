@@ -995,12 +995,13 @@
                         <!-- OBAVIJESTI -->
 
                         <Button
-            Grid.Column="1"
-            Margin="5,0,5,10"
-            Background="Transparent"
-            BorderThickness="0"
-            Cursor="Hand"
-            ToolTip="Obavijesti">
+    Grid.Column="1"
+    Margin="5,0,5,10"
+    Background="Transparent"
+    BorderThickness="0"
+    Cursor="Hand"
+    ToolTip="Obavijesti"
+    Click="NotificationsButton_Click">
 
                             <Grid>
 
@@ -1015,13 +1016,15 @@
                                 <!-- BROJ OBAVIJESTI -->
 
                                 <Border
-                    Width="8"
-                    Height="8"
-                    Background="#9C27B0"
-                    CornerRadius="4"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,4,3,0"/>
+    x:Name="NotificationBadge"
+    Width="8"
+    Height="8"
+    Background="#9C27B0"
+    CornerRadius="4"
+    HorizontalAlignment="Right"
+    VerticalAlignment="Top"
+    Margin="0,4,3,0"
+    Visibility="Collapsed"/>
 
                             </Grid>
 

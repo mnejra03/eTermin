@@ -120,6 +120,7 @@ public partial class DashboardWindow : Window
         await LoadSalonsAsync();
         await LoadDashboardAsync();
         await LoadAvailableSlotsAsync();
+        await LoadNotificationBadgeAsync();
     }
 
     private async Task LoadAvailableSlotsAsync(int? salonId = null)
@@ -428,5 +429,42 @@ public partial class DashboardWindow : Window
             };
 
         window.ShowDialog();
+    }
+
+    private void NotificationsButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        var window =
+            new NotificationsWindow(_apiService)
+            {
+                Owner = this
+            };
+
+        window.ShowDialog();
+    }
+
+    private async Task LoadNotificationBadgeAsync()
+    {
+        try
+        {
+            var notifications =
+                await _apiService.GetAsync<List<NotificationDto>>(
+                    "Notifications/my");
+
+            var unreadCount =
+                notifications?
+                    .Count(x => !x.IsRead) ?? 0;
+
+            NotificationBadge.Visibility =
+                unreadCount > 0
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+        }
+        catch
+        {
+            NotificationBadge.Visibility =
+                Visibility.Collapsed;
+        }
     }
 }

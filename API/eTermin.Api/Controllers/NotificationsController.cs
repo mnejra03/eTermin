@@ -31,6 +31,8 @@ public class NotificationsController : ControllerBase
 
         var userId = int.Parse(userIdClaim.Value);
 
+        Console.WriteLine($"NOTIFICATION USER ID: {userId}");
+
         var notifications =
             await _notificationService.GetByUserIdAsync(userId);
 
