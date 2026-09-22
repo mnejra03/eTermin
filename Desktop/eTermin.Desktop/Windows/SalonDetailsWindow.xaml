@@ -1,0 +1,150 @@
+﻿<Window x:Class="eTermin.Desktop.Windows.SalonDetailsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Detalji salona"
+        Width="550"
+        Height="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F7F4F8">
+
+    <Grid Margin="30">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,25">
+            <TextBlock
+                Text="Detalji salona"
+                FontSize="28"
+                FontWeight="Bold"
+                Foreground="#2D1B36"/>
+
+            <TextBlock
+                Text="Pregled osnovnih podataka o salonu."
+                FontSize="14"
+                Foreground="#777777"
+                Margin="0,6,0,0"/>
+        </StackPanel>
+
+        <!-- Details -->
+        <Border
+            Grid.Row="1"
+            Background="White"
+            CornerRadius="16"
+            BorderBrush="#EAE5ED"
+            BorderThickness="1"
+            Padding="25" Margin="0,0,0,45" Grid.RowSpan="2">
+
+            <StackPanel>
+
+                <TextBlock
+                    Text="Naziv salona"
+                    FontSize="12"
+                    Foreground="#999999"/>
+
+                <TextBlock
+                    x:Name="NameText"
+                    FontSize="18"
+                    FontWeight="SemiBold"
+                    Foreground="#2D1B36"
+                    Margin="0,4,0,18" Height="30"/>
+
+
+                <TextBlock
+                    Text="Opis"
+                    FontSize="12"
+                    Foreground="#999999"/>
+
+                <TextBlock
+                    x:Name="DescriptionText"
+                    FontSize="14"
+                    Foreground="#555555"
+                    TextWrapping="Wrap"
+                    Margin="0,4,0,18" Height="30"/>
+
+
+                <TextBlock
+                    Text="Adresa"
+                    FontSize="12"
+                    Foreground="#999999" />
+
+                <TextBlock
+                    x:Name="AddressText"
+                    FontSize="14"
+                    Foreground="#555555"
+                    Margin="0,4,0,18" Height="30"/>
+
+
+                <TextBlock
+                    Text="Grad"
+                    FontSize="12"
+                    Foreground="#999999" />
+
+                <TextBlock
+                    x:Name="CityText"
+                    FontSize="14"
+                    Foreground="#555555"
+                    Margin="0,4,0,18" Height="30"/>
+
+
+                <TextBlock
+                    Text="Telefon"
+                    FontSize="12"
+                    Foreground="#999999"/>
+
+                <TextBlock
+                    x:Name="PhoneText"
+                    FontSize="14"
+                    Foreground="#555555"
+                    Margin="0,4,0,18" Height="30"/>
+
+
+                <TextBlock
+                    Text="Email"
+                    FontSize="12"
+                    Foreground="#999999"/>
+
+                <TextBlock
+                    x:Name="EmailText"
+                    FontSize="14"
+                    Foreground="#555555"
+                    Margin="0,4,0,18"/>
+
+
+                <TextBlock
+                    Text="Status"
+                    FontSize="12"
+                    Foreground="#999999"/>
+
+                <TextBlock
+                    x:Name="StatusText"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Foreground="#9C27B0"
+                    Margin="0,4,0,0"/>
+
+            </StackPanel>
+        </Border>
+
+        <!-- Close -->
+        <Button
+            Grid.Row="2"
+            Content="Zatvori"
+            Width="110"
+            Height="40"
+            HorizontalAlignment="Right"
+            Margin="0,30,0,-10"
+            Background="#9C27B0"
+            Foreground="White"
+            BorderThickness="0"
+            FontSize="14"
+            Cursor="Hand"
+            Click="CloseButton_Click"/>
+
+    </Grid>
+</Window>

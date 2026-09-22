@@ -302,6 +302,11 @@ public partial class AppointmentsWindow : Window
     object sender,
     TextChangedEventArgs e)
     {
+        SearchPlaceholderText.Visibility =
+    string.IsNullOrWhiteSpace(SearchTextBox.Text)
+        ? Visibility.Visible
+        : Visibility.Collapsed;
+
         if (!_isInitialized)
             return;
 
@@ -466,5 +471,24 @@ public partial class AppointmentsWindow : Window
         DatePicker.SelectedDate = null;
 
         ApplyFilters();
+    }
+
+    private void SearchTextBox_GotFocus(
+    object sender,
+    RoutedEventArgs e)
+    {
+        SearchPlaceholderText.Visibility =
+            Visibility.Collapsed;
+    }
+
+    private void SearchTextBox_LostFocus(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(SearchTextBox.Text))
+        {
+            SearchPlaceholderText.Visibility =
+                Visibility.Visible;
+        }
     }
 }

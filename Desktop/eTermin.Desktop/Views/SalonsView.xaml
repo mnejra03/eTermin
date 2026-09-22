@@ -46,19 +46,32 @@
 
             <!-- PRETRAGA -->
 
-            <TextBox
-                x:Name="SearchTextBox"
-                Grid.Column="0"
-                Height="42"
-                Width="350"
-                HorizontalAlignment="Left"
-                Padding="14,0"
-                VerticalContentAlignment="Center"
-                FontSize="14"
-                BorderBrush="#E2DCE5"
-                BorderThickness="1"
-                Background="White"
-                TextChanged="SearchTextBox_TextChanged"/>
+            <Grid Grid.Column="0"
+      Width="350"
+      HorizontalAlignment="Left">
+
+                <TextBox
+        x:Name="SearchTextBox"
+        Height="42"
+        Padding="14,0"
+        VerticalContentAlignment="Center"
+        FontSize="14"
+        BorderBrush="#E2DCE5"
+        BorderThickness="1"
+        Background="White"
+        TextChanged="SearchTextBox_TextChanged"
+        GotFocus="SearchTextBox_GotFocus"
+        LostFocus="SearchTextBox_LostFocus"/>
+
+                <TextBlock
+        x:Name="SearchPlaceholderText"
+        Text="Pretraži salone..."
+        Margin="14,0,0,0"
+        VerticalAlignment="Center"
+        Foreground="#999999"
+        FontSize="14"
+        IsHitTestVisible="False"/>
+            </Grid>
 
 
             <!-- DODAJ -->
@@ -277,6 +290,50 @@
                         Header="Aktivan"
                         Binding="{Binding IsActive}"
                         Width="80"/>
+
+                    <DataGridTemplateColumn Header="Akcije" Width="180">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel
+                Orientation="Horizontal"
+                HorizontalAlignment="Center">
+
+                                    <Button
+                    Content="Detalji"
+                    Width="65"
+                    Height="30"
+                    Margin="0,0,6,0"
+                    Background="#F3E5F5"
+                    Foreground="#7B1FA2"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Click="DetailsSalonButton_Click"/>
+
+                                    <Button
+                    Content="Uredi"
+                    Width="55"
+                    Height="30"
+                    Margin="0,0,6,0"
+                    Background="#EDE7F6"
+                    Foreground="#5E35B1"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Click="EditSalonButton_Click"/>
+
+                                    <Button
+                    Content="Obriši"
+                    Width="60"
+                    Height="30"
+                    Background="#FDECEC"
+                    Foreground="#C62828"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Click="DeleteSalonButton_Click"/>
+
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
                 </DataGrid.Columns>
 
