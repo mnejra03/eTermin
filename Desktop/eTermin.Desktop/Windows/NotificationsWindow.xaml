@@ -46,12 +46,14 @@
                         <DataTemplate>
 
                             <Border
-                                Margin="0,0,0,10"
-                                Padding="15"
-                                CornerRadius="12"
-                                BorderThickness="1"
-                                BorderBrush="#EAE5ED"
-                                Background="#FFFFFF">
+            Margin="0,0,0,10"
+            Padding="15"
+            CornerRadius="12"
+            BorderThickness="1"
+            BorderBrush="#EAE5ED"
+            Background="#FFFFFF"
+            Cursor="Hand"
+            MouseLeftButtonUp="NotificationBorder_MouseLeftButtonUp">
 
                                 <Grid>
 
@@ -60,61 +62,89 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <StackPanel>
+                                    <!-- SADRŽAJ OBAVIJESTI -->
+
+                                    <StackPanel Grid.Column="0">
 
                                         <TextBlock
-                                            Text="{Binding Title}"
-                                            FontSize="16"
-                                            FontWeight="Bold"
-                                            Foreground="#2D1B36"/>
+                        Text="{Binding Title}"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="#2D1B36"/>
 
                                         <TextBlock
-                                            Text="{Binding Message}"
-                                            TextWrapping="Wrap"
-                                            FontSize="14"
-                                            Foreground="#666666"
-                                            Margin="0,6,0,6"/>
+                        Text="{Binding Message}"
+                        TextWrapping="Wrap"
+                        FontSize="14"
+                        Foreground="#666666"
+                        Margin="0,6,0,6"/>
 
                                         <TextBlock
-                                            Text="{Binding CreatedAt, StringFormat={}{0:dd.MM.yyyy. HH:mm}}"
-                                            FontSize="12"
-                                            Foreground="#999999"/>
+                        Text="{Binding CreatedAt, StringFormat={}{0:dd.MM.yyyy. HH:mm}}"
+                        FontSize="12"
+                        Foreground="#999999"/>
 
                                     </StackPanel>
 
-                                    <Ellipse
-                                        Grid.Column="1"
-                                        Width="9"
-                                        Height="9"
-                                        Fill="#9C27B0"
-                                        VerticalAlignment="Top"
-                                        Margin="10,3,0,0">
+                                    <!-- DESNA STRANA -->
 
-                                        <Ellipse.Style>
-                                            <Style TargetType="Ellipse">
+                                    <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Top"
+                    Margin="10,0,0,0">
 
-                                                <Setter
-                                                    Property="Visibility"
-                                                    Value="Collapsed"/>
+                                        <!-- NEPROČITANA -->
 
-                                                <Style.Triggers>
+                                        <Ellipse
+                        Width="9"
+                        Height="9"
+                        Fill="#9C27B0"
+                        VerticalAlignment="Top"
+                        Margin="0,8,8,0">
 
-                                                    <DataTrigger
-                                                        Binding="{Binding IsRead}"
-                                                        Value="False">
+                                            <Ellipse.Style>
 
-                                                        <Setter
-                                                            Property="Visibility"
-                                                            Value="Visible"/>
+                                                <Style TargetType="Ellipse">
 
-                                                    </DataTrigger>
+                                                    <Setter
+                                    Property="Visibility"
+                                    Value="Collapsed"/>
 
-                                                </Style.Triggers>
+                                                    <Style.Triggers>
 
-                                            </Style>
-                                        </Ellipse.Style>
+                                                        <DataTrigger
+                                        Binding="{Binding IsRead}"
+                                        Value="False">
 
-                                    </Ellipse>
+                                                            <Setter
+                                            Property="Visibility"
+                                            Value="Visible"/>
+
+                                                        </DataTrigger>
+
+                                                    </Style.Triggers>
+
+                                                </Style>
+
+                                            </Ellipse.Style>
+
+                                        </Ellipse>
+
+                                        <!-- TRASH -->
+
+                                        <Button
+                        Content="🗑"
+                        Width="32"
+                        Height="32"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="17"
+                        Cursor="Hand"
+                        ToolTip="Obriši obavijest"
+                        Click="DeleteNotificationButton_Click"/>
+
+                                    </StackPanel>
 
                                 </Grid>
 
