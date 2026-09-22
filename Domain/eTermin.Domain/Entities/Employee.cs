@@ -19,4 +19,7 @@ public class Employee
     public string WorkingHours { get; set; } = string.Empty;
 
     public bool IsActive { get; set; }
+
+    public ICollection<EmployeeService> EmployeeServices { get; set; }
+    = new List<EmployeeService>();
 }

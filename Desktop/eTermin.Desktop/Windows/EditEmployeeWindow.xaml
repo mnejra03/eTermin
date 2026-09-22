@@ -1,7 +1,7 @@
-﻿<Window x:Class="eTermin.Desktop.Windows.AddEmployeeWindow"
+﻿<Window x:Class="eTermin.Desktop.Windows.EditEmployeeWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Dodaj zaposlenika"
+        Title="Uredi zaposlenika"
         Width="520"
         Height="700"
         WindowStartupLocation="CenterOwner"
@@ -25,18 +25,17 @@
             <StackPanel Grid.Row="0"
                         Margin="0,0,0,22">
 
-                <TextBlock Text="Dodaj zaposlenika"
+                <TextBlock Text="Uredi zaposlenika"
                            FontSize="26"
                            FontWeight="Bold"
                            Foreground="#2F2635"/>
 
-                <TextBlock Text="Unesite podatke o novom zaposleniku."
+                <TextBlock Text="Izmijenite podatke o zaposleniku."
                            Margin="0,6,0,0"
                            FontSize="14"
                            Foreground="#817784"/>
 
             </StackPanel>
-
 
             <!-- FORMA -->
             <ScrollViewer Grid.Row="1"
@@ -155,7 +154,6 @@
                     <!-- AKTIVAN -->
                     <CheckBox x:Name="IsActiveCheckBox"
                               Content="Zaposlenik je aktivan"
-                              IsChecked="True"
                               FontWeight="SemiBold"
                               Foreground="#403747"
                               Margin="0,0,0,10"/>
@@ -163,7 +161,6 @@
                 </StackPanel>
 
             </ScrollViewer>
-
 
             <!-- DUGMAD -->
             <StackPanel Grid.Row="2"
@@ -177,13 +174,13 @@
                         Margin="0,0,10,0"
                         Click="CancelButton_Click"/>
 
-                <Button Content="Dodaj zaposlenika"
+                <Button Content="Sačuvaj izmjene"
                         Width="145"
                         Height="42"
                         Background="#6D4C73"
                         Foreground="White"
                         BorderThickness="0"
-                        Click="AddButton_Click"/>
+                        Click="SaveButton_Click"/>
 
             </StackPanel>
 

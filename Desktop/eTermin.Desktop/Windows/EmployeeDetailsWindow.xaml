@@ -1,0 +1,133 @@
+﻿<Window x:Class="eTermin.Desktop.Windows.EmployeeDetailsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Detalji zaposlenika"
+        Width="500"
+        Height="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8F6FA">
+
+    <Border Margin="25"
+            Background="White"
+            CornerRadius="18"
+            Padding="25">
+
+        <Grid>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0"
+                        Margin="0,0,0,25">
+
+                <TextBlock Text="Detalji zaposlenika"
+                           FontSize="26"
+                           FontWeight="Bold"
+                           Foreground="#2F2635"/>
+
+                <TextBlock Text="Pregled podataka o zaposleniku."
+                           Margin="0,6,0,0"
+                           FontSize="14"
+                           Foreground="#817784"/>
+
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto">
+
+                <StackPanel>
+
+                    <TextBlock Text="Ime i prezime"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"/>
+
+                    <TextBlock x:Name="FullNameText"
+                               Margin="0,5,0,18"
+                               FontSize="15"
+                               Foreground="#555555"/>
+
+
+                    <TextBlock Text="E-mail"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"/>
+
+                    <TextBlock x:Name="EmailText"
+                               Margin="0,5,0,18"
+                               FontSize="15"
+                               Foreground="#555555"/>
+
+
+                    <TextBlock Text="Telefon"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"/>
+
+                    <TextBlock x:Name="PhoneText"
+                               Margin="0,5,0,18"
+                               FontSize="15"
+                               Foreground="#555555"/>
+
+
+                    <TextBlock Text="Pozicija"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"/>
+
+                    <TextBlock x:Name="PositionText"
+                               Margin="0,5,0,18"
+                               FontSize="15"
+                               Foreground="#555555"/>
+
+
+                    <TextBlock Text="Salon"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"/>
+
+                    <TextBlock x:Name="SalonText"
+                               Margin="0,5,0,18"
+                               FontSize="15"
+                               Foreground="#555555"/>
+
+
+                    <TextBlock Text="Usluge"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"/>
+
+                    <TextBlock x:Name="ServicesText"
+                               Margin="0,5,0,18"
+                               FontSize="15"
+                               Foreground="#555555"
+                               TextWrapping="Wrap"/>
+
+
+                    <TextBlock Text="Radno vrijeme"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"/>
+
+                    <TextBlock x:Name="WorkingHoursText"
+                               Margin="0,5,0,18"
+                               FontSize="15"
+                               Foreground="#555555"/>
+
+                </StackPanel>
+
+            </ScrollViewer>
+
+            <Button Grid.Row="2"
+                    Content="Zatvori"
+                    Width="100"
+                    Height="40"
+                    HorizontalAlignment="Right"
+                    Background="#6D4C73"
+                    Foreground="White"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Click="CloseButton_Click"/>
+
+        </Grid>
+
+    </Border>
+
+</Window>

@@ -5,24 +5,40 @@ using eTermin.Desktop.Services;
 
 namespace eTermin.Desktop.Windows;
 
-public partial class AddEmployeeWindow : Window
+public partial class EditEmployeeWindow : Window
 {
     private readonly ApiService _apiService;
+    private readonly EmployeeListItem _employee;
 
     private List<Service> _services = new();
 
-    public AddEmployeeWindow(ApiService apiService)
+    public EditEmployeeWindow(
+        ApiService apiService,
+        EmployeeListItem employee)
     {
         InitializeComponent();
 
         _apiService = apiService;
+        _employee = employee;
 
-        Loaded += AddEmployeeWindow_Loaded;
+        Loaded += EditEmployeeWindow_Loaded;
     }
 
-    private async void AddEmployeeWindow_Loaded(object sender, RoutedEventArgs e)
+    private async void EditEmployeeWindow_Loaded(
+        object sender,
+        RoutedEventArgs e)
     {
         await LoadSalonsAsync();
+
+        FirstNameTextBox.Text = _employee.FirstName;
+        LastNameTextBox.Text = _employee.LastName;
+        EmailTextBox.Text = _employee.Email;
+        PhoneNumberTextBox.Text = _employee.PhoneNumber;
+        PositionTextBox.Text = _employee.Position;
+        WorkingHoursTextBox.Text = _employee.WorkingHours;
+        IsActiveCheckBox.IsChecked = _employee.IsActive;
+
+        SalonComboBox.SelectedValue = _employee.SalonId;
     }
 
     private async Task LoadSalonsAsync()
@@ -57,18 +73,12 @@ public partial class AddEmployeeWindow : Window
         SelectionChangedEventArgs e)
     {
         if (SalonComboBox.SelectedValue == null)
-        {
-            ServicesPanel.Children.Clear();
             return;
-        }
 
         if (!int.TryParse(
                 SalonComboBox.SelectedValue.ToString(),
                 out int salonId))
-        {
-            ServicesPanel.Children.Clear();
             return;
-        }
 
         await LoadServicesAsync(salonId);
     }
@@ -83,25 +93,11 @@ public partial class AddEmployeeWindow : Window
                 await _apiService.GetAsync<List<Service>>("Services");
 
             _services = services?
-                .Where(s => s.SalonId == salonId && s.IsActive)
+                .Where(s =>
+                    s.SalonId == salonId &&
+                    s.IsActive)
                 .ToList()
                 ?? new List<Service>();
-
-            if (_services.Count == 0)
-            {
-                ServicesPanel.Children.Add(
-                    new TextBlock
-                    {
-                        Text = "Za odabrani salon nema dostupnih usluga.",
-                        Foreground =
-                            new System.Windows.Media.SolidColorBrush(
-                                System.Windows.Media.Color.FromRgb(
-                                    129, 119, 132)),
-                        Margin = new Thickness(2, 5, 2, 5)
-                    });
-
-                return;
-            }
 
             foreach (var service in _services)
             {
@@ -114,7 +110,12 @@ public partial class AddEmployeeWindow : Window
                         new System.Windows.Media.SolidColorBrush(
                             System.Windows.Media.Color.FromRgb(
                                 64, 55, 71)),
-                    Margin = new Thickness(2, 4, 2, 4)
+                    Margin = new Thickness(2, 4, 2, 4),
+                    IsChecked = _employee
+                        .ServicesText
+                        .Split(',')
+                        .Select(x => x.Trim())
+                        .Contains(service.Name)
                 };
 
                 ServicesPanel.Children.Add(checkBox);
@@ -134,12 +135,16 @@ public partial class AddEmployeeWindow : Window
     {
         return ServicesPanel.Children
             .OfType<CheckBox>()
-            .Where(x => x.IsChecked == true && x.Tag != null)
+            .Where(x =>
+                x.IsChecked == true &&
+                x.Tag != null)
             .Select(x => Convert.ToInt32(x.Tag))
             .ToList();
     }
 
-    private async void AddButton_Click(object sender, RoutedEventArgs e)
+    private async void SaveButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
         if (SalonComboBox.SelectedValue == null)
         {
@@ -160,7 +165,6 @@ public partial class AddEmployeeWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
 
-            FirstNameTextBox.Focus();
             return;
         }
 
@@ -172,7 +176,6 @@ public partial class AddEmployeeWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
 
-            LastNameTextBox.Focus();
             return;
         }
 
@@ -184,7 +187,6 @@ public partial class AddEmployeeWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
 
-            EmailTextBox.Focus();
             return;
         }
 
@@ -196,7 +198,6 @@ public partial class AddEmployeeWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
 
-            PhoneNumberTextBox.Focus();
             return;
         }
 
@@ -208,7 +209,6 @@ public partial class AddEmployeeWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
 
-            PositionTextBox.Focus();
             return;
         }
 
@@ -220,11 +220,8 @@ public partial class AddEmployeeWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
 
-            WorkingHoursTextBox.Focus();
             return;
         }
-
-        var selectedServiceIds = GetSelectedServiceIds();
 
         var request = new CreateEmployeeRequest
         {
@@ -236,17 +233,29 @@ public partial class AddEmployeeWindow : Window
             Position = PositionTextBox.Text.Trim(),
             WorkingHours = WorkingHoursTextBox.Text.Trim(),
             IsActive = IsActiveCheckBox.IsChecked == true,
-            ServiceIds = selectedServiceIds
+            ServiceIds = GetSelectedServiceIds()
         };
 
         try
         {
-            await _apiService.PostAsync<CreateEmployeeRequest, object>(
-                "Employees",
-                request);
+            var updated =
+                await _apiService.PutAsync(
+                    $"Employees/{_employee.Id}",
+                    request);
+
+            if (!updated)
+            {
+                MessageBox.Show(
+                    "Zaposlenika nije moguće urediti.",
+                    "eTermin",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                return;
+            }
 
             MessageBox.Show(
-                "Zaposlenik je uspješno dodan.",
+                "Podaci zaposlenika su uspješno izmijenjeni.",
                 "eTermin",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -257,14 +266,16 @@ public partial class AddEmployeeWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"Greška prilikom dodavanja zaposlenika:\n{ex.Message}",
+                $"Greška prilikom uređivanja zaposlenika:\n{ex.Message}",
                 "Greška",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
     }
 
-    private void CancelButton_Click(object sender, RoutedEventArgs e)
+    private void CancelButton_Click(
+        object sender,
+        RoutedEventArgs e)
     {
         DialogResult = false;
         Close();

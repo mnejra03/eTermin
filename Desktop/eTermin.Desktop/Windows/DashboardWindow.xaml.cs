@@ -527,4 +527,21 @@ public partial class DashboardWindow : Window
             new SolidColorBrush(
                 (Color)ColorConverter.ConvertFromString("#9C27B0"));
     }
+
+    private void EmployeesButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        DashboardContent.Visibility =
+            Visibility.Collapsed;
+
+        DashboardRightSidebar.Visibility =
+            Visibility.Collapsed;
+
+        MainContentControl.Content =
+            new EmployeesView(_apiService);
+
+        MainContentControl.Visibility =
+            Visibility.Visible;
+    }
 }

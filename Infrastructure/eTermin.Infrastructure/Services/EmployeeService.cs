@@ -3,6 +3,7 @@ using eTermin.Application.Services;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using EmployeeServiceEntity = eTermin.Domain.Entities.EmployeeService;
 
 namespace eTermin.Infrastructure.Services;
 
@@ -28,7 +29,11 @@ public class EmployeeService : IEmployeeService
                 PhoneNumber = e.PhoneNumber,
                 Position = e.Position,
                 WorkingHours = e.WorkingHours,
-                IsActive = e.IsActive
+                IsActive = e.IsActive,
+
+                ServiceIds = e.EmployeeServices
+                    .Select(es => es.ServiceId)
+                    .ToList()
             })
             .ToListAsync();
     }
@@ -47,7 +52,11 @@ public class EmployeeService : IEmployeeService
                 PhoneNumber = e.PhoneNumber,
                 Position = e.Position,
                 WorkingHours = e.WorkingHours,
-                IsActive = e.IsActive
+                IsActive = e.IsActive,
+
+                ServiceIds = e.EmployeeServices
+                    .Select(es => es.ServiceId)
+                    .ToList()
             })
             .FirstOrDefaultAsync();
     }
@@ -70,6 +79,24 @@ public class EmployeeService : IEmployeeService
 
         await _context.SaveChangesAsync();
 
+        if (employeeDto.ServiceIds != null &&
+            employeeDto.ServiceIds.Count > 0)
+        {
+            var employeeServices =
+    employeeDto.ServiceIds
+        .Distinct()
+        .Select(serviceId => new EmployeeServiceEntity
+        {
+            EmployeeId = employee.Id,
+            ServiceId = serviceId
+        })
+        .ToList();
+
+            _context.EmployeeServices.AddRange(employeeServices);
+
+            await _context.SaveChangesAsync();
+        }
+
         return new EmployeeDto
         {
             Id = employee.Id,
@@ -80,13 +107,18 @@ public class EmployeeService : IEmployeeService
             PhoneNumber = employee.PhoneNumber,
             Position = employee.Position,
             WorkingHours = employee.WorkingHours,
-            IsActive = employee.IsActive
+            IsActive = employee.IsActive,
+            ServiceIds = employeeDto.ServiceIds ?? new List<int>()
         };
     }
 
-    public async Task<bool> UpdateAsync(int id, EmployeeDto employeeDto)
+    public async Task<bool> UpdateAsync(
+    int id,
+    EmployeeDto employeeDto)
     {
-        var employee = await _context.Employees.FindAsync(id);
+        var employee =
+            await _context.Employees
+                .FirstOrDefaultAsync(e => e.Id == id);
 
         if (employee == null)
         {
@@ -101,6 +133,32 @@ public class EmployeeService : IEmployeeService
         employee.Position = employeeDto.Position;
         employee.WorkingHours = employeeDto.WorkingHours;
         employee.IsActive = employeeDto.IsActive;
+
+        // Ukloni stare veze prema uslugama
+        var existingServices =
+            await _context.EmployeeServices
+                .Where(es => es.EmployeeId == id)
+                .ToListAsync();
+
+        _context.EmployeeServices.RemoveRange(existingServices);
+
+        // Dodaj nove veze prema uslugama
+        if (employeeDto.ServiceIds != null &&
+            employeeDto.ServiceIds.Count > 0)
+        {
+            var newEmployeeServices =
+    employeeDto.ServiceIds
+        .Distinct()
+        .Select(serviceId => new EmployeeServiceEntity
+        {
+            EmployeeId = id,
+            ServiceId = serviceId
+        })
+        .ToList();
+
+            _context.EmployeeServices.AddRange(
+                newEmployeeServices);
+        }
 
         await _context.SaveChangesAsync();
 

@@ -15,4 +15,7 @@ public class Service
     public decimal Price { get; set; }
 
     public bool IsActive { get; set; }
+
+    public ICollection<EmployeeService> EmployeeServices { get; set; }
+    = new List<EmployeeService>();
 }

@@ -86,20 +86,25 @@
 
 
                 <!-- Zaposlenici -->
-                <Button Width="52"
-        Height="52"
-        Margin="0,0,0,18"
-        Background="Transparent"
-        BorderThickness="0"
-        ToolTip="Zaposlenici"
-        Cursor="Hand">
+                <!-- Zaposlenici -->
+                <Button
+    x:Name="EmployeesButton"
+    Width="52"
+    Height="52"
+    Margin="0,0,0,18"
+    Background="Transparent"
+    BorderThickness="0"
+    ToolTip="Zaposlenici"
+    Cursor="Hand"
+    Click="EmployeesButton_Click">
 
-                    <TextBlock Text="&#xE716;"
-                       FontFamily="Segoe MDL2 Assets"
-                       FontSize="21"
-                       Foreground="White"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"/>
+                    <TextBlock
+        Text="&#xE716;"
+        FontFamily="Segoe MDL2 Assets"
+        FontSize="21"
+        Foreground="White"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"/>
                 </Button>
 
 
