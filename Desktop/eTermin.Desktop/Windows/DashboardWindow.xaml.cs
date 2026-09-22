@@ -1,8 +1,10 @@
-﻿using System.Windows;
-using eTermin.Desktop.Models;
+﻿using eTermin.Desktop.Models;
 using eTermin.Desktop.Services;
+using eTermin.Desktop.Views;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
+using System.Windows;
+using System.Windows.Media;
 
 namespace eTermin.Desktop.Windows;
 
@@ -468,5 +470,61 @@ public partial class DashboardWindow : Window
             NotificationBadge.Visibility =
                 Visibility.Collapsed;
         }
+    }
+
+    private void SaloniButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        SetSalonsActive();
+        DashboardContent.Visibility =
+            Visibility.Collapsed;
+
+        DashboardRightSidebar.Visibility =
+            Visibility.Collapsed;
+
+        MainContentControl.Content =
+            new SalonsView(_apiService);
+
+        MainContentControl.Visibility =
+            Visibility.Visible;
+    }
+
+    private void DashboardButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        SetDashboardActive();
+        MainContentControl.Visibility =
+            Visibility.Collapsed;
+
+        MainContentControl.Content =
+            null;
+
+        DashboardContent.Visibility =
+            Visibility.Visible;
+
+        DashboardRightSidebar.Visibility =
+            Visibility.Visible;
+    }
+
+    private void SetDashboardActive()
+    {
+        DashboardButton.Background =
+            new SolidColorBrush(
+                (Color)ColorConverter.ConvertFromString("#9C27B0"));
+
+        SalonsButton.Background =
+            Brushes.Transparent;
+    }
+
+    private void SetSalonsActive()
+    {
+        DashboardButton.Background =
+            Brushes.Transparent;
+
+        SalonsButton.Background =
+            new SolidColorBrush(
+                (Color)ColorConverter.ConvertFromString("#9C27B0"));
     }
 }
