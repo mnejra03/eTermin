@@ -431,7 +431,7 @@ public partial class DashboardWindow : Window
         window.ShowDialog();
     }
 
-    private void NotificationsButton_Click(
+    private async void NotificationsButton_Click(
     object sender,
     RoutedEventArgs e)
     {
@@ -442,6 +442,8 @@ public partial class DashboardWindow : Window
             };
 
         window.ShowDialog();
+
+        await LoadNotificationBadgeAsync();
     }
 
     private async Task LoadNotificationBadgeAsync()
