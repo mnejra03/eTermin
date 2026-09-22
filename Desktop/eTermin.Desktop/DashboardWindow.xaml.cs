@@ -119,6 +119,46 @@ public partial class DashboardWindow : Window
 
         await LoadSalonsAsync();
         await LoadDashboardAsync();
+        await LoadAvailableSlotsAsync();
+    }
+
+    private async Task LoadAvailableSlotsAsync(int? salonId = null)
+    {
+        try
+        {
+            var endpoint = "Appointments/dashboard-available-slots";
+
+            if (salonId.HasValue)
+            {
+                endpoint += $"?salonId={salonId.Value}";
+            }
+
+            var result =
+                await _apiService.GetAsync<DashboardAvailableSlotsDto>(
+                    endpoint);
+
+            if (result == null)
+                return;
+
+            AvailableSlotsText.Text =
+                result.AvailableSlots.ToString();
+
+            TotalSlotsText.Text =
+                $" / {result.TotalSlots}";
+
+            AvailableSlotsProgressBar.Value =
+                result.Percentage;
+
+            AvailableSlotsPercentageText.Text =
+                $"{result.Percentage}%";
+        }
+        catch
+        {
+            AvailableSlotsText.Text = "0";
+            TotalSlotsText.Text = " / 0";
+            AvailableSlotsProgressBar.Value = 0;
+            AvailableSlotsPercentageText.Text = "0%";
+        }
     }
 
     private async Task LoadSalonsAsync()
@@ -186,21 +226,19 @@ public partial class DashboardWindow : Window
             // ==========================================
 
             string todayStatisticsEndpoint =
-                $"Statistics/dashboard?from={today:yyyy-MM-dd}&to={tomorrow:yyyy-MM-dd}";
-
-
-            // ==========================================
-            // STATISTIKA ZA 7 DANA - GRAFOVI
-            // ==========================================
+    $"Statistics/dashboard?from={today:yyyy-MM-dd}&to={tomorrow:yyyy-MM-dd}";
 
             string chartStatisticsEndpoint =
-    $"Statistics/dashboard?from={chartFrom:yyyy-MM-dd}&to={tomorrow:yyyy-MM-dd}";
+                $"Statistics/dashboard?from={chartFrom:yyyy-MM-dd}&to={tomorrow:yyyy-MM-dd}";
 
             string appointmentsEndpoint =
                 "Appointments/dashboard";
 
             if (selectedSalon?.Id.HasValue == true)
             {
+                todayStatisticsEndpoint +=
+                    $"&salonId={selectedSalon.Id.Value}";
+
                 chartStatisticsEndpoint +=
                     $"&salonId={selectedSalon.Id.Value}";
 
@@ -311,7 +349,14 @@ public partial class DashboardWindow : Window
         if (!IsLoaded)
             return;
 
+        var selectedSalon =
+            SalonFilterComboBox.SelectedItem as SalonFilterItem;
+
+        int? salonId = selectedSalon?.Id;
+
         await LoadDashboardAsync();
+
+        await LoadAvailableSlotsAsync(salonId);
     }
 
 
@@ -354,6 +399,17 @@ public partial class DashboardWindow : Window
         var window = new AppointmentsWindow(
             _apiService,
             _currentUser)
+        {
+            Owner = this
+        };
+
+        window.ShowDialog();
+    }
+    private void AddSalonButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        var window = new AddSalonWindow(_apiService)
         {
             Owner = this
         };

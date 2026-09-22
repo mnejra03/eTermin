@@ -87,8 +87,9 @@ public class StatisticsService : IStatisticsService
         // UKUPAN PRIHOD
         // ==========================================
 
-        var totalRevenue =
-            appointments.Sum(x => x.Price);
+        var totalRevenue = allAppointments
+    .Where(x => x.Status == "Completed")
+    .Sum(x => x.Price);
 
 
         // ==========================================
@@ -253,14 +254,21 @@ public class StatisticsService : IStatisticsService
         // REZERVACIJE PO STATUSU
         // ==========================================
 
+        var statusNames = new[]
+{
+    "Pending",
+    "Confirmed",
+    "Cancelled",
+    "Completed"
+};
+
         var reservationsByStatus =
-            allAppointments
-                .GroupBy(x => x.Status)
-                .OrderByDescending(g => g.Count())
-                .Select(g => new ReservationStatusDto
+            statusNames
+                .Select(status => new ReservationStatusDto
                 {
-                    Status = g.Key,
-                    Count = g.Count()
+                    Status = status,
+                    Count = allAppointments.Count(
+                        x => x.Status == status)
                 })
                 .ToList();
 

@@ -1,4 +1,5 @@
-﻿using eTermin.Application.DTOs;
+﻿using eTermin.Api.DTOs;
+using eTermin.Application.DTOs;
 
 namespace eTermin.Application.Services;
 
@@ -27,4 +28,8 @@ public interface IAppointmentService
     Task<List<AppointmentListDto>> GetAllForListAsync();
 
     Task<List<AppointmentListDto>> GetMyForListAsync(int userId);
+
+    Task<DashboardAvailableSlotsDto> GetDashboardAvailableSlotsAsync(
+    DateTime date,
+    int? salonId);
 }

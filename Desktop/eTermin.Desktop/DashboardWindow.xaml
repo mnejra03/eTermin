@@ -491,12 +491,13 @@
                 HorizontalAlignment="Left"/>
 
                             <TextBlock
-                x:Name="TotalRevenueText"
-                Text="0"
-                FontSize="28"
-                FontWeight="Bold"
-                Foreground="#9C27B0"
-                Margin="0,12,0,4" Width="17"/>
+    x:Name="TotalRevenueText"
+    Text="0.00 KM"
+    FontSize="28"
+    FontWeight="Bold"
+    Foreground="#9C27B0"
+    Margin="0,12,0,4"
+    HorizontalAlignment="Left"/>
 
                             <TextBlock
                 Text="Prihod (KM)"
@@ -1237,7 +1238,8 @@
                 Background="#F7F2FA"
                 BorderThickness="0"
                 Cursor="Hand"
-                ToolTip="Dodaj salon">
+                ToolTip="Dodaj salon"
+                        Click="AddSalonButton_Click">
 
                         <Grid>
 
@@ -1289,29 +1291,29 @@
                             <StackPanel
                         Orientation="Horizontal">
 
-                                <TextBlock
-                            Text="12"
-                            FontSize="32"
-                            FontWeight="Bold"
-                            Foreground="#9C27B0"/>
+                                <TextBlock x:Name="AvailableSlotsText"
+           Text="0"
+           FontSize="32"
+           FontWeight="Bold"
+           Foreground="#9C27B0"/>
 
-                                <TextBlock
-                            Text=" / 30"
-                            FontSize="15"
-                            Foreground="#999999"
-                            VerticalAlignment="Bottom"
-                            Margin="3,0,0,5"/>
+                                <TextBlock x:Name="TotalSlotsText"
+           Text=" / 0"
+           FontSize="15"
+           Foreground="#999999"
+           VerticalAlignment="Bottom"
+           Margin="3,0,0,5"/>
 
                             </StackPanel>
 
 
-                            <ProgressBar
-                        Height="8"
-                        Value="40"
-                        Maximum="100"
-                        Margin="0,14,0,10"
-                        Foreground="#9C27B0"
-                        Background="#E5DDE9"/>
+                            <ProgressBar x:Name="AvailableSlotsProgressBar"
+             Height="8"
+             Value="0"
+             Maximum="100"
+             Margin="0,14,0,10"
+             Foreground="#9C27B0"
+             Background="#E5DDE9"/>
 
 
                             <Grid>
@@ -1321,11 +1323,11 @@
                             FontSize="11"
                             Foreground="#999999"/>
 
-                                <TextBlock
-                            Text="40%"
-                            FontSize="11"
-                            Foreground="#9C27B0"
-                            HorizontalAlignment="Right"/>
+                                <TextBlock x:Name="AvailableSlotsPercentageText"
+           Text="0%"
+           FontSize="11"
+           Foreground="#9C27B0"
+           HorizontalAlignment="Right"/>
 
                             </Grid>
 
@@ -1334,7 +1336,7 @@
                     </Border>
 
 
-                    <!-- SLOBODNI TERMINI -->
+                   
 
                 </StackPanel>
 

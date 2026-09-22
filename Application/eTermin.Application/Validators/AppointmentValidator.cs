@@ -37,8 +37,10 @@ public class AppointmentValidator : AbstractValidator<AppointmentDto>
             .Must(status =>
                 status == "Pending" ||
                 status == "Confirmed" ||
-                status == "Cancelled")
-            .WithMessage("Status mora biti Pending, Confirmed ili Cancelled.");
+                status == "Cancelled" ||
+                status == "Completed")
+            .WithMessage(
+                "Status mora biti Pending, Confirmed, Cancelled ili Completed.");
 
         RuleFor(x => x.Price)
             .GreaterThanOrEqualTo(0)
