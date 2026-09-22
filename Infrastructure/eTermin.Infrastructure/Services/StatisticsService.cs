@@ -254,23 +254,15 @@ public class StatisticsService : IStatisticsService
         // REZERVACIJE PO STATUSU
         // ==========================================
 
-        var statusNames = new[]
-{
-    "Pending",
-    "Confirmed",
-    "Cancelled",
-    "Completed"
-};
-
         var reservationsByStatus =
-            statusNames
-                .Select(status => new ReservationStatusDto
-                {
-                    Status = status,
-                    Count = allAppointments.Count(
-                        x => x.Status == status)
-                })
-                .ToList();
+    allAppointments
+        .GroupBy(x => x.Status)
+        .Select(g => new ReservationStatusDto
+        {
+            Status = g.Key,
+            Count = g.Count()
+        })
+        .ToList();
 
 
         // ==========================================

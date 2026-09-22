@@ -461,7 +461,7 @@
                 FontSize="28"
                 FontWeight="Bold"
                 Foreground="#9C27B0"
-                Margin="0,12,0,4" Width="17"/>
+                Margin="0,12,0,4" Width="16"/>
 
                             <TextBlock
                 Text="Broj salona"
