@@ -2,7 +2,7 @@
 using eTermin.Desktop.Models;
 using eTermin.Desktop.Services;
 
-namespace eTermin.Desktop;
+namespace eTermin.Desktop.Windows;
 
 public partial class AddEmployeeWindow : Window
 {

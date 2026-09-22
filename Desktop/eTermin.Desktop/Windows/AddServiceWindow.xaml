@@ -1,14 +1,14 @@
-﻿<Window x:Class="eTermin.Desktop.AddEmployeeWindow"
+﻿<Window x:Class="eTermin.Desktop.Windows.AddServiceWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Dodaj zaposlenika"
-        Width="520"
-        Height="700"
+        Title="Dodaj uslugu"
+        Width="509"
+        Height="640"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#F8F6FA">
 
-    <Border Margin="25"
+    <Border Margin="10,0,10,7"
             Background="White"
             CornerRadius="18"
             Padding="25">
@@ -23,14 +23,14 @@
 
             <!-- NASLOV -->
             <StackPanel Grid.Row="0"
-                        Margin="0,0,0,22">
+                        Margin="0,0,0,25">
 
-                <TextBlock Text="Dodaj zaposlenika"
+                <TextBlock Text="Dodaj uslugu"
                            FontSize="26"
                            FontWeight="Bold"
                            Foreground="#2F2635"/>
 
-                <TextBlock Text="Unesite podatke o novom zaposleniku."
+                <TextBlock Text="Unesite podatke o novoj usluzi."
                            Margin="0,6,0,0"
                            FontSize="14"
                            Foreground="#817784"/>
@@ -52,85 +52,64 @@
 
                     <ComboBox x:Name="SalonComboBox"
                               Height="42"
-                              Margin="0,0,0,16"
+                              Margin="0,0,0,18"
                               Padding="10,0"/>
 
 
-                    <!-- IME -->
-                    <TextBlock Text="Ime"
+                    <!-- NAZIV -->
+                    <TextBlock Text="Naziv usluge"
                                FontWeight="SemiBold"
                                Foreground="#403747"
                                Margin="0,0,0,7"/>
 
-                    <TextBox x:Name="FirstNameTextBox"
+                    <TextBox x:Name="NameTextBox"
                              Height="42"
                              Padding="10"
-                             Margin="0,0,0,16"/>
+                             Margin="0,0,0,18"/>
 
 
-                    <!-- PREZIME -->
-                    <TextBlock Text="Prezime"
+                    <!-- OPIS -->
+                    <TextBlock Text="Opis"
                                FontWeight="SemiBold"
                                Foreground="#403747"
                                Margin="0,0,0,7"/>
 
-                    <TextBox x:Name="LastNameTextBox"
-                             Height="42"
+                    <TextBox x:Name="DescriptionTextBox"
+                             Height="80"
                              Padding="10"
-                             Margin="0,0,0,16"/>
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Margin="0,0,0,18"/>
 
 
-                    <!-- EMAIL -->
-                    <TextBlock Text="E-mail"
+                    <!-- TRAJANJE -->
+                    <TextBlock Text="Trajanje (minute)"
                                FontWeight="SemiBold"
                                Foreground="#403747"
                                Margin="0,0,0,7"/>
 
-                    <TextBox x:Name="EmailTextBox"
+                    <TextBox x:Name="DurationTextBox"
                              Height="42"
                              Padding="10"
-                             Margin="0,0,0,16"/>
+                             Margin="0,0,0,18"/>
 
 
-                    <!-- TELEFON -->
-                    <TextBlock Text="Telefon"
+                    <!-- CIJENA -->
+                    <TextBlock Text="Cijena (KM)"
                                FontWeight="SemiBold"
                                Foreground="#403747"
                                Margin="0,0,0,7"/>
 
-                    <TextBox x:Name="PhoneNumberTextBox"
+                    <TextBox x:Name="PriceTextBox"
                              Height="42"
                              Padding="10"
-                             Margin="0,0,0,16"/>
+                             Margin="0,0,0,18"/>
 
 
-                    <!-- POZICIJA -->
-                    <TextBlock Text="Pozicija"
-                               FontWeight="SemiBold"
-                               Foreground="#403747"
-                               Margin="0,0,0,7"/>
-
-                    <TextBox x:Name="PositionTextBox"
-                             Height="42"
-                             Padding="10"
-                             Margin="0,0,0,16"/>
-
-
-                    <!-- RADNO VRIJEME -->
-                    <TextBlock Text="Radno vrijeme"
-                               FontWeight="SemiBold"
-                               Foreground="#403747"
-                               Margin="0,0,0,7"/>
-
-                    <TextBox x:Name="WorkingHoursTextBox"
-                             Height="42"
-                             Padding="10"
-                             Margin="0,0,0,16"/>
-
-
-                    <!-- AKTIVAN -->
+                    <!-- AKTIVNA -->
                     <CheckBox x:Name="IsActiveCheckBox"
-                              Content="Zaposlenik je aktivan"
+                              Content="Usluga je aktivna"
                               IsChecked="True"
                               FontWeight="SemiBold"
                               Foreground="#403747"
@@ -145,7 +124,7 @@
             <StackPanel Grid.Row="2"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
-                        Margin="0,18,0,0">
+                        Margin="0,20,0,0">
 
                 <Button Content="Otkaži"
                         Width="110"
@@ -153,8 +132,8 @@
                         Margin="0,0,10,0"
                         Click="CancelButton_Click"/>
 
-                <Button Content="Dodaj zaposlenika"
-                        Width="145"
+                <Button Content="Dodaj uslugu"
+                        Width="130"
                         Height="42"
                         Background="#6D4C73"
                         Foreground="White"
