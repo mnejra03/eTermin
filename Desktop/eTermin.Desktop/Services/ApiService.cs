@@ -49,10 +49,18 @@ public class ApiService
     string endpoint,
     TRequest request)
     {
-        var response =
-            await _httpClient.PutAsJsonAsync(endpoint, request);
+        var response = await _httpClient.PutAsJsonAsync(
+            endpoint,
+            request);
 
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+            return true;
+
+        var errorMessage =
+            await response.Content.ReadAsStringAsync();
+
+        throw new Exception(
+            $"API greška ({(int)response.StatusCode}): {errorMessage}");
     }
 
     public async Task<bool> DeleteAsync(

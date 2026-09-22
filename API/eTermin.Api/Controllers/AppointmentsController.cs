@@ -1,7 +1,8 @@
-﻿using eTermin.Application.DTOs;
+﻿using eTermin.Api.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace eTermin.Api.Controllers;
 
@@ -197,6 +198,29 @@ public class AppointmentsController : ControllerBase
                 date);
 
             return Ok(slots);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [HttpGet("dashboard-available-slots")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<DashboardAvailableSlotsDto>>
+     GetDashboardAvailableSlots(int? salonId)
+    {
+        try
+        {
+            var result =
+                await _appointmentService.GetDashboardAvailableSlotsAsync(
+                    DateTime.Today,
+                    salonId);
+
+            return Ok(result);
         }
         catch (Exception ex)
         {

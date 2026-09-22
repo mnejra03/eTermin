@@ -1,4 +1,5 @@
-﻿using eTermin.Application.DTOs;
+﻿using eTermin.Api.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
@@ -540,5 +541,110 @@ public class AppointmentService : IAppointmentService
         }
 
         return result;
+    }
+
+    public async Task<DashboardAvailableSlotsDto> GetDashboardAvailableSlotsAsync(
+    DateTime date,
+    int? salonId)
+    {
+        var employeesQuery = _context.Employees
+            .Where(x => x.IsActive);
+
+        if (salonId.HasValue)
+        {
+            employeesQuery = employeesQuery
+                .Where(x => x.SalonId == salonId.Value);
+        }
+
+        var activeEmployees = await employeesQuery.ToListAsync();
+
+        var activeServices = await _context.Services
+            .Where(x => x.IsActive)
+            .ToListAsync();
+
+        var appointmentsQuery = _context.Appointments
+            .Where(x =>
+                x.StartTime.Date == date.Date &&
+                x.Status != "Cancelled");
+
+        if (salonId.HasValue)
+        {
+            appointmentsQuery = appointmentsQuery
+                .Where(x => x.SalonId == salonId.Value);
+        }
+
+        var appointments = await appointmentsQuery.ToListAsync();
+
+        int totalSlots = 0;
+        int occupiedSlots = 0;
+
+        foreach (var employee in activeEmployees)
+        {
+            if (string.IsNullOrWhiteSpace(employee.WorkingHours))
+                continue;
+
+            var parts = employee.WorkingHours.Split('-');
+
+            if (parts.Length != 2 ||
+                !TimeSpan.TryParse(parts[0], out var workStart) ||
+                !TimeSpan.TryParse(parts[1], out var workEnd))
+            {
+                continue;
+            }
+
+            var dayStart = date.Date.Add(workStart);
+            var dayEnd = date.Date.Add(workEnd);
+
+            var employeeServices = activeServices
+                .Where(x => x.SalonId == employee.SalonId)
+                .ToList();
+
+            if (!employeeServices.Any())
+                continue;
+
+            var currentStart = dayStart;
+
+            while (currentStart.AddMinutes(30) <= dayEnd)
+            {
+                totalSlots++;
+                currentStart = currentStart.AddMinutes(30);
+            }
+
+            var employeeAppointments = appointments
+                .Where(x => x.EmployeeId == employee.Id)
+                .ToList();
+
+            foreach (var appointment in employeeAppointments)
+            {
+                var durationSlots = Math.Max(
+                    1,
+                    (int)Math.Ceiling(
+                        (appointment.EndTime - appointment.StartTime)
+                            .TotalMinutes / 30));
+
+                occupiedSlots += durationSlots;
+            }
+        }
+
+        occupiedSlots = Math.Min(
+            occupiedSlots,
+            totalSlots);
+
+        var availableSlots = Math.Max(
+            0,
+            totalSlots - occupiedSlots);
+
+        var percentage = totalSlots == 0
+            ? 0
+            : (int)Math.Round(
+                availableSlots * 100.0 / totalSlots);
+
+        return new DashboardAvailableSlotsDto
+        {
+            AvailableSlots = availableSlots,
+            TotalSlots = totalSlots,
+            OccupiedSlots = occupiedSlots,
+            Percentage = percentage
+        };
     }
 }
