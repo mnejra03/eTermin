@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Controls;
 using eTermin.Desktop.Models;
 using eTermin.Desktop.Services;
 
@@ -7,6 +8,8 @@ namespace eTermin.Desktop.Windows;
 public partial class AddEmployeeWindow : Window
 {
     private readonly ApiService _apiService;
+
+    private List<Service> _services = new();
 
     public AddEmployeeWindow(ApiService apiService)
     {
@@ -47,6 +50,93 @@ public partial class AddEmployeeWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
+    }
+
+    private async void SalonComboBox_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (SalonComboBox.SelectedValue == null)
+        {
+            ServicesPanel.Children.Clear();
+            return;
+        }
+
+        if (!int.TryParse(
+                SalonComboBox.SelectedValue.ToString(),
+                out int salonId))
+        {
+            ServicesPanel.Children.Clear();
+            return;
+        }
+
+        await LoadServicesAsync(salonId);
+    }
+
+    private async Task LoadServicesAsync(int salonId)
+    {
+        try
+        {
+            ServicesPanel.Children.Clear();
+
+            var services =
+                await _apiService.GetAsync<List<Service>>("Services");
+
+            _services = services?
+                .Where(s => s.SalonId == salonId && s.IsActive)
+                .ToList()
+                ?? new List<Service>();
+
+            if (_services.Count == 0)
+            {
+                ServicesPanel.Children.Add(
+                    new TextBlock
+                    {
+                        Text = "Za odabrani salon nema dostupnih usluga.",
+                        Foreground =
+                            new System.Windows.Media.SolidColorBrush(
+                                System.Windows.Media.Color.FromRgb(
+                                    129, 119, 132)),
+                        Margin = new Thickness(2, 5, 2, 5)
+                    });
+
+                return;
+            }
+
+            foreach (var service in _services)
+            {
+                var checkBox = new CheckBox
+                {
+                    Content = service.Name,
+                    Tag = service.Id,
+                    FontSize = 14,
+                    Foreground =
+                        new System.Windows.Media.SolidColorBrush(
+                            System.Windows.Media.Color.FromRgb(
+                                64, 55, 71)),
+                    Margin = new Thickness(2, 4, 2, 4)
+                };
+
+                ServicesPanel.Children.Add(checkBox);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Greška prilikom učitavanja usluga:\n{ex.Message}",
+                "Greška",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private List<int> GetSelectedServiceIds()
+    {
+        return ServicesPanel.Children
+            .OfType<CheckBox>()
+            .Where(x => x.IsChecked == true && x.Tag != null)
+            .Select(x => Convert.ToInt32(x.Tag))
+            .ToList();
     }
 
     private async void AddButton_Click(object sender, RoutedEventArgs e)
@@ -134,6 +224,8 @@ public partial class AddEmployeeWindow : Window
             return;
         }
 
+        var selectedServiceIds = GetSelectedServiceIds();
+
         var request = new CreateEmployeeRequest
         {
             SalonId = (int)SalonComboBox.SelectedValue,
@@ -143,7 +235,8 @@ public partial class AddEmployeeWindow : Window
             PhoneNumber = PhoneNumberTextBox.Text.Trim(),
             Position = PositionTextBox.Text.Trim(),
             WorkingHours = WorkingHoursTextBox.Text.Trim(),
-            IsActive = IsActiveCheckBox.IsChecked == true
+            IsActive = IsActiveCheckBox.IsChecked == true,
+            ServiceIds = selectedServiceIds
         };
 
         try

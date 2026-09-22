@@ -22,7 +22,7 @@ namespace eTermin.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("eTermin.Domain.Entities.Appointment", b =>
+            modelBuilder.Entity("Appointment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -115,6 +115,21 @@ namespace eTermin.Infrastructure.Migrations
                     b.HasIndex("SalonId");
 
                     b.ToTable("Employees");
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.EmployeeService", b =>
+                {
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EmployeeId", "ServiceId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("EmployeeServices");
                 });
 
             modelBuilder.Entity("eTermin.Domain.Entities.Notification", b =>
@@ -310,7 +325,7 @@ namespace eTermin.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("eTermin.Domain.Entities.Appointment", b =>
+            modelBuilder.Entity("Appointment", b =>
                 {
                     b.HasOne("eTermin.Domain.Entities.Employee", null)
                         .WithMany()
@@ -346,9 +361,28 @@ namespace eTermin.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("eTermin.Domain.Entities.EmployeeService", b =>
+                {
+                    b.HasOne("eTermin.Domain.Entities.Employee", "Employee")
+                        .WithMany("EmployeeServices")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("eTermin.Domain.Entities.Service", "Service")
+                        .WithMany("EmployeeServices")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Service");
+                });
+
             modelBuilder.Entity("eTermin.Domain.Entities.Notification", b =>
                 {
-                    b.HasOne("eTermin.Domain.Entities.Appointment", null)
+                    b.HasOne("Appointment", null)
                         .WithMany()
                         .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -362,7 +396,7 @@ namespace eTermin.Infrastructure.Migrations
 
             modelBuilder.Entity("eTermin.Domain.Entities.Payment", b =>
                 {
-                    b.HasOne("eTermin.Domain.Entities.Appointment", null)
+                    b.HasOne("Appointment", null)
                         .WithMany()
                         .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -376,6 +410,16 @@ namespace eTermin.Infrastructure.Migrations
                         .HasForeignKey("SalonId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.Employee", b =>
+                {
+                    b.Navigation("EmployeeServices");
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.Service", b =>
+                {
+                    b.Navigation("EmployeeServices");
                 });
 #pragma warning restore 612, 618
         }

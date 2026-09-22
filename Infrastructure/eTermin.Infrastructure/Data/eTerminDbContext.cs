@@ -14,6 +14,7 @@ public class eTerminDbContext : DbContext
     public DbSet<Salon> Salons { get; set; }
     public DbSet<Employee> Employees { get; set; }
     public DbSet<Service> Services { get; set; }
+    public DbSet<EmployeeService> EmployeeServices { get; set; }
     public DbSet<Appointment> Appointments { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<Notification> Notifications { get; set; }
@@ -48,6 +49,26 @@ public class eTerminDbContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.SalonId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Employee -> Services
+        modelBuilder.Entity<EmployeeService>()
+            .HasKey(x => new
+            {
+                x.EmployeeId,
+                x.ServiceId
+            });
+
+        modelBuilder.Entity<EmployeeService>()
+            .HasOne(x => x.Employee)
+            .WithMany(x => x.EmployeeServices)
+            .HasForeignKey(x => x.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<EmployeeService>()
+            .HasOne(x => x.Service)
+            .WithMany(x => x.EmployeeServices)
+            .HasForeignKey(x => x.ServiceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Appointment -> User
         modelBuilder.Entity<Appointment>()

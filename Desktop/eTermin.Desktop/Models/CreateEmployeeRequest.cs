@@ -17,4 +17,6 @@ public class CreateEmployeeRequest
     public string WorkingHours { get; set; } = "";
 
     public bool IsActive { get; set; }
+
+    public List<int> ServiceIds { get; set; } = new();
 }

@@ -53,7 +53,8 @@
                     <ComboBox x:Name="SalonComboBox"
                               Height="42"
                               Margin="0,0,0,16"
-                              Padding="10,0"/>
+                              Padding="10,0"
+                              SelectionChanged="SalonComboBox_SelectionChanged"/>
 
 
                     <!-- IME -->
@@ -126,6 +127,29 @@
                              Height="42"
                              Padding="10"
                              Margin="0,0,0,16"/>
+
+
+                    <!-- USLUGE -->
+                    <TextBlock Text="Usluge"
+                               FontWeight="SemiBold"
+                               Foreground="#403747"
+                               Margin="0,0,0,7"/>
+
+                    <Border Background="#F8F6FA"
+                            BorderBrush="#E5DFE8"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="10"
+                            Margin="0,0,0,16">
+
+                        <ScrollViewer Height="120"
+                                      VerticalScrollBarVisibility="Auto">
+
+                            <StackPanel x:Name="ServicesPanel"/>
+
+                        </ScrollViewer>
+
+                    </Border>
 
 
                     <!-- AKTIVAN -->
