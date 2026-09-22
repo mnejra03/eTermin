@@ -109,7 +109,8 @@
 
 
                 <!-- Usluge -->
-                <Button Width="52"
+                <Button x:Name="ServicesButton"
+        Width="52"
         Height="52"
         Margin="0,0,0,18"
         Background="Transparent"
@@ -127,7 +128,8 @@
 
 
                 <!-- Termini -->
-                <Button Width="52"
+                <Button x:Name="AppointmentsButton"
+        Width="52"
         Height="52"
         Margin="0,0,0,18"
         Background="Transparent"
@@ -145,7 +147,8 @@
 
 
                 <!-- Statistika -->
-                <Button Width="52"
+                <Button x:Name="StatisticsButton"
+        Width="52"
         Height="52"
         Margin="0,0,0,18"
         Background="Transparent"

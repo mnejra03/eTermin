@@ -4,6 +4,7 @@ using eTermin.Desktop.Views;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace eTermin.Desktop.Windows;
@@ -118,8 +119,10 @@ public partial class DashboardWindow : Window
 
         GreetingText.Text =
             $"{greeting}, {_currentUser.FirstName}!";
+        SetActiveSidebarButton(DashboardButton);
 
         await LoadSalonsAsync();
+        
         await LoadDashboardAsync();
         await LoadAvailableSlotsAsync();
         await LoadNotificationBadgeAsync();
@@ -476,7 +479,8 @@ public partial class DashboardWindow : Window
     object sender,
     RoutedEventArgs e)
     {
-        SetSalonsActive();
+        SetActiveSidebarButton(SalonsButton);
+
         DashboardContent.Visibility =
             Visibility.Collapsed;
 
@@ -494,7 +498,8 @@ public partial class DashboardWindow : Window
     object sender,
     RoutedEventArgs e)
     {
-        SetDashboardActive();
+        SetActiveSidebarButton(DashboardButton);
+
         MainContentControl.Visibility =
             Visibility.Collapsed;
 
@@ -508,30 +513,30 @@ public partial class DashboardWindow : Window
             Visibility.Visible;
     }
 
-    private void SetDashboardActive()
+
+    private void SetActiveSidebarButton(Button activeButton)
     {
-        DashboardButton.Background =
+        var activeColor =
             new SolidColorBrush(
                 (Color)ColorConverter.ConvertFromString("#9C27B0"));
 
-        SalonsButton.Background =
-            Brushes.Transparent;
+        DashboardButton.Background = Brushes.Transparent;
+        SalonsButton.Background = Brushes.Transparent;
+        EmployeesButton.Background = Brushes.Transparent;
+        ServicesButton.Background = Brushes.Transparent;
+        AppointmentsButton.Background = Brushes.Transparent;
+        StatisticsButton.Background = Brushes.Transparent;
+
+        activeButton.Background = activeColor;
     }
 
-    private void SetSalonsActive()
-    {
-        DashboardButton.Background =
-            Brushes.Transparent;
-
-        SalonsButton.Background =
-            new SolidColorBrush(
-                (Color)ColorConverter.ConvertFromString("#9C27B0"));
-    }
 
     private void EmployeesButton_Click(
     object sender,
     RoutedEventArgs e)
     {
+        SetActiveSidebarButton(EmployeesButton);
+
         DashboardContent.Visibility =
             Visibility.Collapsed;
 
