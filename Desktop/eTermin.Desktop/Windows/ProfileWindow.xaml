@@ -1,0 +1,77 @@
+﻿<Window x:Class="eTermin.Desktop.Windows.ProfileWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Profil"
+        Width="420"
+        Height="430"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8F5FA">
+
+    <Border
+        Margin="20"
+        Padding="25"
+        Background="White"
+        CornerRadius="20">
+
+        <StackPanel>
+
+            <TextBlock
+                Text="Moj profil"
+                FontSize="26"
+                FontWeight="Bold"
+                Foreground="#2D1B36"
+                Margin="0,0,0,25"/>
+
+            <TextBlock
+                Text="Ime i prezime"
+                FontSize="13"
+                Foreground="#888888"/>
+
+            <TextBlock
+                x:Name="FullNameText"
+                FontSize="17"
+                FontWeight="SemiBold"
+                Foreground="#2D1B36"
+                Margin="0,4,0,18"/>
+
+            <TextBlock
+                Text="Email"
+                FontSize="13"
+                Foreground="#888888"/>
+
+            <TextBlock
+                x:Name="EmailText"
+                FontSize="17"
+                FontWeight="SemiBold"
+                Foreground="#2D1B36"
+                Margin="0,4,0,18"/>
+
+            <TextBlock
+                Text="Uloga"
+                FontSize="13"
+                Foreground="#888888"/>
+
+            <TextBlock
+                x:Name="RoleText"
+                FontSize="17"
+                FontWeight="SemiBold"
+                Foreground="#2D1B36"
+                Margin="0,4,0,30"/>
+
+            <Button
+                Content="Zatvori"
+                Width="110"
+                Height="38"
+                HorizontalAlignment="Right"
+                Background="#9C27B0"
+                Foreground="White"
+                BorderThickness="0"
+                Cursor="Hand"
+                Click="CloseButton_Click"/>
+
+        </StackPanel>
+
+    </Border>
+
+</Window>

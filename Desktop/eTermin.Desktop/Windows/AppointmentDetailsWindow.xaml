@@ -1,4 +1,4 @@
-﻿<Window x:Class="eTermin.Desktop.AppointmentDetailsWindow"
+﻿<Window x:Class="eTermin.Desktop.Windows.AppointmentDetailsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Detalji termina"

@@ -4,7 +4,7 @@ using eTermin.Desktop.Services;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 
-namespace eTermin.Desktop;
+namespace eTermin.Desktop.Windows;
 
 public partial class DashboardWindow : Window
 {
@@ -413,6 +413,19 @@ public partial class DashboardWindow : Window
         {
             Owner = this
         };
+
+        window.ShowDialog();
+    }
+
+    private void ProfileButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        var window =
+            new ProfileWindow(_currentUser)
+            {
+                Owner = this
+            };
 
         window.ShowDialog();
     }
