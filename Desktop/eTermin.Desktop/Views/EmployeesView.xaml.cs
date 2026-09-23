@@ -1,8 +1,9 @@
-﻿using System.Windows;
-using System.Windows.Controls;
-using eTermin.Desktop.Models;
+﻿using eTermin.Desktop.Models;
 using eTermin.Desktop.Services;
 using eTermin.Desktop.Windows;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace eTermin.Desktop.Views;
 
@@ -11,6 +12,35 @@ public partial class EmployeesView : UserControl
     private readonly ApiService _apiService;
 
     private List<EmployeeListItem> _employees = new();
+
+    private List<EmployeeListItem> _filteredEmployees = new();
+
+    private int _currentPage = 1;
+
+    private int PageSize
+    {
+        get
+        {
+            const double rowHeight = 48;
+
+            var availableHeight =
+                EmployeesDataGrid.ActualHeight;
+
+            if (availableHeight <= 0)
+                return 1;
+
+            return Math.Max(
+                1,
+                (int)(availableHeight / rowHeight));
+        }
+    }
+
+    private int TotalPages =>
+    Math.Max(
+        1,
+        (int)Math.Ceiling(
+            _filteredEmployees.Count /
+            (double)PageSize));
 
     private List<Salon> _salons = new();
     private bool _isLoadingSalons;
@@ -26,8 +56,173 @@ public partial class EmployeesView : UserControl
         EmployeesDataGrid.Items.Clear();
 
         Loaded += EmployeesView_Loaded;
+        SizeChanged += EmployeesView_SizeChanged;
+    }
+    private void EmployeesView_SizeChanged(
+    object sender,
+    SizeChangedEventArgs e)
+    {
+        if (!IsLoaded)
+            return;
+
+        ApplyPagination();
+    }
+    private void ApplyPagination()
+    {
+        if (_currentPage > TotalPages)
+            _currentPage = TotalPages;
+
+        var pageSize = PageSize;
+
+        var pagedEmployees =
+            _filteredEmployees
+                .Skip((_currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+        EmployeesDataGrid.ItemsSource =
+            pagedEmployees;
+
+        UpdatePaginationUI();
+    }
+    private void UpdatePaginationUI()
+    {
+        PaginationPanel.Children.Clear();
+
+        var totalItems = _filteredEmployees.Count;
+        var pageSize = PageSize;
+
+        var start = totalItems == 0
+            ? 0
+            : ((_currentPage - 1) * pageSize) + 1;
+
+        var end = Math.Min(
+            _currentPage * pageSize,
+            totalItems);
+
+        PaginationInfoText.Text =
+            $"Prikazano {start}–{end} od {totalItems} zaposlenika";
+
+        if (TotalPages <= 1)
+        {
+            PaginationPanel.Visibility =
+                Visibility.Collapsed;
+
+            return;
+        }
+
+        PaginationPanel.Visibility =
+            Visibility.Visible;
+
+        var previousButton =
+            CreatePaginationButton("‹");
+
+        previousButton.IsEnabled =
+            _currentPage > 1;
+
+        previousButton.Click +=
+            PreviousPageButton_Click;
+
+        PaginationPanel.Children.Add(
+            previousButton);
+
+        for (var page = 1;
+             page <= TotalPages;
+             page++)
+        {
+            var pageButton =
+                CreatePaginationButton(
+                    page.ToString());
+
+            if (page == _currentPage)
+            {
+                pageButton.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(156, 39, 176));
+
+                pageButton.Foreground =
+                    Brushes.White;
+            }
+
+            var selectedPage = page;
+
+            pageButton.Click +=
+                (sender, e) =>
+                {
+                    _currentPage = selectedPage;
+                    ApplyPagination();
+                };
+
+            PaginationPanel.Children.Add(
+                pageButton);
+        }
+
+        var nextButton =
+            CreatePaginationButton("›");
+
+        nextButton.IsEnabled =
+            _currentPage < TotalPages;
+
+        nextButton.Click +=
+            NextPageButton_Click;
+
+        PaginationPanel.Children.Add(
+            nextButton);
+    }
+    private void PreviousPageButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (_currentPage <= 1)
+            return;
+
+        _currentPage--;
+
+        ApplyPagination();
     }
 
+    private void NextPageButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (_currentPage >= TotalPages)
+            return;
+
+        _currentPage++;
+
+        ApplyPagination();
+    }
+    private Button CreatePaginationButton(
+    string content)
+    {
+        return new Button
+        {
+            Content = content,
+            Width = 34,
+            Height = 34,
+            Margin = new Thickness(0, 0, 5, 0),
+            Background =
+                System.Windows.Media.Brushes.Transparent,
+            Foreground =
+                new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(
+                        85,
+                        85,
+                        85)),
+            BorderBrush =
+                new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(
+                        229,
+                        223,
+                        232)),
+            BorderThickness =
+                new Thickness(1),
+            FontSize = 12,
+            Cursor =
+                System.Windows.Input.Cursors.Hand
+        };
+    }
+  
 
     private async void EmployeesView_Loaded(object sender, RoutedEventArgs e)
     {
@@ -291,8 +486,12 @@ public partial class EmployeesView : UserControl
                     e.SalonName.ToLower().Contains(search));
         }
 
-        EmployeesDataGrid.ItemsSource =
+        _filteredEmployees =
             filtered.ToList();
+
+        _currentPage = 1;
+
+        ApplyPagination();
     }
 
     private void SearchTextBox_TextChanged(

@@ -195,73 +195,73 @@
 
 
                     <!-- ========================================= -->
-                <!-- IME I PREZIME -->
-                <!-- ========================================= -->
+                    <!-- IME I PREZIME -->
+                    <!-- ========================================= -->
 
-                <DataGridTemplateColumn
+                    <DataGridTemplateColumn
                     Header="Ime i prezime"
                     Width="*">
 
-                    <DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
 
-                        <DataTemplate>
+                            <DataTemplate>
 
-                            <TextBlock
+                                <TextBlock
                                 Text="{Binding FullName}"
                                 VerticalAlignment="Center"
                                 Margin="10,0"
                                 Foreground="#403741"/>
 
-                        </DataTemplate>
+                            </DataTemplate>
 
-                    </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
 
-                </DataGridTemplateColumn>
+                    </DataGridTemplateColumn>
 
 
-                <!-- ========================================= -->
-                <!-- TELEFON -->
-                <!-- ========================================= -->
+                    <!-- ========================================= -->
+                    <!-- TELEFON -->
+                    <!-- ========================================= -->
 
-                <DataGridTextColumn
+                    <DataGridTextColumn
                     Header="Telefon"
                     Binding="{Binding PhoneNumber}"
                     Width="140"/>
 
 
-                <!-- ========================================= -->
-                <!-- SALON -->
-                <!-- ========================================= -->
+                    <!-- ========================================= -->
+                    <!-- SALON -->
+                    <!-- ========================================= -->
 
-                <DataGridTextColumn
+                    <DataGridTextColumn
                     Header="Salon"
                     Binding="{Binding SalonName}"
                     Width="160"/>
 
 
-                <!-- ========================================= -->
-                <!-- USLUGE -->
-                <!-- ========================================= -->
+                    <!-- ========================================= -->
+                    <!-- USLUGE -->
+                    <!-- ========================================= -->
 
-                <DataGridTextColumn
+                    <DataGridTextColumn
                     Header="Usluge"
                     Binding="{Binding ServicesText}"
                     Width="200"/>
 
 
-                <!-- ========================================= -->
-                <!-- RADNO VRIJEME -->
-                <!-- ========================================= -->
+                    <!-- ========================================= -->
+                    <!-- RADNO VRIJEME -->
+                    <!-- ========================================= -->
 
-                <DataGridTextColumn
+                    <DataGridTextColumn
                     Header="Radno vrijeme"
                     Binding="{Binding WorkingHours}"
                     Width="170"/>
 
 
-                <!-- ========================================= -->
-                <!-- AKCIJE -->
-                <!-- ========================================= -->
+                    <!-- ========================================= -->
+                    <!-- AKCIJE -->
+                    <!-- ========================================= -->
 
                     <DataGridTemplateColumn Header="Akcije" Width="180">
                         <DataGridTemplateColumn.CellTemplate>
@@ -316,68 +316,32 @@
 
         </Border>
 
-
-        <!-- ================================================= -->
         <!-- PAGINATION -->
-        <!-- ================================================= -->
+        <Grid Grid.Row="3"
+      Margin="0,12,0,0"
+      Height="42">
 
-        <StackPanel
-            Grid.Row="3"
-            Orientation="Horizontal"
-            HorizontalAlignment="Center"
-            Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-            <Button
-                Content="1"
-                Width="30"
-                Height="30"
-                Background="#8B6CF6"
-                Foreground="White"
-                BorderThickness="0"
-                Margin="2"/>
-
-            <Button
-                Content="2"
-                Width="30"
-                Height="30"
-                Background="Transparent"
-                Foreground="#555555"
-                BorderThickness="0"
-                Margin="2"/>
-
-            <Button
-                Content="3"
-                Width="30"
-                Height="30"
-                Background="Transparent"
-                Foreground="#555555"
-                BorderThickness="0"
-                Margin="2"/>
-
+            <!-- INFORMACIJA -->
             <TextBlock
-                Text="..."
-                VerticalAlignment="Center"
-                Margin="5,0"/>
+        x:Name="PaginationInfoText"
+        Grid.Column="0"
+        VerticalAlignment="Center"
+        FontSize="12"
+        Foreground="#777777"/>
 
-            <Button
-                Content="13"
-                Width="30"
-                Height="30"
-                Background="Transparent"
-                Foreground="#555555"
-                BorderThickness="0"
-                Margin="2"/>
+            <!-- PAGINATION DUGMAD -->
+            <StackPanel
+        x:Name="PaginationPanel"
+        Grid.Column="1"
+        Orientation="Horizontal"
+        VerticalAlignment="Center"/>
 
-            <Button
-                Content="14"
-                Width="30"
-                Height="30"
-                Background="Transparent"
-                Foreground="#555555"
-                BorderThickness="0"
-                Margin="2"/>
-
-        </StackPanel>
+        </Grid>
 
     </Grid>
 

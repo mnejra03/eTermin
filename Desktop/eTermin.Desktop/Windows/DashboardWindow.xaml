@@ -135,7 +135,8 @@
         Background="Transparent"
         BorderThickness="0"
         ToolTip="Termini"
-        Cursor="Hand">
+        Cursor="Hand"
+                        Click="AppointmentsSidebarButton_Click">
 
                     <TextBlock Text="&#xE787;"
                        FontFamily="Segoe MDL2 Assets"
