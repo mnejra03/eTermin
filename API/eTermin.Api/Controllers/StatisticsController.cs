@@ -20,17 +20,19 @@ public class StatisticsController : ControllerBase
 
     [HttpGet("dashboard")]
     public async Task<ActionResult<DashboardStatisticsDto>>
-        GetDashboardStatistics(
-            DateTime? from,
-            DateTime? to,
-            int? salonId)
+    GetDashboardStatistics(
+        DateTime? from,
+        DateTime? to,
+        int? salonId,
+        string? status)
     {
         var statistics =
-            await _statisticsService
-                .GetDashboardStatisticsAsync(
-                    from,
-                    to,
-                    salonId);
+    await _statisticsService
+        .GetDashboardStatisticsAsync(
+            from,
+            to,
+            salonId,
+            status);
 
         return Ok(statistics);
     }

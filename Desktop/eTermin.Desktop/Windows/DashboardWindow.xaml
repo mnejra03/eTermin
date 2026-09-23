@@ -156,7 +156,8 @@
         Background="Transparent"
         BorderThickness="0"
         ToolTip="Statistika"
-        Cursor="Hand">
+        Cursor="Hand"
+                        Click="StatisticsButton_Click">
 
                     <TextBlock Text="&#xE9D2;"
                        FontFamily="Segoe MDL2 Assets"
