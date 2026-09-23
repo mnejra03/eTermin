@@ -1,0 +1,395 @@
+﻿<UserControl x:Class="eTermin.Desktop.Views.ServicesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F7F4F8">
+
+    <Grid Margin="25">
+
+        <Grid.RowDefinitions>
+            <!-- Gornji dio -->
+            <RowDefinition Height="Auto"/>
+
+            <!-- Prostor gdje bi kod Salona bile 3 kartice -->
+            <RowDefinition Height="30"/>
+
+            <!-- Tabela -->
+            <RowDefinition Height="*"/>
+
+            <!-- Pagination -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+
+        <!-- ================================================= -->
+        <!-- NASLOV + OPIS + FILTERI -->
+        <!-- ================================================= -->
+
+        <StackPanel Grid.Row="0"
+                    Margin="0,0,0,25">
+
+            <!-- Naslov -->
+            <TextBlock
+                Text="Usluge"
+                FontSize="30"
+                FontWeight="Bold"
+                Foreground="#2D1B36"/>
+
+            <!-- Opis -->
+            <TextBlock
+                Text="Upravljanje uslugama unutar eTermin sistema."
+                FontSize="14"
+                Foreground="#777777"
+                Margin="0,6,0,25"/>
+
+
+            <!-- FILTERI -->
+            <Grid>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="15"/>
+                    <ColumnDefinition Width="260"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="150"/>
+                </Grid.ColumnDefinitions>
+
+
+                <!-- Filter salona -->
+                <ComboBox
+    x:Name="SalonFilterComboBox"
+    Grid.Column="0"
+    Height="42"
+    Padding="12,0"
+    VerticalContentAlignment="Center"
+    Background="White"
+    BorderBrush="#E2DCE5"
+    BorderThickness="1"
+    DisplayMemberPath="Name"
+    SelectionChanged="SalonFilterComboBox_SelectionChanged"/>
+
+                <!-- Pretraga -->
+                <Grid Grid.Column="2"
+                      Height="42">
+
+                    <TextBox
+                        x:Name="SearchTextBox"
+                        Height="42"
+                        Padding="32,0,10,0"
+                        VerticalContentAlignment="Center"
+                        FontSize="14"
+                        Background="White"
+                        BorderBrush="#E2DCE5"
+                        BorderThickness="1"
+                        TextChanged="SearchTextBox_TextChanged"
+                        GotFocus="SearchTextBox_GotFocus"
+                        LostFocus="SearchTextBox_LostFocus"/>
+
+
+                    <TextBlock
+                        Text="⌕"
+                        Margin="10,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="16"
+                        Foreground="#999999"
+                        IsHitTestVisible="False"/>
+
+
+                    <TextBlock
+                        x:Name="SearchPlaceholderText"
+                        Text="Pretraži usluge..."
+                        Margin="32,0,0,0"
+                        VerticalAlignment="Center"
+                        Foreground="#999999"
+                        FontSize="14"
+                        IsHitTestVisible="False"/>
+
+                </Grid>
+
+
+                <!-- Dodaj uslugu -->
+                <Button
+                    Grid.Column="4"
+                    Content="+  Dodaj uslugu"
+                    Height="42"
+                    Background="#9C27B0"
+                    Foreground="White"
+                    BorderThickness="0"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Cursor="Hand"
+                    Click="AddServiceButton_Click"/>
+
+            </Grid>
+
+        </StackPanel>
+
+
+        <!-- ================================================= -->
+        <!-- PRAZAN PROSTOR - UMJESTO 3 KARTICE -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Row="1">
+        </Grid>
+
+
+        <!-- ================================================= -->
+        <!-- TABELA -->
+        <!-- ================================================= -->
+
+        <Border Grid.Row="2"
+                Background="White"
+                CornerRadius="14"
+                Padding="10"
+                BorderBrush="#EAE5ED"
+                BorderThickness="1">
+
+            <DataGrid
+                x:Name="ServicesDataGrid"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                CanUserAddRows="False"
+                CanUserDeleteRows="False"
+                HeadersVisibility="Column"
+                GridLinesVisibility="Horizontal"
+                HorizontalGridLinesBrush="#EAE5ED"
+                VerticalGridLinesBrush="#EAE5ED"
+                BorderThickness="0"
+                RowHeight="48"
+                FontSize="13"
+                SelectionMode="Single"
+                Background="White">
+
+                <DataGrid.ColumnHeaderStyle>
+
+                    <Style TargetType="DataGridColumnHeader">
+
+                        <Setter Property="Background"
+                                Value="White"/>
+
+                        <Setter Property="Foreground"
+                                Value="#4A414D"/>
+
+                        <Setter Property="FontWeight"
+                                Value="SemiBold"/>
+
+                        <Setter Property="FontSize"
+                                Value="13"/>
+
+                        <Setter Property="Padding"
+                                Value="10,0"/>
+
+                        <Setter Property="Height"
+                                Value="42"/>
+
+                        <Setter Property="BorderThickness"
+                                Value="0,0,1,1"/>
+
+                        <Setter Property="BorderBrush"
+                                Value="#EAE5ED"/>
+
+                    </Style>
+
+                </DataGrid.ColumnHeaderStyle>
+
+
+                <DataGrid.Columns>
+
+
+                    <!-- ========================================= -->
+                    <!-- NAZIV -->
+                    <!-- ========================================= -->
+
+                    <DataGridTemplateColumn
+                        Header="Naziv"
+                        Width="*">
+
+                        <DataGridTemplateColumn.CellTemplate>
+
+                            <DataTemplate>
+
+                                <TextBlock
+                                    Text="{Binding Name}"
+                                    VerticalAlignment="Center"
+                                    Margin="10,0"
+                                    Foreground="#403741"/>
+
+                            </DataTemplate>
+
+                        </DataGridTemplateColumn.CellTemplate>
+
+                    </DataGridTemplateColumn>
+
+
+                    <!-- ========================================= -->
+                    <!-- SALON -->
+                    <!-- ========================================= -->
+
+                    <DataGridTextColumn
+                        Header="Salon"
+                        Binding="{Binding SalonName}"
+                        Width="180"/>
+
+
+                    <!-- ========================================= -->
+                    <!-- TRAJANJE -->
+                    <!-- ========================================= -->
+
+                    <DataGridTextColumn
+                        Header="Trajanje"
+                        Binding="{Binding DurationText}"
+                        Width="140"/>
+
+
+                    <!-- ========================================= -->
+                    <!-- CIJENA -->
+                    <!-- ========================================= -->
+
+                    <DataGridTextColumn
+                        Header="Cijena"
+                        Binding="{Binding PriceText}"
+                        Width="130"/>
+
+
+                    <!-- ========================================= -->
+                    <!-- STATUS -->
+                    <!-- ========================================= -->
+
+                    <DataGridTemplateColumn
+                        Header="Status"
+                        Width="130">
+
+                        <DataGridTemplateColumn.CellTemplate>
+
+                            <DataTemplate>
+
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Margin="10,0">
+
+                                    <TextBlock.Style>
+
+                                        <Style TargetType="TextBlock">
+
+                                            <Setter Property="Text"
+                                                    Value="Neaktivna"/>
+
+                                            <Setter Property="Foreground"
+                                                    Value="#C62828"/>
+
+                                            <Style.Triggers>
+
+                                                <DataTrigger
+                                                    Binding="{Binding IsActive}"
+                                                    Value="True">
+
+                                                    <Setter Property="Text"
+                                                            Value="Aktivna"/>
+
+                                                    <Setter Property="Foreground"
+                                                            Value="#2E7D32"/>
+
+                                                </DataTrigger>
+
+                                            </Style.Triggers>
+
+                                        </Style>
+
+                                    </TextBlock.Style>
+
+                                </TextBlock>
+
+                            </DataTemplate>
+
+                        </DataGridTemplateColumn.CellTemplate>
+
+                    </DataGridTemplateColumn>
+
+
+                    <!-- ========================================= -->
+                    <!-- AKCIJE -->
+                    <!-- ========================================= -->
+
+                    <DataGridTemplateColumn
+                        Header="Akcije"
+                        Width="180">
+
+                        <DataGridTemplateColumn.CellTemplate>
+
+                            <DataTemplate>
+
+                                <StackPanel
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Center">
+
+                                    <Button
+                                        Content="Uredi"
+                                        Width="55"
+                                        Height="30"
+                                        Margin="0,0,6,0"
+                                        Background="#EDE7F6"
+                                        Foreground="#5E35B1"
+                                        BorderThickness="0"
+                                        Cursor="Hand"
+                                        Click="EditServiceButton_Click"/>
+
+                                    <Button
+                                        Content="•••"
+                                        Width="35"
+                                        Height="30"
+                                        Background="#F5F5F5"
+                                        Foreground="#555555"
+                                        BorderThickness="0"
+                                        Cursor="Hand"
+                                        Click="ServiceMenuButton_Click"/>
+
+                                </StackPanel>
+
+                            </DataTemplate>
+
+                        </DataGridTemplateColumn.CellTemplate>
+
+                    </DataGridTemplateColumn>
+
+
+                </DataGrid.Columns>
+
+            </DataGrid>
+
+        </Border>
+
+
+        <!-- PAGINATION -->
+
+        <Grid Grid.Row="3"
+              Margin="0,12,0,0"
+              Height="42">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+
+            <!-- INFORMACIJA -->
+
+            <TextBlock
+                x:Name="PaginationInfoText"
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="#777777"/>
+
+
+            <!-- PAGINATION DUGMAD -->
+
+            <StackPanel
+                x:Name="PaginationPanel"
+                Grid.Column="1"
+                Orientation="Horizontal"
+                VerticalAlignment="Center"/>
+
+        </Grid>
+
+    </Grid>
+
+</UserControl>

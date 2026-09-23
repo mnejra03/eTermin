@@ -99,11 +99,23 @@ public class ServiceService : IServiceService
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var service = await _context.Services.FindAsync(id);
+        var service =
+            await _context.Services.FindAsync(id);
 
         if (service == null)
         {
             return false;
+        }
+
+        var hasAppointments =
+            await _context.Appointments
+                .AnyAsync(x => x.ServiceId == id);
+
+        if (hasAppointments)
+        {
+            throw new InvalidOperationException(
+                "Usluga se ne može obrisati jer je već korištena u postojećim terminima. " +
+                "Umjesto brisanja, možete je deaktivirati.");
         }
 
         _context.Services.Remove(service);

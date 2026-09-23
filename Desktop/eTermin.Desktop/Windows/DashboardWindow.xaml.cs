@@ -586,4 +586,23 @@ public partial class DashboardWindow : Window
         MainContentControl.Visibility =
             Visibility.Visible;
     }
+
+    private void ServicesButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        SetActiveSidebarButton(ServicesButton);
+
+        DashboardContent.Visibility =
+            Visibility.Collapsed;
+
+        DashboardRightSidebar.Visibility =
+            Visibility.Collapsed;
+
+        MainContentControl.Content =
+            new ServicesView(_apiService);
+
+        MainContentControl.Visibility =
+            Visibility.Visible;
+    }
 }

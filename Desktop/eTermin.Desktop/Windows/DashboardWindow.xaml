@@ -116,7 +116,8 @@
         Background="Transparent"
         BorderThickness="0"
         ToolTip="Usluge"
-        Cursor="Hand">
+        Cursor="Hand"
+                        Click="ServicesButton_Click">
 
                     <TextBlock Text="&#xE90F;"
                        FontFamily="Segoe MDL2 Assets"
