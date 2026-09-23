@@ -151,6 +151,7 @@ public class EmployeeService : IEmployeeService
         .Distinct()
         .Select(serviceId => new EmployeeServiceEntity
         {
+
             EmployeeId = id,
             ServiceId = serviceId
         })

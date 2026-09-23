@@ -10,6 +10,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
 
@@ -340,6 +341,31 @@
             </DataGrid>
 
         </Border>
+
+        <!-- PAGINATION -->
+        <Grid Grid.Row="4"
+      Margin="0,12,0,0"
+      Height="42">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- INFORMACIJA -->
+            <TextBlock x:Name="PaginationInfoText"
+               Grid.Column="0"
+               VerticalAlignment="Center"
+               FontSize="12"
+               Foreground="#777777"/>
+
+            <!-- PAGINATION -->
+            <StackPanel x:Name="PaginationPanel"
+                Grid.Column="1"
+                Orientation="Horizontal"
+                VerticalAlignment="Center"/>
+
+        </Grid>
 
     </Grid>
 

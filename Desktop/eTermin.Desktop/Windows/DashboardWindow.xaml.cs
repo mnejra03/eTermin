@@ -549,4 +549,23 @@ public partial class DashboardWindow : Window
         MainContentControl.Visibility =
             Visibility.Visible;
     }
+
+    private void AppointmentsSidebarButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        SetActiveSidebarButton(AppointmentsButton);
+
+        DashboardContent.Visibility =
+            Visibility.Collapsed;
+
+        DashboardRightSidebar.Visibility =
+            Visibility.Collapsed;
+
+        MainContentControl.Content =
+            new AppointmentsView(_apiService);
+
+        MainContentControl.Visibility =
+            Visibility.Visible;
+    }
 }
