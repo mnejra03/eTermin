@@ -1,11 +1,12 @@
+using eTermin.Api.Data;
 using eTermin.Application.Services;
 using eTermin.Application.Validators;
 using eTermin.Infrastructure.Data;
 using eTermin.Infrastructure.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -112,6 +113,18 @@ namespace eTemin.Api
             });
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+
+                var context =
+                    services.GetRequiredService<eTerminDbContext>();
+
+                DbSeeder.SeedAsync(context)
+                    .GetAwaiter()
+                    .GetResult();
+            }
 
             if (app.Environment.IsDevelopment())
             {
