@@ -69,6 +69,15 @@ public class ApiService
         var response =
             await _httpClient.DeleteAsync(endpoint);
 
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        var errorMessage =
+            await response.Content.ReadAsStringAsync();
+
+        throw new Exception(
+            $"API greška ({(int)response.StatusCode}): {errorMessage}");
     }
 }

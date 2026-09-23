@@ -66,13 +66,24 @@ public class ServicesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteService(int id)
     {
-        var deleted = await _serviceService.DeleteAsync(id);
-
-        if (!deleted)
+        try
         {
-            return NotFound();
-        }
+            var deleted =
+                await _serviceService.DeleteAsync(id);
 
-        return NoContent();
+            if (!deleted)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new
+            {
+                message = ex.Message
+            });
+        }
     }
 }
