@@ -398,7 +398,7 @@ public partial class DashboardWindow : Window
             await LoadDashboardAsync();
         }
     }
-    private void AppointmentsButton_Click(
+    private async void AppointmentsButton_Click(
     object sender,
     RoutedEventArgs e)
     {
@@ -410,6 +410,15 @@ public partial class DashboardWindow : Window
         };
 
         window.ShowDialog();
+
+        await LoadDashboardAsync();
+
+        var selectedSalon =
+            SalonFilterComboBox.SelectedItem
+            as SalonFilterItem;
+
+        await LoadAvailableSlotsAsync(
+            selectedSalon?.Id);
     }
     private void AddSalonButton_Click(
     object sender,
@@ -494,7 +503,7 @@ public partial class DashboardWindow : Window
             Visibility.Visible;
     }
 
-    private void DashboardButton_Click(
+    private async void DashboardButton_Click(
     object sender,
     RoutedEventArgs e)
     {
@@ -511,6 +520,15 @@ public partial class DashboardWindow : Window
 
         DashboardRightSidebar.Visibility =
             Visibility.Visible;
+
+        await LoadDashboardAsync();
+
+        var selectedSalon =
+            SalonFilterComboBox.SelectedItem
+            as SalonFilterItem;
+
+        await LoadAvailableSlotsAsync(
+            selectedSalon?.Id);
     }
 
 
