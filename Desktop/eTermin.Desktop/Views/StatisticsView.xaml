@@ -1,0 +1,418 @@
+﻿<UserControl x:Class="eTermin.Desktop.Views.StatisticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F7F4F8">
+
+    <Grid Margin="25">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+
+        <!-- ================================================= -->
+        <!-- NASLOV -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Row="0"
+      Margin="0,0,0,20">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+
+            <!-- NASLOV -->
+
+            <StackPanel Grid.Row="0">
+
+                <TextBlock
+            Text="Statistika"
+            FontSize="30"
+            FontWeight="Bold"
+            Foreground="#2D1B36"/>
+
+                <TextBlock
+            Text="Pregled rezervacija, prihoda i statističkih podataka eTermin sistema."
+            FontSize="14"
+            Foreground="#777777"
+            Margin="0,6,0,0"/>
+
+            </StackPanel>
+
+
+            <!-- FILTERI + EXPORT -->
+
+            <Grid Grid.Row="1"
+          Margin="0,20,0,0">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="15"/>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+
+                <!-- PERIOD -->
+
+                <ComboBox
+            x:Name="PeriodComboBox"
+            Grid.Column="0"
+            Height="42"
+            Padding="12,0"
+            VerticalContentAlignment="Center"
+            Background="White"
+            BorderBrush="#E2DCE5"
+            BorderThickness="1"/>
+
+
+                <!-- STATUS -->
+
+                <ComboBox
+            x:Name="StatusFilterComboBox"
+            Grid.Column="2"
+            Height="42"
+            Padding="12,0"
+            VerticalContentAlignment="Center"
+            Background="White"
+            BorderBrush="#E2DCE5"
+            BorderThickness="1"/>
+
+
+                <!-- EXPORT -->
+
+                <StackPanel
+            Grid.Column="4"
+            Orientation="Horizontal">
+
+                    <Button
+                x:Name="ExportPdfButton"
+                Content="Preuzmi PDF"
+                Height="42"
+                Padding="16,0"
+                Background="#6D4C73"
+                Foreground="White"
+                BorderThickness="0"
+                FontSize="13"
+                FontWeight="SemiBold"
+                Cursor="Hand"
+                Margin="0,0,8,0"
+                        Click="ExportPdfButton_Click"/>
+
+                    <Button
+                x:Name="ExportExcelButton"
+                Content="Export Excel"
+                Height="42"
+                Padding="16,0"
+                Background="White"
+                Foreground="#6D4C73"
+                BorderBrush="#6D4C73"
+                BorderThickness="1"
+                FontSize="13"
+                FontWeight="SemiBold"
+                Cursor="Hand"
+                        Click="ExportExcelButton_Click"/>
+
+                </StackPanel>
+
+            </Grid>
+
+        </Grid>
+
+
+        <!-- ================================================= -->
+        <!-- TERMINI + PRIHODI -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Row="1"
+              Margin="0,0,0,15">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="15"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+
+            <!-- BROJ TERMINA -->
+
+            <Border
+                Grid.Column="0"
+                Background="White"
+                CornerRadius="14"
+                BorderBrush="#EAE5ED"
+                BorderThickness="1"
+                Padding="18">
+
+                <Grid>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel>
+
+                        <TextBlock
+                            Text="Broj termina"
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Foreground="#2D1B36"/>
+
+                        <TextBlock
+                            x:Name="AppointmentsSummaryText"
+                            Text="0"
+                            FontSize="28"
+                            FontWeight="Bold"
+                            Foreground="#6D4C73"
+                            Margin="0,6,0,0"/>
+
+                    </StackPanel>
+
+                    <Grid
+                        x:Name="AppointmentsMiniChartGrid"
+                        Grid.Row="1"
+                        Margin="0,12,0,0"/>
+
+                </Grid>
+
+            </Border>
+
+
+            <!-- PRIHODI -->
+
+            <Border
+                Grid.Column="2"
+                Background="White"
+                CornerRadius="14"
+                BorderBrush="#EAE5ED"
+                BorderThickness="1"
+                Padding="18">
+
+                <Grid>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel>
+
+                        <TextBlock
+                            Text="Prihodi"
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Foreground="#2D1B36"/>
+
+                        <TextBlock
+                            x:Name="RevenueSummaryText"
+                            Text="0,00 KM"
+                            FontSize="28"
+                            FontWeight="Bold"
+                            Foreground="#6D4C73"
+                            Margin="0,6,0,0"/>
+                        <TextBlock
+    Text="Ostvareni prihod · Completed termini"
+    FontSize="12"
+    Foreground="#8B7D91"
+    Margin="0,6,0,0" />
+
+                    </StackPanel>
+
+                    <Grid
+                        x:Name="RevenueMiniChartGrid"
+                        Grid.Row="1"
+                        Margin="0,12,0,0"/>
+
+                </Grid>
+
+            </Border>
+
+        </Grid>
+
+
+        <!-- ================================================= -->
+        <!-- DONJI DIO -->
+        <!-- ================================================= -->
+
+        <Grid Grid.Row="2">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="15"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+
+            <!-- ================================================= -->
+            <!-- BROJ REZERVACIJA - NAJVEĆI GRAF -->
+            <!-- ================================================= -->
+
+            <Border
+                Grid.Column="0"
+                Background="White"
+                CornerRadius="14"
+                BorderBrush="#EAE5ED"
+                BorderThickness="1"
+                Padding="20">
+
+                <Grid>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+
+                    <StackPanel>
+
+                        <TextBlock
+                            Text="Broj rezervacija"
+                            FontSize="20"
+                            FontWeight="SemiBold"
+                            Foreground="#2D1B36"/>
+
+                        <TextBlock
+                            x:Name="ReservationsChartDescriptionText"
+                            Text="Pregled rezervacija"
+                            FontSize="13"
+                            Foreground="#777777"
+                            Margin="0,5,0,0"/>
+
+                    </StackPanel>
+
+
+                    <!-- VELIKI GRAF -->
+
+                    <Grid
+                        x:Name="ReservationsChartGrid"
+                        Grid.Row="1"
+                        Margin="5,15,5,5"/>
+
+                </Grid>
+
+            </Border>
+
+
+            <!-- ================================================= -->
+            <!-- DESNA KOLONA -->
+            <!-- ================================================= -->
+
+            <Grid Grid.Column="2">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="15"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+
+                <!-- ============================================= -->
+                <!-- POPULARNOST USLUGA -->
+                <!-- ============================================= -->
+
+                <Border
+                    Grid.Row="0"
+                    Background="White"
+                    CornerRadius="14"
+                    BorderBrush="#EAE5ED"
+                    BorderThickness="1"
+                    Padding="18">
+
+                    <Grid>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="Popularnost usluga"
+                                FontSize="18"
+                                FontWeight="SemiBold"
+                                Foreground="#2D1B36"/>
+
+                            <TextBlock
+                                Text="Udio rezervacija po usluzi"
+                                FontSize="12"
+                                Foreground="#777777"
+                                Margin="0,4,0,0"/>
+
+                        </StackPanel>
+
+
+                        <!-- PIE CHART -->
+
+                        <Grid
+                            x:Name="PopularServicesChartGrid"
+                            Grid.Row="1"
+                            Margin="5,10,5,5"/>
+
+                    </Grid>
+
+                </Border>
+
+
+                <!-- ============================================= -->
+                <!-- STATUS TERMINA -->
+                <!-- ============================================= -->
+
+                <Border
+                    Grid.Row="2"
+                    Background="White"
+                    CornerRadius="14"
+                    BorderBrush="#EAE5ED"
+                    BorderThickness="1"
+                    Padding="18">
+
+                    <Grid>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="Status termina"
+                                FontSize="18"
+                                FontWeight="SemiBold"
+                                Foreground="#2D1B36"/>
+
+                            <TextBlock
+                                Text="Raspodjela termina po statusu"
+                                FontSize="12"
+                                Foreground="#777777"
+                                Margin="0,4,0,0"/>
+
+                        </StackPanel>
+
+
+                        <!-- PIE CHART -->
+
+                        <Grid
+                            x:Name="AppointmentStatusChartGrid"
+                            Grid.Row="1"
+                            Margin="5,10,5,5"/>
+
+                    </Grid>
+
+                </Border>
+
+            </Grid>
+
+        </Grid>
+
+    </Grid>
+
+</UserControl>

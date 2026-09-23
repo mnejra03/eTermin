@@ -366,7 +366,24 @@ public partial class DashboardWindow : Window
     }
 
 
+    private void StatisticsButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        SetActiveSidebarButton(StatisticsButton);
 
+        DashboardContent.Visibility =
+            Visibility.Collapsed;
+
+        DashboardRightSidebar.Visibility =
+            Visibility.Collapsed;
+
+        MainContentControl.Content =
+            new StatisticsView(_apiService);
+
+        MainContentControl.Visibility =
+            Visibility.Visible;
+    }
 
 
 

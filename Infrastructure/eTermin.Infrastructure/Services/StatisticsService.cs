@@ -15,10 +15,11 @@ public class StatisticsService : IStatisticsService
     }
 
     public async Task<DashboardStatisticsDto>
-        GetDashboardStatisticsAsync(
-            DateTime? from,
-            DateTime? to,
-            int? salonId)
+    GetDashboardStatisticsAsync(
+        DateTime? from,
+        DateTime? to,
+        int? salonId,
+        string? status)
     {
         // ==========================================
         // APPOINTMENTS QUERY
@@ -53,6 +54,8 @@ public class StatisticsService : IStatisticsService
                     x.SalonId == salonId.Value);
         }
 
+       
+
         // ==========================================
         // SVI TERMINI ZA GRAF STATUSA
         // ==========================================
@@ -61,17 +64,21 @@ public class StatisticsService : IStatisticsService
             await appointmentsQuery
                 .ToListAsync();
 
+
+
         // ==========================================
-        // AKTIVNI TERMINI ZA KPI STATISTIKU
+        // TERMINI PREMA ODABRANOM STATUSU
         // ==========================================
 
-        // Otkazani termini ne ulaze u:
-        // - ukupan broj rezervacija
-        // - prihod
-        // - najpopularniju uslugu
+        // All statuses -> samo Completed termini
+        // Odabrani status -> samo termini tog statusa
         var appointments =
             allAppointments
-                .Where(x => x.Status != "Cancelled")
+                .Where(x =>
+                    string.IsNullOrWhiteSpace(status) ||
+                    status == "All statuses"
+                        ? x.Status == "Completed"
+                        : x.Status == status)
                 .ToList();
 
 
@@ -165,6 +172,24 @@ public class StatisticsService : IStatisticsService
             serviceName =
                 service?.Name;
         }
+
+
+        var reservationsByService =
+    appointments
+        .GroupBy(x => x.ServiceId)
+        .Select(g => new ServiceReservationDto
+        {
+            ServiceName =
+                _context.Services
+                    .Where(s => s.Id == g.Key)
+                    .Select(s => s.Name)
+                    .FirstOrDefault()
+                    ?? "Nepoznata usluga",
+
+            Count = g.Count()
+        })
+        .OrderByDescending(x => x.Count)
+        .ToList();
         // ==========================================
         // NAJAKTIVNIJI KORISNIK
         // ==========================================
@@ -305,7 +330,10 @@ public class StatisticsService : IStatisticsService
          reservationsByDay,
 
             ReservationsByStatus =
-         reservationsByStatus
+         reservationsByStatus,
+
+         ReservationsByService =
+    reservationsByService
         };
     } 
 }

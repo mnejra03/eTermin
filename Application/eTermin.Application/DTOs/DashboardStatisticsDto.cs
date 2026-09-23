@@ -19,6 +19,8 @@ public class DashboardStatisticsDto
     public List<DailyReservationDto> ReservationsByDay { get; set; } = [];
 
     public List<ReservationStatusDto> ReservationsByStatus { get; set; } = [];
+
+    public List<ServiceReservationDto> ReservationsByService { get; set; } = [];
 }
 
 public class DailyReservationDto
@@ -30,5 +32,12 @@ public class DailyReservationDto
 public class ReservationStatusDto
 {
     public string Status { get; set; } = "";
+    public int Count { get; set; }
+}
+
+public class ServiceReservationDto
+{
+    public string ServiceName { get; set; } = "";
+
     public int Count { get; set; }
 }
