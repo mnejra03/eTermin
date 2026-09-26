@@ -190,11 +190,65 @@ public class AppointmentService : IAppointmentService
         if (service.SalonId != appointmentDto.SalonId)
             throw new Exception("Usluga ne pripada odabranom salonu.");
 
+        // Provjera da zaposlenik pruža odabranu uslugu
+        var employeeProvidesService =
+            await _context.EmployeeServices.AnyAsync(es =>
+                es.EmployeeId == appointmentDto.EmployeeId &&
+                es.ServiceId == appointmentDto.ServiceId);
+
+        if (!employeeProvidesService)
+        {
+            throw new Exception(
+                "Odabrani zaposlenik ne pruža odabranu uslugu.");
+        }
+
         // Računamo EndTime na osnovu trajanja usluge
         var startTime = appointmentDto.StartTime;
 
         var endTime = startTime.AddMinutes(
             service.DurationInMinutes);
+
+        // Termin ne smije biti u prošlosti
+        if (startTime <= DateTime.Now)
+        {
+            throw new Exception(
+                "Termin ne može biti zakazan u prošlosti.");
+        }
+
+        // Provjera radnog vremena zaposlenika
+        if (string.IsNullOrWhiteSpace(employee.WorkingHours))
+        {
+            throw new Exception(
+                "Radno vrijeme zaposlenika nije definisano.");
+        }
+
+        var workingHoursParts =
+            employee.WorkingHours.Split('-');
+
+        if (workingHoursParts.Length != 2 ||
+            !TimeSpan.TryParse(
+                workingHoursParts[0],
+                out var workStart) ||
+            !TimeSpan.TryParse(
+                workingHoursParts[1],
+                out var workEnd))
+        {
+            throw new Exception(
+                "Radno vrijeme mora biti u formatu HH:mm-HH:mm.");
+        }
+
+        var workDayStart =
+            startTime.Date.Add(workStart);
+
+        var workDayEnd =
+            startTime.Date.Add(workEnd);
+
+        if (startTime < workDayStart ||
+            endTime > workDayEnd)
+        {
+            throw new Exception(
+                "Termin nije unutar radnog vremena zaposlenika.");
+        }
 
         // Provjera preklapanja termina
         var overlappingAppointment =
@@ -207,6 +261,18 @@ public class AppointmentService : IAppointmentService
         if (overlappingAppointment)
             throw new Exception(
                 "Zaposlenik već ima termin u odabranom vremenu.");
+
+        // Provjera preklapanja termina za istog korisnika
+        var userOverlappingAppointment =
+            await _context.Appointments.AnyAsync(a =>
+                a.UserId == appointmentDto.UserId &&
+                a.Status != "Cancelled" &&
+                a.StartTime < endTime &&
+                a.EndTime > startTime);
+
+        if (userOverlappingAppointment)
+            throw new Exception(
+                "Korisnik već ima termin u odabranom vremenu.");
 
         // Kreiranje termina
         var appointment = new Appointment
@@ -300,12 +366,72 @@ public class AppointmentService : IAppointmentService
             throw new Exception(
                 "Odabrani zaposlenik ne pripada odabranom salonu.");
 
+        var employeeProvidesService =
+    await _context.EmployeeServices.AnyAsync(es =>
+        es.EmployeeId == appointmentDto.EmployeeId &&
+        es.ServiceId == appointmentDto.ServiceId);
+
+        if (!employeeProvidesService)
+        {
+            throw new Exception(
+                "Odabrani zaposlenik ne pruža odabranu uslugu.");
+        }
+
         // Backend sam računa EndTime
         // prema trajanju NOVE usluge.
         var startTime = appointmentDto.StartTime;
 
         var endTime = startTime.AddMinutes(
             service.DurationInMinutes);
+
+        // Provjera da li se mijenja raspored termina
+        var scheduleChanged =
+            appointment.StartTime != appointmentDto.StartTime ||
+            appointment.SalonId != appointmentDto.SalonId ||
+            appointment.EmployeeId != appointmentDto.EmployeeId ||
+            appointment.ServiceId != appointmentDto.ServiceId;
+
+        // Termin ne može biti pomjeren u prošlost.
+        // Promjena samo statusa za već završeni termin je dozvoljena.
+        if (scheduleChanged && startTime <= DateTime.Now)
+        {
+            throw new Exception(
+                "Termin ne može biti zakazan u prošlosti.");
+        }
+
+        if (string.IsNullOrWhiteSpace(employee.WorkingHours))
+        {
+            throw new Exception(
+                "Radno vrijeme zaposlenika nije definisano.");
+        }
+
+        var workingHoursParts =
+            employee.WorkingHours.Split('-');
+
+        if (workingHoursParts.Length != 2 ||
+            !TimeSpan.TryParse(
+                workingHoursParts[0],
+                out var workStart) ||
+            !TimeSpan.TryParse(
+                workingHoursParts[1],
+                out var workEnd))
+        {
+            throw new Exception(
+                "Radno vrijeme mora biti u formatu HH:mm-HH:mm.");
+        }
+
+        var workDayStart =
+            startTime.Date.Add(workStart);
+
+        var workDayEnd =
+            startTime.Date.Add(workEnd);
+
+        if (startTime < workDayStart ||
+            endTime > workDayEnd)
+        {
+            throw new Exception(
+                "Termin nije unutar radnog vremena zaposlenika.");
+        }
 
         // Provjera preklapanja za NOVOG zaposlenika
         var overlappingAppointment =
@@ -339,7 +465,42 @@ public class AppointmentService : IAppointmentService
 
         if (!string.IsNullOrWhiteSpace(appointmentDto.Status))
         {
-            appointment.Status = appointmentDto.Status;
+            var newStatus = appointmentDto.Status;
+
+            var allowedStatuses = new[]
+            {
+        "Pending",
+        "Confirmed",
+        "Completed",
+        "Cancelled"
+    };
+
+            if (!allowedStatuses.Contains(newStatus))
+            {
+                throw new Exception(
+                    "Neispravan status termina.");
+            }
+
+            if (oldStatus == "Completed")
+            {
+                throw new Exception(
+                    "Završen termin nije moguće mijenjati.");
+            }
+
+            if (oldStatus == "Cancelled")
+            {
+                throw new Exception(
+                    "Otkazan termin nije moguće mijenjati.");
+            }
+
+            if (newStatus == "Completed" &&
+                appointment.EndTime > DateTime.Now)
+            {
+                throw new Exception(
+                    "Termin se ne može označiti kao završen prije njegovog završetka.");
+            }
+
+            appointment.Status = newStatus;
         }
 
         // Ako se status promijenio,

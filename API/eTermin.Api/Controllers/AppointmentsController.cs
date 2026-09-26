@@ -51,7 +51,12 @@ public class AppointmentsController : ControllerBase
 
             var userId = int.Parse(userIdClaim.Value);
 
-            appointmentDto.UserId = userId;
+            var isAdmin = User.IsInRole("Admin");
+
+            if (!isAdmin)
+            {
+                appointmentDto.UserId = userId;
+            }
 
             var appointment =
                 await _appointmentService.CreateAsync(appointmentDto);

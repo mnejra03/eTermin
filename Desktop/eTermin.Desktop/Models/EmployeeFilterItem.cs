@@ -10,6 +10,8 @@ public class EmployeeFilterItem
 
     public string LastName { get; set; } = "";
 
+    public List<int> ServiceIds { get; set; } = new();
+
     public string Name =>
         $"{FirstName} {LastName}";
 }

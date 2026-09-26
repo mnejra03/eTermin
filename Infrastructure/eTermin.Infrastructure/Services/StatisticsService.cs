@@ -70,16 +70,23 @@ public class StatisticsService : IStatisticsService
         // TERMINI PREMA ODABRANOM STATUSU
         // ==========================================
 
-        // All statuses -> samo Completed termini
-        // Odabrani status -> samo termini tog statusa
-        var appointments =
-            allAppointments
-                .Where(x =>
-                    string.IsNullOrWhiteSpace(status) ||
-                    status == "All statuses"
-                        ? x.Status == "Completed"
-                        : x.Status == status)
-                .ToList();
+        var appointments = allAppointments;
+
+        if (!string.IsNullOrWhiteSpace(status) &&
+            status != "All statuses")
+        {
+            appointments =
+                appointments
+                    .Where(x => x.Status == status)
+                    .ToList();
+        }
+        else
+        {
+            appointments =
+                appointments
+                    .Where(x => x.Status == "Completed")
+                    .ToList();
+        }
 
 
         // ==========================================

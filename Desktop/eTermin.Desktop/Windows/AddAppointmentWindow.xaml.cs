@@ -128,6 +128,35 @@ public partial class AddAppointmentWindow : Window
         }
     }
 
+    /* private async Task LoadEmployeesAsync(int salonId)
+     {
+         try
+         {
+             var employees =
+                 await _apiService.GetAsync<List<EmployeeFilterItem>>(
+                     "Employees");
+
+
+
+             _employees = employees?
+                 .Where(x => x.SalonId == salonId)
+                 .ToList()
+                 ?? [];
+
+             EmployeeComboBox.ItemsSource = _employees;
+             EmployeeComboBox.DisplayMemberPath = "Name";
+             EmployeeComboBox.SelectedValuePath = "Id";
+         }
+         catch (Exception ex)
+         {
+             MessageBox.Show(
+                 $"Greška prilikom učitavanja zaposlenika:\n{ex.Message}",
+                 "Greška",
+                 MessageBoxButton.OK,
+                 MessageBoxImage.Error);
+         }
+     }*/
+
     private async Task LoadEmployeesAsync(int salonId)
     {
         try
@@ -136,10 +165,13 @@ public partial class AddAppointmentWindow : Window
                 await _apiService.GetAsync<List<EmployeeFilterItem>>(
                     "Employees");
 
-            
-
             _employees = employees?
-                .Where(x => x.SalonId == salonId)
+                .Where(x =>
+                    x.SalonId == salonId &&
+                    x.ServiceIds.Contains(
+                        ServiceComboBox.SelectedValue is int serviceId
+                            ? serviceId
+                            : 0))
                 .ToList()
                 ?? [];
 
@@ -168,13 +200,14 @@ public partial class AddAppointmentWindow : Window
         await LoadEmployeesAsync(salonId);
     }
 
-    private void ServiceComboBox_SelectionChanged(
-        object sender,
-        SelectionChangedEventArgs e)
+    private async void ServiceComboBox_SelectionChanged(
+    object sender,
+    SelectionChangedEventArgs e)
     {
         if (ServiceComboBox.SelectedItem is not ServiceFilterItem service)
         {
             PriceTextBox.Text = "";
+            EmployeeComboBox.ItemsSource = null;
             return;
         }
 
@@ -182,6 +215,11 @@ public partial class AddAppointmentWindow : Window
             service.Price.ToString(
                 "0.00",
                 CultureInfo.InvariantCulture);
+
+        if (SalonComboBox.SelectedValue is not int salonId)
+            return;
+
+        await LoadEmployeesAsync(salonId);
     }
 
     private async void SaveButton_Click(
