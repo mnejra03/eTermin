@@ -1,4 +1,5 @@
-﻿using eTermin.Application.DTOs;
+﻿using eTermin.Api.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
@@ -86,5 +87,50 @@ public class AuthService : IAuthService
                                     user.Email,
                                     user.Role)
         };
+    }
+
+    public async Task ChangePasswordAsync(
+    int userId,
+    ChangePasswordDto changePasswordDto)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Id == userId);
+
+        if (user == null)
+            throw new Exception("Korisnik ne postoji.");
+
+        var currentPasswordValid =
+            BCrypt.Net.BCrypt.Verify(
+                changePasswordDto.CurrentPassword,
+                user.PasswordHash);
+
+        if (!currentPasswordValid)
+            throw new Exception("Trenutna lozinka nije ispravna.");
+
+        if (string.IsNullOrWhiteSpace(
+                changePasswordDto.NewPassword))
+        {
+            throw new Exception(
+                "Nova lozinka ne može biti prazna.");
+        }
+
+        if (changePasswordDto.NewPassword.Length < 6)
+        {
+            throw new Exception(
+                "Nova lozinka mora sadržavati najmanje 6 znakova.");
+        }
+
+        if (changePasswordDto.CurrentPassword ==
+            changePasswordDto.NewPassword)
+        {
+            throw new Exception(
+                "Nova lozinka mora biti različita od trenutne.");
+        }
+
+        user.PasswordHash =
+            BCrypt.Net.BCrypt.HashPassword(
+                changePasswordDto.NewPassword);
+
+        await _context.SaveChangesAsync();
     }
 }

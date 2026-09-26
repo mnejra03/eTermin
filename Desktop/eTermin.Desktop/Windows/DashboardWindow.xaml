@@ -200,7 +200,8 @@
        PlacementTarget="{Binding ElementName=SettingsButton}"
        StaysOpen="False"
        AllowsTransparency="True"
-       PopupAnimation="Fade">
+       PopupAnimation="Fade"
+                   >
 
                 <Border Background="White"
             Width="180"
@@ -213,11 +214,12 @@
 
                         <!-- Postavke -->
                         <Button Height="42"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    HorizontalContentAlignment="Left"
-                    Padding="10,0"
-                    Cursor="Hand">
+        Background="Transparent"
+        BorderThickness="0"
+        HorizontalContentAlignment="Left"
+        Padding="10,0"
+        Cursor="Hand"
+        Click="OpenSettingsWindow_Click">
 
                             <StackPanel Orientation="Horizontal">
 

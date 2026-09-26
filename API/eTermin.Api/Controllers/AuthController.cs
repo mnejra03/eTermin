@@ -1,6 +1,8 @@
-﻿using eTermin.Application.DTOs;
+﻿using eTermin.Api.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace eTermin.Api.Controllers;
 
@@ -51,5 +53,37 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    [HttpPut("change-password")]
+    public async Task<IActionResult> ChangePassword(
+    ChangePasswordDto changePasswordDto)
+    {
+        try
+        {
+            var userIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            var userId = int.Parse(userIdClaim.Value);
+
+            await _authService.ChangePasswordAsync(
+                userId,
+                changePasswordDto);
+
+            return Ok(new
+            {
+                message = "Lozinka je uspješno promijenjena."
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
     }
 }

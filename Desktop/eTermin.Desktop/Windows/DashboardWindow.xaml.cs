@@ -348,6 +348,20 @@ public partial class DashboardWindow : Window
         SettingsPopup.IsOpen = !SettingsPopup.IsOpen;
     }
 
+    private void OpenSettingsWindow_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        SettingsPopup.IsOpen = false;
+
+        var window = new SettingsWindow(_apiService)
+        {
+            Owner = this
+        };
+
+        window.ShowDialog();
+    }
+
     private async void SalonFilterComboBox_SelectionChanged(
     object sender,
     System.Windows.Controls.SelectionChangedEventArgs e)
