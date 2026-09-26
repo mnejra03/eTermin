@@ -22,7 +22,10 @@ public partial class MainWindow : Window
         ErrorTextBlock.Visibility = Visibility.Collapsed;
 
         var email = EmailTextBox.Text.Trim();
-        var password = PasswordBox.Password;
+        var password =
+    PasswordBox.Visibility == Visibility.Visible
+        ? PasswordBox.Password
+        : VisiblePasswordTextBox.Text;
 
         if (string.IsNullOrWhiteSpace(email) ||
             string.IsNullOrWhiteSpace(password))
@@ -79,6 +82,26 @@ public partial class MainWindow : Window
         {
             LoginButton.IsEnabled = true;
             LoginButton.Content = "Prijavi se";
+        }
+    }
+
+    private void PasswordVisibilityButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        if (PasswordBox.Visibility == Visibility.Visible)
+        {
+            VisiblePasswordTextBox.Text = PasswordBox.Password;
+
+            PasswordBox.Visibility = Visibility.Collapsed;
+            VisiblePasswordTextBox.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            PasswordBox.Password = VisiblePasswordTextBox.Text;
+
+            VisiblePasswordTextBox.Visibility = Visibility.Collapsed;
+            PasswordBox.Visibility = Visibility.Visible;
         }
     }
 
