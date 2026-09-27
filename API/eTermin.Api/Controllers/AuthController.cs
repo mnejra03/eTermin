@@ -86,4 +86,36 @@ public async Task<IActionResult> ChangePassword(
         });
     }
 }
+
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile(
+    UpdateProfileDto updateProfileDto)
+    {
+        try
+        {
+            var userIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            var userId = int.Parse(userIdClaim.Value);
+
+            await _authService.UpdateProfileAsync(
+                userId,
+                updateProfileDto);
+
+            return Ok(new
+            {
+                message = "Podaci profila su uspješno izmijenjeni."
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
 }
