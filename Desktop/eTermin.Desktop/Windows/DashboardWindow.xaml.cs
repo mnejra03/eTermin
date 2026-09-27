@@ -354,7 +354,9 @@ public partial class DashboardWindow : Window
     {
         SettingsPopup.IsOpen = false;
 
-        var window = new SettingsWindow(_apiService)
+        var window = new SettingsWindow(
+    _apiService,
+    _currentUser)
         {
             Owner = this
         };

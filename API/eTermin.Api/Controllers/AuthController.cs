@@ -56,34 +56,34 @@ public class AuthController : ControllerBase
     }
 
     [HttpPut("change-password")]
-    public async Task<IActionResult> ChangePassword(
+public async Task<IActionResult> ChangePassword(
     ChangePasswordDto changePasswordDto)
+{
+    try
     {
-        try
+        var userIdClaim =
+            User.FindFirst(ClaimTypes.NameIdentifier);
+
+        if (userIdClaim == null)
+            return Unauthorized();
+
+        var userId = int.Parse(userIdClaim.Value);
+
+        await _authService.ChangePasswordAsync(
+            userId,
+            changePasswordDto);
+
+        return Ok(new
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null)
-                return Unauthorized();
-
-            var userId = int.Parse(userIdClaim.Value);
-
-            await _authService.ChangePasswordAsync(
-                userId,
-                changePasswordDto);
-
-            return Ok(new
-            {
-                message = "Lozinka je uspješno promijenjena."
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+            message = "Lozinka je uspješno promijenjena."
+        });
     }
+    catch (Exception ex)
+    {
+        return BadRequest(new
+        {
+            message = ex.Message
+        });
+    }
+}
 }
