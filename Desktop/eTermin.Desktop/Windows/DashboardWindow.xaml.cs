@@ -105,6 +105,24 @@ public partial class DashboardWindow : Window
 
     }
 
+    public void UpdateCurrentUser(AuthResponse updatedUser)
+    {
+        _currentUser.FirstName = updatedUser.FirstName;
+        _currentUser.LastName = updatedUser.LastName;
+        _currentUser.Email = updatedUser.Email;
+
+        var hour = DateTime.Now.Hour;
+
+        var greeting = hour < 12
+            ? "Dobro jutro"
+            : hour < 18
+                ? "Dobar dan"
+                : "Dobro veče";
+
+        GreetingText.Text =
+            $"{greeting}, {_currentUser.FirstName}!";
+    }
+
     private async void DashboardWindow_Loaded(
     object sender,
     RoutedEventArgs e)
@@ -333,11 +351,24 @@ public partial class DashboardWindow : Window
     }
 
     private void LogoutButton_Click(
-        object sender,
-        RoutedEventArgs e)
+    object sender,
+    RoutedEventArgs e)
     {
+        var result = MessageBox.Show(
+            "Da li ste sigurni da se želite odjaviti?",
+            "Potvrda odjave",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
         var loginWindow = new MainWindow();
+
         loginWindow.Show();
+
         Close();
     }
 

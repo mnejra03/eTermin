@@ -133,4 +133,58 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task UpdateProfileAsync(
+    int userId,
+    UpdateProfileDto updateProfileDto)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Id == userId);
+
+        if (user == null)
+            throw new Exception("Korisnik ne postoji.");
+
+        if (string.IsNullOrWhiteSpace(
+                updateProfileDto.FirstName))
+        {
+            throw new Exception(
+                "Ime ne može biti prazno.");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                updateProfileDto.LastName))
+        {
+            throw new Exception(
+                "Prezime ne može biti prazno.");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                updateProfileDto.Email))
+        {
+            throw new Exception(
+                "Email ne može biti prazan.");
+        }
+
+        var emailExists = await _context.Users
+            .AnyAsync(x =>
+                x.Email == updateProfileDto.Email &&
+                x.Id != userId);
+
+        if (emailExists)
+        {
+            throw new Exception(
+                "Korisnik sa ovim emailom već postoji.");
+        }
+
+        user.FirstName =
+            updateProfileDto.FirstName.Trim();
+
+        user.LastName =
+            updateProfileDto.LastName.Trim();
+
+        user.Email =
+            updateProfileDto.Email.Trim();
+
+        await _context.SaveChangesAsync();
+    }
 }

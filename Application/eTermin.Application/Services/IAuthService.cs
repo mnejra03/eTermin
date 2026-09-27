@@ -12,5 +12,9 @@ public interface IAuthService
     Task ChangePasswordAsync(
     int userId,
     ChangePasswordDto changePasswordDto);
+
+    Task UpdateProfileAsync(
+    int userId,
+    UpdateProfileDto updateProfileDto);
 }
 

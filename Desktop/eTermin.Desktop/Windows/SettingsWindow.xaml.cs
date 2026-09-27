@@ -2,6 +2,7 @@
 using eTermin.Desktop.Services;
 using System.Windows;
 using System.Windows.Media;
+using System.Text.RegularExpressions;
 
 namespace eTermin.Desktop.Windows;
 
@@ -9,7 +10,6 @@ public partial class SettingsWindow : Window
 {
     private readonly ApiService _apiService;
     private readonly AuthResponse _authResponse;
-    private bool _isInitialized;
 
     public SettingsWindow(
     ApiService apiService,
@@ -20,9 +20,7 @@ public partial class SettingsWindow : Window
         _apiService = apiService;
         _authResponse = currentUser;
 
-        _isInitialized = true;
 
-        ApplyLightTheme();
     }
 
     private void ProfileSettingsButton_Click(
@@ -47,74 +45,127 @@ public partial class SettingsWindow : Window
         SecurityPanel.Visibility =
             Visibility.Collapsed;
 
-        AppearancePanel.Visibility =
-            Visibility.Collapsed;
 
         ProfilePanel.Visibility =
             Visibility.Visible;
     }
 
-    private void LightThemeRadioButton_Checked(
+    private async void SaveProfileButton_Click(
     object sender,
     RoutedEventArgs e)
     {
-        if (!_isInitialized)
+        var firstName =
+            FirstNameTextBox.Text.Trim();
+
+        var lastName =
+            LastNameTextBox.Text.Trim();
+
+        var email =
+            EmailTextBox.Text.Trim();
+
+        // Provjera imena
+        if (string.IsNullOrWhiteSpace(firstName))
+        {
+            MessageBox.Show(
+                "Ime ne može biti prazno.",
+                "Neuspješno",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+
             return;
+        }
 
-        ApplyLightTheme();
-    }
+        // Provjera prezimena
+        if (string.IsNullOrWhiteSpace(lastName))
+        {
+            MessageBox.Show(
+                "Prezime ne može biti prazno.",
+                "Neuspješno",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
 
-    private void DarkThemeRadioButton_Checked(
-    object sender,
-    RoutedEventArgs e)
-    {
-        if (!_isInitialized)
             return;
+        }
 
-        ApplyDarkTheme();
+        // Provjera praznog emaila
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            MessageBox.Show(
+                "Email ne može biti prazan.",
+                "Neuspješno",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+
+            return;
+        }
+
+        // Provjera formata emaila
+        var emailPattern =
+            @"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$";
+
+        if (!Regex.IsMatch(email, emailPattern))
+        {
+            MessageBox.Show(
+                "Email adresa nije ispravna.\n\n" +
+                "Email mora biti u formatu:\n" +
+                "ime@domena.ba ili ime@domena.com\n\n" +
+                "Primjer: nejra@gmail.com",
+                "Neuspješno",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+
+            return;
+        }
+
+        try
+        {
+            SaveProfileButton.IsEnabled = false;
+            SaveProfileButton.Content = "Spremanje...";
+
+            var request = new
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email
+            };
+
+            await _apiService.PutAsync(
+                "Auth/profile",
+                request);
+
+            _authResponse.FirstName = firstName;
+            _authResponse.LastName = lastName;
+            _authResponse.Email = email;
+
+            if (Owner is DashboardWindow dashboardWindow)
+            {
+                dashboardWindow.UpdateCurrentUser(
+                    _authResponse);
+            }
+
+            MessageBox.Show(
+                "Podaci profila su uspješno izmijenjeni.",
+                "Uspješno",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                "Promjene nisu sačuvane.\n\n" +
+                ex.Message,
+                "Neuspješno",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            SaveProfileButton.IsEnabled = true;
+            SaveProfileButton.Content =
+                "Sačuvaj promjene";
+        }
     }
 
-    private void ApplyLightTheme()
-    {
-        Background =
-            new SolidColorBrush(
-                Color.FromRgb(247, 244, 248));
-
-        SettingsMenuPanel.Background =
-            Brushes.White;
-
-        ProfilePanel.Background =
-            Brushes.White;
-
-        SecurityPanel.Background =
-            Brushes.White;
-
-        AppearancePanel.Background =
-            Brushes.White;
-    }
-
-    private void ApplyDarkTheme()
-    {
-        Background =
-            new SolidColorBrush(
-                Color.FromRgb(35, 30, 38));
-
-        SettingsMenuPanel.Background =
-            new SolidColorBrush(
-                Color.FromRgb(48, 42, 52));
-
-        ProfilePanel.Background =
-            new SolidColorBrush(
-                Color.FromRgb(48, 42, 52));
-
-        SecurityPanel.Background =
-            new SolidColorBrush(
-                Color.FromRgb(48, 42, 52));
-
-        AppearancePanel.Background =
-            new SolidColorBrush(
-                Color.FromRgb(48, 42, 52));
-    }
 
     private void SecuritySettingsButton_Click(
     object sender,
@@ -126,29 +177,12 @@ public partial class SettingsWindow : Window
         ProfilePanel.Visibility =
             Visibility.Collapsed;
 
-        AppearancePanel.Visibility =
-            Visibility.Collapsed;
 
         SecurityPanel.Visibility =
             Visibility.Visible;
     }
 
-    private void AppearanceSettingsButton_Click(
-    object sender,
-    RoutedEventArgs e)
-    {
-        SettingsMenuPanel.Visibility =
-            Visibility.Collapsed;
-
-        ProfilePanel.Visibility =
-            Visibility.Collapsed;
-
-        SecurityPanel.Visibility =
-            Visibility.Collapsed;
-
-        AppearancePanel.Visibility =
-            Visibility.Visible;
-    }
+    
 
     private void BackToSettings_Click(
     object sender,
@@ -160,8 +194,6 @@ public partial class SettingsWindow : Window
         SecurityPanel.Visibility =
             Visibility.Collapsed;
 
-        AppearancePanel.Visibility =
-            Visibility.Collapsed;
 
         SettingsMenuPanel.Visibility =
             Visibility.Visible;
@@ -253,6 +285,7 @@ public partial class SettingsWindow : Window
     private void ShowError(string message)
     {
         ErrorTextBlock.Text = message;
-        ErrorTextBlock.Visibility = Visibility.Visible;
+        ErrorTextBlock.Visibility =
+            Visibility.Visible;
     }
 }
