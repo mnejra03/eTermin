@@ -2,9 +2,8 @@
 
 ## Sistem za elektronsko upravljanje terminima
 
-**Seminarski projekat – Razvoj softvera II (2025/2026)**  
-**Student:** Nejra Muminović  
-**IB:** IB220043
+**Seminarski projekat – Razvoj softvera II **  
+**Student:** Nejra Muminović 
 
 ---
 
@@ -278,7 +277,3 @@ Baza i početni podaci će se ponovo kreirati automatski.
 
 ---
 
-**Predmet:** Razvoj softvera II  
-**Akademska godina:** 2025/2026  
-**Student:** Nejra Muminović  
-**IB:** IB220043
