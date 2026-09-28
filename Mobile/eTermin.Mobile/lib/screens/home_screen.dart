@@ -7,6 +7,10 @@ import '../services/api_service.dart';
 import 'salon_details_screen.dart';
 import 'all_salons_screen.dart';
 
+import '../models/employee.dart';
+
+import 'booking_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   final String firstName;
   final String token;
@@ -24,6 +28,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Salon> _salons = [];
   List<Service> _services = [];
+  List<Employee> _employees = [];
+
+  List<Map<String, dynamic>> _homeAvailableSlots = [];
+  bool _isLoadingHomeSlots = true;
+
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -210,14 +219,36 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final salons = await _apiService.getSalons();
       final services = await _apiService.getServices();
+      final employees = await _apiService.getEmployees();
 
       if (!mounted) return;
 
       setState(() {
         _salons = salons.where((salon) => salon.isActive).toList();
+
         _services = services.where((service) => service.isActive).toList();
+
+        _employees = employees.where((employee) => employee.isActive).toList();
+
         _isLoadingSalons = false;
       });
+
+      try {
+        final slots = await _loadHomeAvailableSlots();
+
+        if (!mounted) return;
+
+        setState(() {
+          _homeAvailableSlots = slots.take(5).toList();
+          _isLoadingHomeSlots = false;
+        });
+      } catch (e) {
+        if (!mounted) return;
+
+        setState(() {
+          _isLoadingHomeSlots = false;
+        });
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -226,6 +257,43 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoadingSalons = false;
       });
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadHomeAvailableSlots() async {
+    final result = <Map<String, dynamic>>[];
+
+    final today = DateTime.now();
+
+    for (final service in _services) {
+      final employees = _employees.where(
+        (employee) =>
+            employee.salonId == service.salonId &&
+            employee.serviceIds.contains(service.id),
+      );
+
+      if (employees.isEmpty) {
+        continue;
+      }
+
+      final slots = await _apiService.getAvailableSlots(
+        salonId: service.salonId,
+        employeeId: employees.first.id,
+        serviceId: service.id,
+        date: today,
+      );
+
+      for (final slot in slots) {
+        if (slot['isAvailable'] == true) {
+          result.add({
+            'slot': slot,
+            'service': service,
+            'employee': employees.first,
+          });
+        }
+      }
+    }
+
+    return result;
   }
 
   // ----------------------------------------------------------
@@ -388,9 +456,65 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _buildAvailableSlot('10:00', 'Šišanje', 'Bella'),
-                _buildAvailableSlot('10:00', 'Nokti', 'Glow Studio'),
-                _buildAvailableSlot('11:30', 'Tretman lica', 'Belle Studio'),
+                SizedBox(
+                  height: 72,
+                  child: _isLoadingHomeSlots
+                      ? const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : _homeAvailableSlots.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Trenutno nema slobodnih termina.',
+                            style: TextStyle(color: Colors.grey, fontSize: 11),
+                          ),
+                        )
+                      : ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _homeAvailableSlots.length,
+                          itemBuilder: (context, index) {
+                            final item = _homeAvailableSlots[index];
+
+                            final slot = item['slot'] as Map<String, dynamic>;
+                            final service = item['service'] as Service;
+
+                            final salon = _salons.firstWhere(
+                              (salon) => salon.id == service.salonId,
+                            );
+
+                            final startTime = DateTime.parse(
+                              slot['startTime'].toString(),
+                            );
+
+                            final time =
+                                '${startTime.hour.toString().padLeft(2, '0')}:'
+                                '${startTime.minute.toString().padLeft(2, '0')}';
+
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BookingScreen(
+                                      salon: salon,
+                                      service: service,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: _buildAvailableSlot(
+                                time,
+                                service.name,
+                                salon.name,
+                              ),
+                            );
+                          },
+                        ),
+                ),
               ],
             ),
           ),
