@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/salon.dart';
+import '../models/service.dart';
 import '../services/api_service.dart';
 
 import 'salon_details_screen.dart';
@@ -22,6 +23,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
 
   List<Salon> _salons = [];
+  List<Service> _services = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   bool _isLoadingSalons = true;
   String? _salonsError;
 
@@ -183,33 +188,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getSalonImage(Salon salon) {
-  switch (salon.name.toLowerCase()) {
-    case 'belle studio':
-      return 'assets/images/belle.jpg';
+    switch (salon.name.toLowerCase()) {
+      case 'belle studio':
+        return 'assets/images/belle.jpg';
 
-    case 'glow beauty':
-      return 'assets/images/glow_beauty.jpg';
+      case 'glow beauty':
+        return 'assets/images/glow_beauty.jpg';
 
-    case 'beauty studio':
-      return 'assets/images/beauty.jpg';
+      case 'beauty studio':
+        return 'assets/images/beauty.jpg';
 
-    case 'elegance beauty studio':
-      return 'assets/images/elegance_beauty.jpg';
+      case 'elegance beauty studio':
+        return 'assets/images/elegance_beauty.jpg';
 
-    default:
-      return 'assets/images/elegance_beauty.jpg';
+      default:
+        return 'assets/images/elegance_beauty.jpg';
+    }
   }
-}
 
   Future<void> _loadSalons() async {
     try {
       final salons = await _apiService.getSalons();
+      final services = await _apiService.getServices();
 
       if (!mounted) return;
 
       setState(() {
         _salons = salons.where((salon) => salon.isActive).toList();
-
+        _services = services.where((service) => service.isActive).toList();
         _isLoadingSalons = false;
       });
     } catch (e) {
@@ -292,6 +298,17 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(9),
             ),
             child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+              onSubmitted: (value) {
+                setState(() {
+                  _selectedIndex = 1;
+                });
+              },
               decoration: InputDecoration(
                 hintText: 'Pretraži salon ili uslugu...',
                 hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -656,13 +673,251 @@ class _HomeScreenState extends State<HomeScreen> {
   // ----------------------------------------------------------
 
   Widget _buildSearch() {
-    return Center(
-      child: Text(
-        'Pretraži',
-        style: TextStyle(
-          color: primaryColor,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
+    final filteredSalons = _salons.where((salon) {
+      final query = _searchQuery.toLowerCase().trim();
+
+      if (query.isEmpty) {
+        return true;
+      }
+
+      return salon.name.toLowerCase().contains(query) ||
+          salon.city.toLowerCase().contains(query) ||
+          salon.address.toLowerCase().contains(query);
+    }).toList();
+
+    final filteredServices = _services.where((service) {
+      final query = _searchQuery.toLowerCase().trim();
+
+      if (query.isEmpty) {
+        return true;
+      }
+
+      return service.name.toLowerCase().contains(query) ||
+          service.description.toLowerCase().contains(query);
+    }).toList();
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pretraži',
+              style: TextStyle(
+                color: primaryColor,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            Container(
+              height: 45,
+              decoration: BoxDecoration(
+                border: Border.all(color: primaryColor.withOpacity(0.6)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Pretraži salon...',
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 13,
+                  ),
+                  prefixIcon: Icon(Icons.search, color: primaryColor, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Text(
+              'Saloni',
+              style: TextStyle(
+                color: darkText,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Expanded(
+              child: (filteredSalons.isEmpty && filteredServices.isEmpty)
+                  ? Center(
+                      child: Text(
+                        'Nema rezultata pretrage.',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      children: [
+                        if (filteredSalons.isNotEmpty) ...[
+                          Text(
+                            'Saloni',
+                            style: TextStyle(
+                              color: darkText,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          ...filteredSalons.map((salon) {
+                            return Card(
+                              elevation: 0,
+                              margin: const EdgeInsets.only(bottom: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: primaryColor.withOpacity(0.25),
+                                ),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(8),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.asset(
+                                    _getSalonImage(salon),
+                                    width: 65,
+                                    height: 65,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                title: Text(
+                                  salon.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${salon.city}, ${salon.address}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 15,
+                                  color: primaryColor,
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          SalonDetailsScreen(salon: salon),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          }),
+                        ],
+
+                        if (filteredServices.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+
+                          Text(
+                            'Usluge',
+                            style: TextStyle(
+                              color: darkText,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          ...filteredServices.map((service) {
+                            final salon = _salons.firstWhere(
+                              (s) => s.id == service.salonId,
+                            );
+
+                            return Card(
+                              elevation: 0,
+                              margin: const EdgeInsets.only(bottom: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: primaryColor.withOpacity(0.25),
+                                ),
+                              ),
+                              child: ListTile(
+                                leading: Container(
+                                  width: 45,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    color: lightPurple,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.spa_outlined,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                                title: Text(
+                                  service.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${salon.name} • ${service.price.toStringAsFixed(0)} KM',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 15,
+                                  color: primaryColor,
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          SalonDetailsScreen(salon: salon),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
+            ),
+          ],
         ),
       ),
     );
