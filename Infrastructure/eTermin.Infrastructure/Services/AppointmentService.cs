@@ -623,6 +623,23 @@ public class AppointmentService : IAppointmentService
 
         var currentStart = dayStart;
 
+        if (date.Date == DateTime.Today)
+        {
+            var now = DateTime.Now;
+
+            if (now > currentStart)
+            {
+                var minutesFromMidnight =
+                    now.Hour * 60 + now.Minute;
+
+                var nextSlotMinutes =
+                    ((minutesFromMidnight + 29) / 30) * 30;
+
+                currentStart = date.Date.AddMinutes(
+                    nextSlotMinutes);
+            }
+        }
+
         while (currentStart.AddMinutes(service.DurationInMinutes) <= dayEnd)
         {
             var currentEnd =
@@ -632,14 +649,12 @@ public class AppointmentService : IAppointmentService
                 a.StartTime < currentEnd &&
                 a.EndTime > currentStart);
 
-            if (!overlaps)
+            availableSlots.Add(new AvailableSlotDto
             {
-                availableSlots.Add(new AvailableSlotDto
-                {
-                    StartTime = currentStart,
-                    EndTime = currentEnd
-                });
-            }
+                StartTime = currentStart,
+                EndTime = currentEnd,
+                IsAvailable = !overlaps
+            });
 
             currentStart = currentStart.AddMinutes(30);
         }
