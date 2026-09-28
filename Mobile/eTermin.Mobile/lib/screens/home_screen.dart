@@ -350,9 +350,28 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _buildServiceChip('✂️ Šišanje - Bella'),
-                _buildServiceChip('💅 Nokti - Glow Studio'),
-                _buildServiceChip('✨ Tretman lica'),
+                ..._services.take(5).map((service) {
+                  final salon = _salons.where(
+                    (salon) => salon.id == service.salonId,
+                  );
+
+                  final salonName = salon.isNotEmpty ? salon.first.name : '';
+
+                  return _buildServiceChip(
+                    '${service.name} • $salonName',
+                    onTap: () {
+                      if (salon.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                SalonDetailsScreen(salon: salon.first),
+                          ),
+                        );
+                      }
+                    },
+                  );
+                }),
               ],
             ),
           ),
@@ -551,21 +570,24 @@ class _HomeScreenState extends State<HomeScreen> {
   // SERVICE CHIP
   // ----------------------------------------------------------
 
-  Widget _buildServiceChip(String text) {
-    return Container(
-      margin: const EdgeInsets.only(right: 7),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: primaryColor.withOpacity(0.55)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: darkText,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
+  Widget _buildServiceChip(String text, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: primaryColor.withOpacity(0.55)),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: darkText,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
