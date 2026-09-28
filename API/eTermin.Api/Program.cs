@@ -132,7 +132,7 @@ namespace eTemin.Api
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseCors("AngularClient");
 

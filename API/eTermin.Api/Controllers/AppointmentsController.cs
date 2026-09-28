@@ -39,7 +39,7 @@ public class AppointmentsController : ControllerBase
 
     [HttpPost]
     public async Task<ActionResult<AppointmentDto>> CreateAppointment(
-    AppointmentDto appointmentDto)
+    CreateAppointmentDto createAppointmentDto)
     {
         try
         {
@@ -50,6 +50,18 @@ public class AppointmentsController : ControllerBase
                 return Unauthorized();
 
             var userId = int.Parse(userIdClaim.Value);
+
+            var appointmentDto = new AppointmentDto
+            {
+                SalonId = createAppointmentDto.SalonId,
+                EmployeeId = createAppointmentDto.EmployeeId,
+                ServiceId = createAppointmentDto.ServiceId,
+                StartTime = createAppointmentDto.StartTime,
+                EndTime = createAppointmentDto.EndTime,
+                Status = createAppointmentDto.Status,
+                Price = createAppointmentDto.Price,
+                UserId = userId
+            };
 
             var isAdmin = User.IsInRole("Admin");
 
