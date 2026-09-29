@@ -2,6 +2,7 @@
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace eTermin.Api.Controllers;
 
@@ -11,10 +12,14 @@ namespace eTermin.Api.Controllers;
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
+    private readonly IPayPalService _payPalService;
 
-    public PaymentsController(IPaymentService paymentService)
+    public PaymentsController(
+     IPaymentService paymentService,
+     IPayPalService payPalService)
     {
         _paymentService = paymentService;
+        _payPalService = payPalService;
     }
 
     [HttpGet("{id}")]
@@ -75,4 +80,158 @@ public class PaymentsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPost("paypal/create-order")]
+    public async Task<IActionResult> CreatePayPalOrder(
+    [FromBody] CreatePayPalOrderRequest request)
+    {
+        try
+        {
+            var order =
+    await _payPalService.CreateOrderAsync(
+        request.Amount,
+        request.Currency,
+        request.Description);
+
+            return Ok(new
+            {
+                orderId = order.OrderId,
+                approvalUrl = order.ApprovalUrl
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [HttpPost("paypal/capture-order")]
+    public async Task<IActionResult> CapturePayPalOrder(
+    [FromBody] CapturePayPalOrderRequest request)
+    {
+        try
+        {
+            var captureId =
+                await _payPalService.CaptureOrderAsync(
+                    request.OrderId);
+
+            return Ok(new
+            {
+                captureId
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [HttpGet("paypal/return")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PayPalReturn(
+    [FromQuery] string token)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return BadRequest(new
+                {
+                    message = "PayPal Order ID nije pronađen."
+                });
+            }
+
+            var order =
+                await _payPalService.GetOrderDetailsAsync(token);
+
+            return Content(
+                order,
+                "application/json");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [HttpPost("paypal/authorize-order")]
+    public async Task<IActionResult> AuthorizePayPalOrder(
+    [FromBody] CapturePayPalOrderRequest request)
+    {
+        try
+        {
+            var authorizationId =
+                await _payPalService.AuthorizeOrderAsync(
+                    request.OrderId);
+
+            return Ok(new
+            {
+                authorizationId
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [HttpGet("paypal/cancel")]
+    [AllowAnonymous]
+    public IActionResult PayPalCancel()
+    {
+        return Ok(new
+        {
+            message = "PayPal plaćanje je otkazano."
+        });
+    }
+
+    [HttpGet("paypal/order/{orderId}")]
+    public async Task<IActionResult> GetPayPalOrder(
+    string orderId)
+    {
+        try
+        {
+            var result =
+                await _payPalService.GetOrderDetailsAsync(orderId);
+
+            return Content(
+                result,
+                "application/json");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+}
+
+public class CreatePayPalOrderRequest
+{
+    public decimal Amount { get; set; }
+
+    public string Currency { get; set; } = "BAM";
+
+    public string Description { get; set; } =
+        string.Empty;
+}
+
+public class CapturePayPalOrderRequest
+{
+    public string OrderId { get; set; } =
+        string.Empty;
 }
