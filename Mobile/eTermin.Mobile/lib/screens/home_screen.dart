@@ -10,6 +10,7 @@ import 'all_salons_screen.dart';
 import '../models/employee.dart';
 
 import 'booking_screen.dart';
+import 'new_appointment_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String firstName;
@@ -29,6 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Salon> _salons = [];
   List<Service> _services = [];
   List<Employee> _employees = [];
+
+  List<Map<String, dynamic>> _myAppointments = [];
+  bool _isLoadingAppointments = false;
+  String? _appointmentsError;
+  String _appointmentFilter = 'Aktivni';
 
   List<Map<String, dynamic>> _homeAvailableSlots = [];
   bool _isLoadingHomeSlots = true;
@@ -65,7 +71,37 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    print('HOME INIT');
+
     _loadSalons();
+
+    _loadMyAppointments();
+  }
+
+  Future<void> _loadMyAppointments() async {
+    setState(() {
+      _isLoadingAppointments = true;
+      _appointmentsError = null;
+    });
+
+    try {
+      final appointments = await _apiService.getMyAppointments();
+
+      if (!mounted) return;
+
+      setState(() {
+        _myAppointments = appointments;
+        _isLoadingAppointments = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _appointmentsError = e.toString();
+        _isLoadingAppointments = false;
+      });
+    }
   }
 
   Widget _buildPopularSalons() {
@@ -261,34 +297,63 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<List<Map<String, dynamic>>> _loadHomeAvailableSlots() async {
     final result = <Map<String, dynamic>>[];
-
     final today = DateTime.now();
 
-    for (final service in _services) {
-      final employees = _employees.where(
-        (employee) =>
-            employee.salonId == service.salonId &&
-            employee.serviceIds.contains(service.id),
-      );
+    // Tražimo termine za narednih 7 dana.
+    for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
+      final date = DateTime(
+        today.year,
+        today.month,
+        today.day,
+      ).add(Duration(days: dayOffset));
 
-      if (employees.isEmpty) {
-        continue;
-      }
+      for (final service in _services) {
+        final employees = _employees
+            .where(
+              (employee) =>
+                  employee.salonId == service.salonId &&
+                  employee.serviceIds.contains(service.id) &&
+                  employee.isActive,
+            )
+            .toList();
 
-      final slots = await _apiService.getAvailableSlots(
-        salonId: service.salonId,
-        employeeId: employees.first.id,
-        serviceId: service.id,
-        date: today,
-      );
+        // Provjeri svakog zaposlenika koji pruža tu uslugu.
+        for (final employee in employees) {
+          try {
+            final slots = await _apiService.getAvailableSlots(
+              salonId: service.salonId,
+              employeeId: employee.id,
+              serviceId: service.id,
+              date: date,
+            );
 
-      for (final slot in slots) {
-        if (slot['isAvailable'] == true) {
-          result.add({
-            'slot': slot,
-            'service': service,
-            'employee': employees.first,
-          });
+            for (final slot in slots) {
+              if (slot['isAvailable'] == true) {
+                print(
+                  'HOME SLOT: '
+                  '${service.name} | '
+                  '${employee.firstName} ${employee.lastName} | '
+                  'employeeId=${employee.id} | '
+                  '${slot['startTime']} - ${slot['endTime']}',
+                );
+                result.add({
+                  'slot': slot,
+                  'service': service,
+                  'employee': employee,
+                  'date': date,
+                });
+
+                // Dovoljno je nekoliko termina za Home ekran.
+                if (result.length >= 5) {
+                  return result;
+                }
+              }
+            }
+          } catch (_) {
+            // Ako jedan zaposlenik/termin ne uspije,
+            // nastavljamo provjeravati ostale.
+            continue;
+          }
         }
       }
     }
@@ -456,64 +521,47 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                SizedBox(
-                  height: 72,
-                  child: _isLoadingHomeSlots
-                      ? const Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: _homeAvailableSlots.take(5).map((item) {
+                    final slot = item['slot'] as Map<String, dynamic>;
+                    final service = item['service'] as Service;
+
+                    final salon = _salons.firstWhere(
+                      (salon) => salon.id == service.salonId,
+                    );
+
+                    final startTime = DateTime.parse(
+                      slot['startTime'].toString(),
+                    );
+
+                    final time =
+                        '${startTime.hour.toString().padLeft(2, '0')}:'
+                        '${startTime.minute.toString().padLeft(2, '0')}';
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookingScreen(
+                              salon: salon,
+                              service: service,
+                              initialDate: item['date'] as DateTime,
+                              initialEmployeeId:
+                                  (item['employee'] as Employee).id,
+                            ),
                           ),
-                        )
-                      : _homeAvailableSlots.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Trenutno nema slobodnih termina.',
-                            style: TextStyle(color: Colors.grey, fontSize: 11),
-                          ),
-                        )
-                      : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _homeAvailableSlots.length,
-                          itemBuilder: (context, index) {
-                            final item = _homeAvailableSlots[index];
-
-                            final slot = item['slot'] as Map<String, dynamic>;
-                            final service = item['service'] as Service;
-
-                            final salon = _salons.firstWhere(
-                              (salon) => salon.id == service.salonId,
-                            );
-
-                            final startTime = DateTime.parse(
-                              slot['startTime'].toString(),
-                            );
-
-                            final time =
-                                '${startTime.hour.toString().padLeft(2, '0')}:'
-                                '${startTime.minute.toString().padLeft(2, '0')}';
-
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BookingScreen(
-                                      salon: salon,
-                                      service: service,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: _buildAvailableSlot(
-                                time,
-                                service.name,
-                                salon.name,
-                              ),
-                            );
-                          },
-                        ),
+                        );
+                      },
+                      child: _buildAvailableSlot(
+                        time,
+                        service.name,
+                        salon.name,
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             ),
@@ -530,8 +578,16 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: _buildQuickAction(
-                  Icons.calendar_month_outlined,
+                  Icons.calendar_today,
                   'Novi termin',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NewAppointmentScreen(),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 7),
@@ -539,6 +595,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildQuickAction(
                   Icons.calendar_today_outlined,
                   'Moji termini',
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 2;
+                    });
+                  },
                 ),
               ),
               const SizedBox(width: 7),
@@ -775,12 +836,11 @@ class _HomeScreenState extends State<HomeScreen> {
   // ----------------------------------------------------------
   // QUICK ACTION
   // ----------------------------------------------------------
-
-  Widget _buildQuickAction(IconData icon, String title) {
+  Widget _buildQuickAction(IconData icon, String title, {VoidCallback? onTap}) {
     return SizedBox(
       height: 38,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: onTap,
         icon: Icon(icon, size: 14),
         label: Text(title, style: const TextStyle(fontSize: 9)),
         style: ElevatedButton.styleFrom(
@@ -1074,14 +1134,249 @@ class _HomeScreenState extends State<HomeScreen> {
   // ----------------------------------------------------------
 
   Widget _buildAppointments() {
-    return Center(
-      child: Text(
-        'Moji termini',
-        style: TextStyle(
-          color: primaryColor,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
+    List<Map<String, dynamic>> filteredAppointments;
+
+    if (_appointmentFilter == 'Aktivni') {
+      filteredAppointments = _myAppointments.where((appointment) {
+        final status = appointment['status']?.toString() ?? '';
+        return status == 'Pending' || status == 'Confirmed';
+      }).toList();
+    } else if (_appointmentFilter == 'Završeni') {
+      filteredAppointments = _myAppointments.where((appointment) {
+        return appointment['status']?.toString() == 'Completed';
+      }).toList();
+    } else {
+      filteredAppointments = _myAppointments.where((appointment) {
+        return appointment['status']?.toString() == 'Cancelled';
+      }).toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'Moji termini',
+            style: TextStyle(
+              color: darkText,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
+
+        const SizedBox(height: 16),
+
+        // FILTERI
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              _buildAppointmentFilter('Aktivni'),
+              _buildAppointmentFilter('Završeni'),
+              _buildAppointmentFilter('Otkazani'),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        Expanded(
+          child: _isLoadingAppointments
+              ? const Center(child: CircularProgressIndicator())
+              : _appointmentsError != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      'Termini se trenutno ne mogu učitati.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
+              : filteredAppointments.isEmpty
+              ? Center(
+                  child: Text(
+                    'Nema termina u kategoriji "$_appointmentFilter".',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  itemCount: filteredAppointments.length,
+                  itemBuilder: (context, index) {
+                    final appointment = filteredAppointments[index];
+
+                    return _buildAppointmentCard(appointment);
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppointmentFilter(String title) {
+    final isSelected = _appointmentFilter == title;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _appointmentFilter = title;
+          });
+        },
+        child: Container(
+          margin: const EdgeInsets.only(right: 5),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? primaryColor : lightPurple,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.white : primaryColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppointmentCard(Map<String, dynamic> appointment) {
+    final serviceName = appointment['serviceName']?.toString() ?? 'Usluga';
+
+    final salonName = appointment['salonName']?.toString() ?? 'Salon';
+
+    final status = appointment['status']?.toString() ?? '';
+
+    final startTime = DateTime.tryParse(
+      appointment['startTime']?.toString() ?? '',
+    );
+
+    String dateText = '';
+
+    if (startTime != null) {
+      dateText =
+          '${startTime.day.toString().padLeft(2, '0')}.'
+          '${startTime.month.toString().padLeft(2, '0')}.'
+          '${startTime.year}. u '
+          '${startTime.hour.toString().padLeft(2, '0')}:'
+          '${startTime.minute.toString().padLeft(2, '0')}';
+    }
+
+    Color statusColor;
+    String statusText;
+
+    switch (status) {
+      case 'Confirmed':
+        statusColor = Colors.green;
+        statusText = 'Potvrđeno';
+        break;
+
+      case 'Pending':
+        statusColor = Colors.orange;
+        statusText = 'Na čekanju';
+        break;
+
+      case 'Completed':
+        statusColor = Colors.blueGrey;
+        statusText = 'Završeno';
+        break;
+
+      case 'Cancelled':
+        statusColor = Colors.red;
+        statusText = 'Otkazano';
+        break;
+
+      default:
+        statusColor = Colors.grey;
+        statusText = status;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: primaryColor.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: lightPurple,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.calendar_month, color: primaryColor, size: 22),
+          ),
+
+          const SizedBox(width: 10),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$serviceName - $salonName',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                Text(
+                  dateText,
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+            decoration: BoxDecoration(
+              color: statusColor,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              statusText,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

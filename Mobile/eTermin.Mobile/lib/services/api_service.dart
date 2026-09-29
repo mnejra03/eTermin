@@ -159,6 +159,47 @@ class ApiService {
     throw Exception('Slobodni termini se ne mogu učitati.');
   }
 
+  Future<List<Map<String, dynamic>>> getMyAppointments() async {
+    if (_token == null || _token!.isEmpty) {
+      throw Exception('JWT TOKEN NIJE POSTAVLJEN.');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/Appointments/my'),
+      headers: {'Authorization': 'Bearer $_token'},
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception(
+        'API je vratio prazan odgovor. '
+        'Status: ${response.statusCode}',
+      );
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Moji termini API greška.\n'
+        'Status: ${response.statusCode}\n'
+        'Body: ${response.body}',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded is! List) {
+      throw Exception(
+        'Neočekivan odgovor za moje termine.\n'
+        'Tip: ${decoded.runtimeType}',
+      );
+    }
+
+    return decoded
+        .map<Map<String, dynamic>>(
+          (item) => Map<String, dynamic>.from(item as Map),
+        )
+        .toList();
+  }
+
   Future<void> createAppointment({
     required int salonId,
     required int employeeId,
@@ -198,8 +239,8 @@ class ApiService {
     }
 
     throw Exception(
-  'Status: ${response.statusCode}\n'
-  'Odgovor API-ja: ${response.body}',
-);
+      'Status: ${response.statusCode}\n'
+      'Odgovor API-ja: ${response.body}',
+    );
   }
 }
