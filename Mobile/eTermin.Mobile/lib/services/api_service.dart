@@ -317,4 +317,37 @@ class ApiService {
 
     throw Exception('Obavijest se ne može označiti kao pročitana.');
   }
+
+  Future<Map<String, dynamic>> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/Auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception(
+        'API je vratio prazan odgovor. '
+        'Status: ${response.statusCode}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data;
+    }
+
+    throw Exception(data['message'] ?? 'Registracija nije uspjela.');
+  }
 }
