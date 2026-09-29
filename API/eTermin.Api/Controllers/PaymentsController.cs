@@ -115,8 +115,22 @@ public class PaymentsController : ControllerBase
         try
         {
             var captureId =
-                await _payPalService.CaptureOrderAsync(
-                    request.OrderId);
+    await _payPalService.CaptureOrderAsync(
+        request.OrderId);
+
+            var updated =
+                await _paymentService.UpdateStatusAsync(
+                    request.PaymentId,
+                    "Completed",
+                    captureId);
+
+            if (!updated)
+            {
+                return NotFound(new
+                {
+                    message = "Payment zapis nije pronađen."
+                });
+            }
 
             return Ok(new
             {
@@ -211,6 +225,8 @@ public class CapturePayPalOrderRequest
 {
     public string OrderId { get; set; } =
         string.Empty;
+
+    public int PaymentId { get; set; }
 }
 
 public class CaptureAuthorizationRequest

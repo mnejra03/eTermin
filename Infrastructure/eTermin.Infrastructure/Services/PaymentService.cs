@@ -71,8 +71,9 @@ public class PaymentService : IPaymentService
     }
 
     public async Task<bool> UpdateStatusAsync(
-        int id,
-        string status)
+    int id,
+    string status,
+    string? transactionId = null)
     {
         var payment = await _context.Payments
             .FirstOrDefaultAsync(x => x.Id == id);
@@ -85,7 +86,7 @@ public class PaymentService : IPaymentService
         if (status == "Completed")
         {
             payment.TransactionId =
-                $"PAY-{Guid.NewGuid():N}";
+                transactionId ?? $"PAY-{Guid.NewGuid():N}";
 
             var appointment = await _context.Appointments
                 .FirstOrDefaultAsync(x =>

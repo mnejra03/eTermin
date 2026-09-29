@@ -12,6 +12,7 @@ public interface IPaymentService
     Task<PaymentDto> CreateAsync(PaymentDto paymentDto);
 
     Task<bool> UpdateStatusAsync(
-        int id,
-        string status);
+    int id,
+    string status,
+    string? transactionId = null);
 }
