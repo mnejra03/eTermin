@@ -11,6 +11,10 @@ class ApiService {
   static String? _token;
   static const String baseUrl = 'http://10.0.2.2:5130/api';
 
+  void logout() {
+    _token = null;
+  }
+
   Map<String, String> get _authHeaders => {'Authorization': 'Bearer $_token'};
 
   Future<Map<String, dynamic>> login(String email, String password) async {

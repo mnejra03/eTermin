@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
 import 'home_screen.dart';
 
@@ -14,7 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final ApiService _apiService = ApiService();
 
-bool _isLoading = false;
+  bool _isLoading = false;
 
   bool _obscurePassword = true;
 
@@ -26,57 +27,52 @@ bool _isLoading = false;
   }
 
   Future<void> _login() async {
-  final email = _emailController.text.trim();
-  final password = _passwordController.text;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
-  if (email.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Unesite email i lozinku.'),
-      ),
-    );
-    return;
-  }
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Unesite email i lozinku.')));
+      return;
+    }
 
-  setState(() {
-    _isLoading = true;
-  });
+    setState(() {
+      _isLoading = true;
+    });
 
-  try {
-    final response = await _apiService.login(
-      email,
-      password,
-    );
+    try {
+      final response = await _apiService.login(email, password);
 
-    if (!mounted) return;
+      print('LOGIN RESPONSE: $response');
 
-    Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (context) => HomeScreen(
-      firstName: response['firstName'],
-      token: response['token'],
-    ),
-  ),
-);
-  } catch (e) {
-    if (!mounted) return;
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          e.toString().replaceFirst('Exception: ', ''),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(
+            firstName: response['firstName'],
+            lastName: response['lastName'],
+            email: response['email'],
+            token: response['token'],
+          ),
         ),
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -108,20 +104,14 @@ bool _isLoading = false;
 
               const Text(
                 'Prijavite se na svoj eTermin račun.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
 
               const SizedBox(height: 35),
 
               const Text(
                 'Email',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
 
               const SizedBox(height: 8),
@@ -144,39 +134,36 @@ bool _isLoading = false;
 
               const Text(
                 'Lozinka',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
 
               const SizedBox(height: 8),
 
               TextField(
-  controller: _passwordController,
-  obscureText: _obscurePassword,
-  decoration: InputDecoration(
-    hintText: 'Unesite lozinku',
-    prefixIcon: const Icon(Icons.lock_outline),
-    suffixIcon: IconButton(
-      icon: Icon(
-        _obscurePassword
-            ? Icons.visibility_outlined
-            : Icons.visibility_off_outlined,
-      ),
-      onPressed: () {
-        setState(() {
-          _obscurePassword = !_obscurePassword;
-        });
-      },
-    ),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    filled: true,
-    fillColor: Colors.white,
-  ),
-),
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  hintText: 'Unesite lozinku',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+              ),
 
               const SizedBox(height: 30),
 
@@ -193,21 +180,21 @@ bool _isLoading = false;
                     ),
                   ),
                   child: _isLoading
-    ? const SizedBox(
-        width: 22,
-        height: 22,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: Colors.white,
-        ),
-      )
-    : const Text(
-        'Prijava',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Prijava',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ],
