@@ -12,6 +12,8 @@ import '../models/employee.dart';
 import 'booking_screen.dart';
 import 'new_appointment_screen.dart';
 
+import 'recommendations_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   final String firstName;
   final String token;
@@ -607,6 +609,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildQuickAction(
                   Icons.star_border_rounded,
                   'Preporuke',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RecommendationsScreen(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
