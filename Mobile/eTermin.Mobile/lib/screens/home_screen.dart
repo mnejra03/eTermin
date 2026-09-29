@@ -16,6 +16,8 @@ import 'recommendations_screen.dart';
 
 import 'login_screen.dart';
 
+import 'change_password_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   final String firstName;
   final String email;
@@ -1496,6 +1498,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   leading: Icon(Icons.email_outlined, color: primaryColor),
                   title: const Text('Email'),
                   subtitle: Text(widget.email),
+                ),
+
+                const Divider(),
+
+                Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    leading: Icon(Icons.lock_outline, color: primaryColor),
+                    title: const Text('Promijeni lozinku'),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: primaryColor,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ChangePasswordScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
