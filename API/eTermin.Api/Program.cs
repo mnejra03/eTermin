@@ -10,6 +10,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+using eTermin.Application.Services;
+using eTermin.Infrastructure.Services;
+
 namespace eTemin.Api
 {
     public class Program
@@ -76,6 +79,10 @@ namespace eTemin.Api
             builder.Services.AddScoped<IPaymentService, PaymentService>();
             builder.Services.AddScoped<IStatisticsService,StatisticsService>(); 
             builder.Services.AddScoped<IRecommendationService,RecommendationService>();
+
+            builder.Services.AddHttpClient<
+    IPayPalService,
+    PayPalService>();
 
             builder.Services.AddControllers();
 

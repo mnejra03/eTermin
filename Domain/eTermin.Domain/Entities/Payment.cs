@@ -13,6 +13,7 @@ public class Payment
     public string Status { get; set; } = string.Empty;
 
     public string TransactionId { get; set; } = string.Empty;
+    public string PayPalOrderId { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; }
 }

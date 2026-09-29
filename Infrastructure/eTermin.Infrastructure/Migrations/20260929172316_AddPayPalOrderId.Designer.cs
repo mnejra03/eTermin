@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using eTermin.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using eTermin.Infrastructure.Data;
 namespace eTermin.Infrastructure.Migrations
 {
     [DbContext(typeof(eTerminDbContext))]
-    partial class eTerminDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929172316_AddPayPalOrderId")]
+    partial class AddPayPalOrderId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
