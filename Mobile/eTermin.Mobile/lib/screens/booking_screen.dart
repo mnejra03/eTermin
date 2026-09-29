@@ -9,14 +9,24 @@ class BookingScreen extends StatefulWidget {
   final Salon salon;
   final Service service;
 
-  const BookingScreen({super.key, required this.salon, required this.service});
+  final DateTime? initialDate;
+
+  final int? initialEmployeeId;
+
+  const BookingScreen({
+    super.key,
+    required this.salon,
+    required this.service,
+    this.initialDate,
+    this.initialEmployeeId,
+  });
 
   @override
   State<BookingScreen> createState() => _BookingScreenState();
 }
 
 class _BookingScreenState extends State<BookingScreen> {
-  DateTime selectedDate = DateTime.now();
+  late DateTime selectedDate;
   String? selectedTime;
 
   final ApiService _apiService = ApiService();
@@ -37,6 +47,9 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
+
+    selectedDate = widget.initialDate ?? DateTime.now();
+
     _loadEmployees();
   }
 
@@ -57,7 +70,19 @@ class _BookingScreenState extends State<BookingScreen> {
         isLoadingEmployees = false;
 
         if (filteredEmployees.isNotEmpty) {
-          selectedEmployee = filteredEmployees.first;
+          if (widget.initialEmployeeId != null) {
+            final matchingEmployee = filteredEmployees.where(
+              (employee) => employee.id == widget.initialEmployeeId,
+            );
+
+            if (matchingEmployee.isNotEmpty) {
+              selectedEmployee = matchingEmployee.first;
+            } else {
+              selectedEmployee = filteredEmployees.first;
+            }
+          } else {
+            selectedEmployee = filteredEmployees.first;
+          }
         }
       });
       if (selectedEmployee != null) {
@@ -493,7 +518,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         ),
                       ),
                       child: Text(
-  isBooking ? 'Rezervacija...' : 'Potvrdi termin',
+                        isBooking ? 'Rezervacija...' : 'Potvrdi termin',
                         style: TextStyle(
                           fontSize: 25,
                           fontWeight: FontWeight.w500,
