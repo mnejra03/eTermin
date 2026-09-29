@@ -18,6 +18,8 @@ import 'login_screen.dart';
 
 import 'change_password_screen.dart';
 
+import 'notifications_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   final String firstName;
   final String email;
@@ -427,7 +429,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  );
+                },
                 icon: Icon(
                   Icons.notifications_none_rounded,
                   color: primaryColor,
