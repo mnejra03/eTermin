@@ -7,6 +7,8 @@ import '../models/service.dart';
 
 import '../models/employee.dart';
 
+import '../models/notification.dart';
+
 class ApiService {
   static String? _token;
   static const String baseUrl = 'http://10.0.2.2:5130/api';
@@ -277,5 +279,42 @@ class ApiService {
     }
 
     throw Exception(data['message'] ?? 'Promjena lozinke nije uspjela.');
+  }
+
+  Future<List<AppNotification>> getMyNotifications() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/Notifications/my'),
+      headers: _authHeaders,
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception(
+        'API je vratio prazan odgovor. '
+        'Status: ${response.statusCode}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return (data as List)
+          .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
+          .toList();
+    }
+
+    throw Exception('Obavijesti se ne mogu učitati.');
+  }
+
+  Future<void> markNotificationAsRead(int id) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/Notifications/$id/read'),
+      headers: _authHeaders,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return;
+    }
+
+    throw Exception('Obavijest se ne može označiti kao pročitana.');
   }
 }
