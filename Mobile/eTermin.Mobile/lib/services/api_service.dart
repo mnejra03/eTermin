@@ -247,4 +247,35 @@ class ApiService {
       'Odgovor API-ja: ${response.body}',
     );
   }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/Auth/change-password'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode({
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception(
+        'API je vratio prazan odgovor. Status: ${response.statusCode}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return;
+    }
+
+    throw Exception(data['message'] ?? 'Promjena lozinke nije uspjela.');
+  }
 }
