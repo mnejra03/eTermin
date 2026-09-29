@@ -14,7 +14,6 @@ public interface IPayPalService
 
     Task<string> GetOrderDetailsAsync(string orderId);
 
-    Task<string> AuthorizeOrderAsync(string orderId);
 }
 
 public class PayPalOrderResult

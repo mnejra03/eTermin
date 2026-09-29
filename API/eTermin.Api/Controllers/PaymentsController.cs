@@ -163,29 +163,6 @@ public class PaymentsController : ControllerBase
         }
     }
 
-    [HttpPost("paypal/authorize-order")]
-    public async Task<IActionResult> AuthorizePayPalOrder(
-    [FromBody] CapturePayPalOrderRequest request)
-    {
-        try
-        {
-            var authorizationId =
-                await _payPalService.AuthorizeOrderAsync(
-                    request.OrderId);
-
-            return Ok(new
-            {
-                authorizationId
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
-    }
 
     [HttpGet("paypal/cancel")]
     [AllowAnonymous]
@@ -234,4 +211,9 @@ public class CapturePayPalOrderRequest
 {
     public string OrderId { get; set; } =
         string.Empty;
+}
+
+public class CaptureAuthorizationRequest
+{
+    public string AuthorizationId { get; set; } = string.Empty;
 }
