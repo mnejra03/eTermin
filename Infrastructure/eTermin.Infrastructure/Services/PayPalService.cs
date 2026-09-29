@@ -101,7 +101,7 @@ public class PayPalService : IPayPalService
 
         var order = new
         {
-            intent = "AUTHORIZE",
+            intent = "CAPTURE",
 
             purchase_units = new[]
     {
@@ -178,57 +178,6 @@ public class PayPalService : IPayPalService
             OrderId = orderId,
             ApprovalUrl = approvalUrl
         };
-    }
-
-    public async Task<string> AuthorizeOrderAsync(string orderId)
-    {
-        var accessToken =
-            await GetAccessTokenAsync();
-
-        var baseUrl =
-            _configuration["PayPal:BaseUrl"];
-
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            $"{baseUrl}/v2/checkout/orders/{orderId}/authorize");
-
-        request.Headers.Authorization =
-            new AuthenticationHeaderValue(
-                "Bearer",
-                accessToken);
-
-        request.Content = new StringContent(
-            "{}",
-            Encoding.UTF8,
-            "application/json");
-
-        var response =
-            await _httpClient.SendAsync(request);
-
-        var responseContent =
-            await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new Exception(
-                $"PayPal order authorization failed.\n" +
-                $"HTTP Status: {(int)response.StatusCode} " +
-                $"{response.StatusCode}\n" +
-                $"Response: {responseContent}");
-        }
-
-        using var document =
-            JsonDocument.Parse(responseContent);
-
-        var authorizationId =
-            document.RootElement
-                .GetProperty("purchase_units")[0]
-                .GetProperty("payments")
-                .GetProperty("authorizations")[0]
-                .GetProperty("id")
-                .GetString();
-
-        return authorizationId!;
     }
 
     public async Task<string> CaptureOrderAsync(
