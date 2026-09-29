@@ -14,11 +14,21 @@ import 'new_appointment_screen.dart';
 
 import 'recommendations_screen.dart';
 
+import 'login_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   final String firstName;
+  final String email;
   final String token;
+  final String lastName;
 
-  const HomeScreen({super.key, required this.firstName, required this.token});
+  const HomeScreen({
+    super.key,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    required this.token,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -79,6 +89,33 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadSalons();
 
     _loadMyAppointments();
+  }
+
+  Map<String, dynamic>? _getNextAppointment() {
+    final now = DateTime.now();
+
+    final upcoming = _myAppointments.where((appointment) {
+      final status = appointment['status']?.toString() ?? '';
+
+      if (status != 'Pending' && status != 'Confirmed') {
+        return false;
+      }
+
+      final startTime = DateTime.tryParse(
+        appointment['startTime']?.toString() ?? '',
+      );
+
+      return startTime != null && startTime.isAfter(now);
+    }).toList();
+
+    upcoming.sort((a, b) {
+      final dateA = DateTime.parse(a['startTime'].toString());
+      final dateB = DateTime.parse(b['startTime'].toString());
+
+      return dateA.compareTo(dateB);
+    });
+
+    return upcoming.isEmpty ? null : upcoming.first;
   }
 
   Future<void> _loadMyAppointments() async {
@@ -368,6 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ----------------------------------------------------------
 
   Widget _buildHome() {
+    final nextAppointment = _getNextAppointment();
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
@@ -637,86 +675,100 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: primaryColor.withOpacity(0.15)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_month,
-                          color: primaryColor,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 7),
-                        const Text(
-                          'Sljedeći termin',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+            child: nextAppointment == null
+                ? const Text(
+                    'Trenutno nemate zakazanih termina.',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_month,
+                                color: primaryColor,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 7),
+                              const Text(
+                                'Sljedeći termin',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on,
-                          color: Colors.red,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          'Bella',
-                          style: TextStyle(
-                            color: primaryColor,
-                            fontWeight: FontWeight.bold,
+
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                nextAppointment['salonName']?.toString() ??
+                                    'Salon',
+                                style: TextStyle(
+                                  color: primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                Text(
-                  'Šišanje - danas u 14:00',
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _smallActionButton('+ Novi termin', Icons.add),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _smallActionButton(
-                        'Moji termini',
-                        Icons.calendar_today,
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _smallActionButton('Preporuke', Icons.star),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+
+                      const SizedBox(height: 12),
+
+                      Text(
+                        '${nextAppointment['serviceName'] ?? 'Usluga'} - '
+                        '${_formatNextAppointmentDate(nextAppointment['startTime'])}',
+                        style: TextStyle(
+                          color: primaryColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatNextAppointmentDate(dynamic value) {
+    final date = DateTime.tryParse(value?.toString() ?? '');
+
+    if (date == null) {
+      return '';
+    }
+
+    final today = DateTime.now();
+
+    final isToday =
+        date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day;
+
+    final time =
+        '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
+
+    if (isToday) {
+      return 'danas u $time';
+    }
+
+    return '${date.day.toString().padLeft(2, '0')}.'
+        '${date.month.toString().padLeft(2, '0')}.'
+        '${date.year}. u $time';
   }
 
   // ----------------------------------------------------------
@@ -1396,14 +1448,78 @@ class _HomeScreenState extends State<HomeScreen> {
   // ----------------------------------------------------------
 
   Widget _buildProfile() {
-    return Center(
-      child: Text(
-        'Profil',
-        style: TextStyle(
-          color: primaryColor,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 25),
+
+          CircleAvatar(
+            radius: 45,
+            backgroundColor: lightPurple,
+            child: Icon(Icons.person, size: 50, color: primaryColor),
+          ),
+
+          const SizedBox(height: 15),
+
+          Text(
+            '${widget.firstName} ${widget.lastName}',
+            style: TextStyle(
+              color: primaryColor,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 30),
+
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: primaryColor.withOpacity(0.15)),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.person_outline, color: primaryColor),
+                  title: const Text('Ime i prezime'),
+                  subtitle: Text('${widget.firstName} ${widget.lastName}'),
+                ),
+
+                const Divider(),
+
+                ListTile(
+                  leading: Icon(Icons.email_outlined, color: primaryColor),
+                  title: const Text('Email'),
+                  subtitle: Text(widget.email),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 25),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _confirmLogout,
+              icon: const Icon(Icons.logout),
+              label: const Text('Odjava'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1441,6 +1557,48 @@ class _HomeScreenState extends State<HomeScreen> {
           label: 'Profil',
         ),
       ],
+    );
+  }
+
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Odjava'),
+          content: const Text('Da li ste sigurni da se želite odjaviti?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Otkaži'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Odjavi se'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout != true || !mounted) {
+      return;
+    }
+
+    _apiService.logout();
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
     );
   }
 }
