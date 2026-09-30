@@ -9,9 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-
-using eTermin.Application.Services;
-using eTermin.Infrastructure.Services;
+using DotNetEnv;
 
 namespace eTemin.Api
 {
@@ -19,6 +17,8 @@ namespace eTemin.Api
     {
         public static void Main(string[] args)
         {
+            Env.TraversePath().Load();
+
             var builder = WebApplication.CreateBuilder(args);
 
 
@@ -145,9 +145,6 @@ namespace eTemin.Api
 
             app.UseAuthentication();
             app.UseAuthorization();
-
-            app.MapControllers();
-            app.Run();
 
             app.MapControllers();
 

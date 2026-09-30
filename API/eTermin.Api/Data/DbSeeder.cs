@@ -9,6 +9,17 @@ public static class DbSeeder
     public static async Task SeedAsync(
         eTerminDbContext context)
     {
+        var adminPassword =
+    Environment.GetEnvironmentVariable("Seed__AdminPassword")
+    ?? throw new InvalidOperationException(
+        "Seed__AdminPassword nije konfigurisan.");
+
+        var userPassword =
+            Environment.GetEnvironmentVariable("Seed__UserPassword")
+            ?? throw new InvalidOperationException(
+                "Seed__UserPassword nije konfigurisan.");
+
+
         // =========================================================
         // PROVJERA
         // =========================================================
@@ -36,8 +47,8 @@ public static class DbSeeder
             LastName = "eTermin",
             Email = "admin@etermin.ba",
             PasswordHash =
-                BCrypt.Net.BCrypt.HashPassword(
-                    "Admin123!"),
+               BCrypt.Net.BCrypt.HashPassword(
+    adminPassword),
             Role = "Admin",
             CreatedAt = DateTime.UtcNow
         };
@@ -48,8 +59,8 @@ public static class DbSeeder
             LastName = "Muminović",
             Email = "nejra@etermin.ba",
             PasswordHash =
-                BCrypt.Net.BCrypt.HashPassword(
-                    "User123!"),
+               BCrypt.Net.BCrypt.HashPassword(
+    userPassword),
             Role = "User",
             CreatedAt = DateTime.UtcNow
         };
@@ -60,8 +71,8 @@ public static class DbSeeder
             LastName = "Marić",
             Email = "sara@etermin.ba",
             PasswordHash =
-                BCrypt.Net.BCrypt.HashPassword(
-                    "User123!"),
+               BCrypt.Net.BCrypt.HashPassword(
+    userPassword),
             Role = "User",
             CreatedAt = DateTime.UtcNow
         };
