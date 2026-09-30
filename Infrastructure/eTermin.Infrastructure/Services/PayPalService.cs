@@ -117,7 +117,22 @@ public class PayPalService : IPayPalService
 
             description = description
         }
-    }
+    },
+
+            payment_source = new
+            {
+                paypal = new
+                {
+                    experience_context = new
+                    {
+                        user_action = "PAY_NOW",
+                        return_url =
+    "etermin://paypal-return",
+                        cancel_url =
+    "etermin://paypal-return"
+                    }
+                }
+            }
         };
 
         var json = JsonSerializer.Serialize(order);
