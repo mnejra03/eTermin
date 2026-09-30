@@ -206,7 +206,7 @@ class ApiService {
         .toList();
   }
 
-  Future<void> createAppointment({
+  Future<int> createAppointment({
     required int salonId,
     required int employeeId,
     required int serviceId,
@@ -241,7 +241,7 @@ class ApiService {
     final data = jsonDecode(response.body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return;
+      return data['id'] as int;
     }
 
     throw Exception(
@@ -349,5 +349,105 @@ class ApiService {
     }
 
     throw Exception(data['message'] ?? 'Registracija nije uspjela.');
+  }
+
+  Future<int> createPayment({
+    required int appointmentId,
+    required double amount,
+    required String paymentMethod,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/Payments'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode({
+        'appointmentId': appointmentId,
+        'amount': amount,
+        'paymentMethod': paymentMethod,
+        'status': 'Pending',
+        'transactionId': '',
+      }),
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception(
+        'API je vratio prazan odgovor. Status: ${response.statusCode}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data['id'] as int;
+    }
+
+    throw Exception(data['message'] ?? 'Kreiranje plaćanja nije uspjelo.');
+  }
+
+  Future<Map<String, dynamic>> createPayPalOrder({
+    required double amount,
+    required String currency,
+    required String description,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/Payments/paypal/create-order'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode({
+        'amount': amount,
+        'currency': currency,
+        'description': description,
+      }),
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception(
+        'PayPal API je vratio prazan odgovor. '
+        'Status: ${response.statusCode}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return Map<String, dynamic>.from(data);
+    }
+
+    throw Exception(
+      data['message'] ?? 'Kreiranje PayPal narudžbe nije uspjelo.',
+    );
+  }
+
+  Future<String> capturePayPalOrder({
+    required String orderId,
+    required int paymentId,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/Payments/paypal/capture-order'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode({'orderId': orderId, 'paymentId': paymentId}),
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception(
+        'PayPal capture API je vratio prazan odgovor. '
+        'Status: ${response.statusCode}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data['captureId'] as String;
+    }
+
+    throw Exception(data['message'] ?? 'PayPal plaćanje nije uspjelo.');
   }
 }
