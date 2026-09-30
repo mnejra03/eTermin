@@ -134,6 +134,17 @@ flutter doctor
 
 ---
 
+# Konfiguracija aplikacije
+
+Osjetljivi podaci nisu dio repozitorija. Za lokalno pokretanje potrebno je napraviti `.env` fajl u root folderu projekta.
+
+Kopirati:
+
+```text
+.env.example
+```
+
+
 # Pokretanje API aplikacije
 
 API projekat nalazi se u:
@@ -191,29 +202,6 @@ Seeder kreira početne korisnike, salone, usluge, zaposlenike, povezivanje zapos
 Ako se projekat pokreće prvi put, početni podaci će biti automatski kreirani.
 
 ---
-
-# Početni korisnici
-
-## Administrator
-
-```text
-Email: admin@etermin.ba
-Password: Admin123!
-```
-
-## Korisnik
-
-```text
-Email: user1@gmail.com
-Password: User123!
-```
-
-Drugi testni korisnik:
-
-```text
-Email: user2@gmail.com
-Password: User123!
-```
 
 ---
 
