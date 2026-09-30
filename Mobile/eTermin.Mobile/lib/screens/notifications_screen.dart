@@ -160,37 +160,53 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   const SizedBox(width: 12),
 
                   Expanded(
-                    child: Column(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          notification.title,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: notification.isRead
-                                ? FontWeight.w600
-                                : FontWeight.bold,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                notification.title,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: notification.isRead
+                                      ? FontWeight.w600
+                                      : FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(height: 5),
+
+                              Text(
+                                notification.message,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              Text(
+                                _formatDate(notification.createdAt),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
 
-                        const SizedBox(height: 5),
-
-                        Text(
-                          notification.message,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
                           ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Text(
-                          _formatDate(notification.createdAt),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                          ),
+                          tooltip: 'Obriši obavijest',
+                          onPressed: () => _deleteNotification(notification),
                         ),
                       ],
                     ),
@@ -230,6 +246,58 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           );
         }
       });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  Future<void> _deleteNotification(AppNotification notification) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Obriši obavijest'),
+          content: const Text(
+            'Da li ste sigurni da želite obrisati ovu obavijest?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Otkaži'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Obriši', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    try {
+      await _apiService.deleteNotification(notification.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _notifications.removeWhere((item) => item.id == notification.id);
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Obavijest je obrisana.')));
     } catch (e) {
       if (!mounted) return;
 

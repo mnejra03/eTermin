@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   final ApiService _apiService = ApiService();
+  bool _hasUnreadNotifications = false;
 
   List<Salon> _salons = [];
   List<Service> _services = [];
@@ -93,6 +94,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadSalons();
 
     _loadMyAppointments();
+
+    _checkUnreadNotifications();
   }
 
   Map<String, dynamic>? _getNextAppointment() {
@@ -429,18 +432,39 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               IconButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const NotificationsScreen(),
                     ),
                   );
+
+                  _checkUnreadNotifications();
                 },
-                icon: Icon(
-                  Icons.notifications_none_rounded,
-                  color: primaryColor,
-                  size: 27,
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      Icons.notifications_none_rounded,
+                      color: primaryColor,
+                      size: 27,
+                    ),
+
+                    if (_hasUnreadNotifications)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          width: 9,
+                          height: 9,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -1634,5 +1658,21 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(builder: (context) => const LoginScreen()),
       (route) => false,
     );
+  }
+
+  Future<void> _checkUnreadNotifications() async {
+    try {
+      final notifications = await _apiService.getMyNotifications();
+
+      if (!mounted) return;
+
+      setState(() {
+        _hasUnreadNotifications = notifications.any(
+          (notification) => !notification.isRead,
+        );
+      });
+    } catch (e) {
+      // Ne prikazujemo grešku samo zbog provjere tačkice.
+    }
   }
 }
