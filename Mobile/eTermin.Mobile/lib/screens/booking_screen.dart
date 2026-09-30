@@ -5,7 +5,6 @@ import '../models/service.dart';
 import '../models/employee.dart';
 import '../services/api_service.dart';
 
-
 import 'payment_screen.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -249,9 +248,19 @@ class _BookingScreenState extends State<BookingScreen>
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
+      final message = e.toString();
+
+      String displayMessage;
+
+      if (message.contains('Korisnik već ima termin u odabranom vremenu') ||
+          message.contains('Zaposlenik već ima termin u odabranom vremenu')) {
+        displayMessage = 'Termin je zauzet. Odaberite drugi termin.';
+      } else {
+        displayMessage = message.replaceFirst('Exception: ', '');
+      }
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(displayMessage)));
     } finally {
       if (mounted) {
         setState(() {

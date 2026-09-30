@@ -44,6 +44,7 @@ class _PaymentScreenState extends State<PaymentScreen>
 
   bool _isPaying = false;
   bool _paymentStarted = false;
+  bool _isCapturing = false;
 
   @override
   void initState() {
@@ -101,10 +102,11 @@ class _PaymentScreenState extends State<PaymentScreen>
   }
 
   Future<void> _capturePayment() async {
-    if (!_paymentStarted || _isPaying == false) {
+    if (!_paymentStarted || _isPaying == false || _isCapturing) {
       return;
     }
-    
+
+    _isCapturing = true;
 
     try {
       await _apiService.capturePayPalOrder(
@@ -129,10 +131,13 @@ class _PaymentScreenState extends State<PaymentScreen>
 
       Navigator.of(context).pop(true);
     } catch (e) {
+      _isCapturing = false;
+
       if (!mounted) return;
 
       setState(() {
         _isPaying = false;
+        _paymentStarted = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

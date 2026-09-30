@@ -318,6 +318,17 @@ class ApiService {
     throw Exception('Obavijest se ne može označiti kao pročitana.');
   }
 
+  Future<void> deleteNotification(int id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/Notifications/$id'),
+      headers: {'Authorization': 'Bearer $_token'},
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Brisanje obavijesti nije uspjelo.');
+    }
+  }
+
   Future<Map<String, dynamic>> register({
     required String firstName,
     required String lastName,

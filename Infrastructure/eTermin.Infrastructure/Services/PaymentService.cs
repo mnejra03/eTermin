@@ -9,10 +9,14 @@ namespace eTermin.Infrastructure.Services;
 public class PaymentService : IPaymentService
 {
     private readonly eTerminDbContext _context;
+    private readonly INotificationService _notificationService;
 
-    public PaymentService(eTerminDbContext context)
+    public PaymentService(
+    eTerminDbContext context,
+    INotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     public async Task<PaymentDto?> GetByIdAsync(int id)
@@ -81,6 +85,9 @@ public class PaymentService : IPaymentService
         if (payment == null)
             return false;
 
+        if (payment.Status == "Completed")
+            return true;
+
         payment.Status = status;
 
         if (status == "Completed")
@@ -95,6 +102,19 @@ public class PaymentService : IPaymentService
             if (appointment != null)
             {
                 appointment.Status = "Confirmed";
+
+                await _notificationService.CreateAsync(
+                    new NotificationDto
+                    {
+                        UserId = appointment.UserId,
+                        AppointmentId = appointment.Id,
+                        Title = "Plaćanje uspješno",
+                        Message =
+                            $"Vaše PayPal plaćanje u iznosu od " +
+                            $"{payment.Amount:0.00} KM je uspješno izvršeno. " +
+                            "Termin je potvrđen.",
+                        IsRead = false
+                    });
             }
         }
 

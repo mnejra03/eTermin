@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'screens/welcome_screen.dart';
 
 void main() {
@@ -14,11 +15,16 @@ class ETerminApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'eTermin',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF9C27B0),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF9C27B0)),
         useMaterial3: true,
       ),
+      onGenerateRoute: (settings) {
+        if (settings.name != null && settings.name!.startsWith('/?token=')) {
+          return MaterialPageRoute(builder: (_) => const SizedBox.shrink());
+        }
+
+        return null;
+      },
       home: const WelcomeScreen(),
     );
   }
