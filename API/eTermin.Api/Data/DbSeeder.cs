@@ -147,6 +147,10 @@ public static class DbSeeder
         // SERVICES
         // =========================================================
 
+        // -------------------------
+        // BELLE STUDIO
+        // -------------------------
+
         var service1 = new Service
         {
             SalonId = salon1.Id,
@@ -179,6 +183,11 @@ public static class DbSeeder
             Price = 20m,
             IsActive = true
         };
+
+
+        // -------------------------
+        // GLOW BEAUTY
+        // -------------------------
 
         var service4 = new Service
         {
@@ -213,16 +222,82 @@ public static class DbSeeder
             IsActive = true
         };
 
+
+        // -------------------------
+        // BEAUTY STUDIO
+        // -------------------------
+
         var service7 = new Service
         {
-            SalonId = salon1.Id,
-            Name = "Fen frizura",
+            SalonId = salon3.Id,
+            Name = "Šminkanje",
             Description =
-                "Oblikovanje i feniranje kose.",
-            DurationInMinutes = 45,
-            Price = 20m,
+                "Profesionalno dnevno ili večernje šminkanje.",
+            DurationInMinutes = 60,
+            Price = 40m,
             IsActive = true
         };
+
+        var service8 = new Service
+        {
+            SalonId = salon3.Id,
+            Name = "Lash Lift",
+            Description =
+                "Podizanje i oblikovanje prirodnih trepavica.",
+            DurationInMinutes = 60,
+            Price = 35m,
+            IsActive = true
+        };
+
+        var service9 = new Service
+        {
+            SalonId = salon3.Id,
+            Name = "Oblikovanje obrva",
+            Description =
+                "Oblikovanje i uređivanje obrva.",
+            DurationInMinutes = 30,
+            Price = 15m,
+            IsActive = true
+        };
+
+
+        // -------------------------
+        // ELEGANCE BEAUTY STUDIO
+        // -------------------------
+
+        var service10 = new Service
+        {
+            SalonId = salon4.Id,
+            Name = "Pedikir",
+            Description =
+                "Klasični pedikir i njega stopala.",
+            DurationInMinutes = 60,
+            Price = 30m,
+            IsActive = true
+        };
+
+        var service11 = new Service
+        {
+            SalonId = salon4.Id,
+            Name = "Gel nokti",
+            Description =
+                "Izrada i oblikovanje gel noktiju.",
+            DurationInMinutes = 90,
+            Price = 45m,
+            IsActive = true
+        };
+
+        var service12 = new Service
+        {
+            SalonId = salon4.Id,
+            Name = "Depilacija",
+            Description =
+                "Profesionalna depilacija.",
+            DurationInMinutes = 45,
+            Price = 25m,
+            IsActive = true
+        };
+
 
         context.Services.AddRange(
             service1,
@@ -231,7 +306,12 @@ public static class DbSeeder
             service4,
             service5,
             service6,
-            service7);
+            service7,
+            service8,
+            service9,
+            service10,
+            service11,
+            service12);
 
         await context.SaveChangesAsync();
 
@@ -239,6 +319,10 @@ public static class DbSeeder
         // =========================================================
         // EMPLOYEES
         // =========================================================
+
+        // -------------------------
+        // BELLE STUDIO
+        // -------------------------
 
         var employee1 = new Employee
         {
@@ -259,10 +343,15 @@ public static class DbSeeder
             LastName = "Kovač",
             Email = "lejla@belle-studio.ba",
             PhoneNumber = "+387 61 222 222",
-            Position = "Frizer",
+            Position = "Nail technician",
             WorkingHours = "10:00-18:00",
             IsActive = true
         };
+
+
+        // -------------------------
+        // GLOW BEAUTY
+        // -------------------------
 
         var employee3 = new Employee
         {
@@ -288,24 +377,74 @@ public static class DbSeeder
             IsActive = true
         };
 
+
+        // -------------------------
+        // BEAUTY STUDIO
+        // -------------------------
+
         var employee5 = new Employee
         {
-            SalonId = salon1.Id,
+            SalonId = salon3.Id,
             FirstName = "Hana",
             LastName = "Softić",
-            Email = "hana@belle-studio.ba",
+            Email = "hana@beauty-studio.ba",
             PhoneNumber = "+387 61 555 555",
-            Position = "Nail technician",
+            Position = "Make-up artist",
             WorkingHours = "09:00-17:00",
             IsActive = true
         };
+
+        var employee6 = new Employee
+        {
+            SalonId = salon3.Id,
+            FirstName = "Emina",
+            LastName = "Karić",
+            Email = "emina@beauty-studio.ba",
+            PhoneNumber = "+387 61 666 666",
+            Position = "Beauty terapeut",
+            WorkingHours = "10:00-18:00",
+            IsActive = true
+        };
+
+
+        // -------------------------
+        // ELEGANCE BEAUTY STUDIO
+        // -------------------------
+
+        var employee7 = new Employee
+        {
+            SalonId = salon4.Id,
+            FirstName = "Mia",
+            LastName = "Jukić",
+            Email = "mia@elegance.ba",
+            PhoneNumber = "+387 61 777 777",
+            Position = "Nail technician",
+            WorkingHours = "08:00-16:00",
+            IsActive = true
+        };
+
+        var employee8 = new Employee
+        {
+            SalonId = salon4.Id,
+            FirstName = "Aida",
+            LastName = "Bećirović",
+            Email = "aida@elegance.ba",
+            PhoneNumber = "+387 61 888 888",
+            Position = "Beauty terapeut",
+            WorkingHours = "09:00-17:00",
+            IsActive = true
+        };
+
 
         context.Employees.AddRange(
             employee1,
             employee2,
             employee3,
             employee4,
-            employee5);
+            employee5,
+            employee6,
+            employee7,
+            employee8);
 
         await context.SaveChangesAsync();
 
@@ -316,7 +455,11 @@ public static class DbSeeder
 
         context.EmployeeServices.AddRange(
 
-            // Amra
+            // -------------------------
+            // BELLE STUDIO
+            // -------------------------
+
+            // Amra - šišanje i farbanje
             new EmployeeService
             {
                 EmployeeId = employee1.Id,
@@ -329,34 +472,25 @@ public static class DbSeeder
                 ServiceId = service2.Id
             },
 
+            // Lejla - manikir i šišanje
             new EmployeeService
             {
-                EmployeeId = employee1.Id,
-                ServiceId = service7.Id
+                EmployeeId = employee2.Id,
+                ServiceId = service3.Id
             },
 
-
-            // Lejla
             new EmployeeService
             {
                 EmployeeId = employee2.Id,
                 ServiceId = service1.Id
             },
 
-            new EmployeeService
-            {
-                EmployeeId = employee2.Id,
-                ServiceId = service2.Id
-            },
 
-            new EmployeeService
-            {
-                EmployeeId = employee2.Id,
-                ServiceId = service7.Id
-            },
+            // -------------------------
+            // GLOW BEAUTY
+            // -------------------------
 
-
-            // Sara
+            // Sara - tretman lica i feniranje
             new EmployeeService
             {
                 EmployeeId = employee3.Id,
@@ -369,20 +503,79 @@ public static class DbSeeder
                 ServiceId = service6.Id
             },
 
-
-            // Amina
+            // Amina - masaža i tretman lica
             new EmployeeService
             {
                 EmployeeId = employee4.Id,
                 ServiceId = service5.Id
             },
 
+            new EmployeeService
+            {
+                EmployeeId = employee4.Id,
+                ServiceId = service4.Id
+            },
 
-            // Hana
+
+            // -------------------------
+            // BEAUTY STUDIO
+            // -------------------------
+
+            // Hana - šminkanje i obrve
             new EmployeeService
             {
                 EmployeeId = employee5.Id,
-                ServiceId = service3.Id
+                ServiceId = service7.Id
+            },
+
+            new EmployeeService
+            {
+                EmployeeId = employee5.Id,
+                ServiceId = service9.Id
+            },
+
+            // Emina - Lash Lift i obrve
+            new EmployeeService
+            {
+                EmployeeId = employee6.Id,
+                ServiceId = service8.Id
+            },
+
+            new EmployeeService
+            {
+                EmployeeId = employee6.Id,
+                ServiceId = service9.Id
+            },
+
+
+            // -------------------------
+            // ELEGANCE BEAUTY STUDIO
+            // -------------------------
+
+            // Mia - pedikir i gel nokti
+            new EmployeeService
+            {
+                EmployeeId = employee7.Id,
+                ServiceId = service10.Id
+            },
+
+            new EmployeeService
+            {
+                EmployeeId = employee7.Id,
+                ServiceId = service11.Id
+            },
+
+            // Aida - depilacija i pedikir
+            new EmployeeService
+            {
+                EmployeeId = employee8.Id,
+                ServiceId = service12.Id
+            },
+
+            new EmployeeService
+            {
+                EmployeeId = employee8.Id,
+                ServiceId = service10.Id
             }
         );
 
@@ -395,14 +588,18 @@ public static class DbSeeder
 
         var today = DateTime.Today;
 
+        // -------------------------
+        // BELLE STUDIO
+        // -------------------------
+
         var appointment1 = new Appointment
         {
             UserId = user1.Id,
             SalonId = salon1.Id,
             EmployeeId = employee1.Id,
             ServiceId = service1.Id,
-            StartTime = today.AddDays(-1).AddHours(10),
-            EndTime = today.AddDays(-1).AddHours(11),
+            StartTime = today.AddDays(-2).AddHours(10),
+            EndTime = today.AddDays(-2).AddHours(11),
             Status = "Completed",
             Price = service1.Price,
             CreatedAt = DateTime.UtcNow.AddDays(-5)
@@ -410,16 +607,21 @@ public static class DbSeeder
 
         var appointment2 = new Appointment
         {
-            UserId = user1.Id,
+            UserId = user2.Id,
             SalonId = salon1.Id,
             EmployeeId = employee2.Id,
             ServiceId = service3.Id,
-            StartTime = today.AddDays(-2).AddHours(11),
-            EndTime = today.AddDays(-2).AddHours(11).AddMinutes(45),
-            Status = "Completed",
+            StartTime = today.AddDays(2).AddHours(11),
+            EndTime = today.AddDays(2).AddHours(11).AddMinutes(45),
+            Status = "Confirmed",
             Price = service3.Price,
-            CreatedAt = DateTime.UtcNow.AddDays(-6)
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
         };
+
+
+        // -------------------------
+        // GLOW BEAUTY
+        // -------------------------
 
         var appointment3 = new Appointment
         {
@@ -427,64 +629,88 @@ public static class DbSeeder
             SalonId = salon2.Id,
             EmployeeId = employee3.Id,
             ServiceId = service4.Id,
-            StartTime = today.AddHours(9),
-            EndTime = today.AddHours(10),
+            StartTime = today.AddDays(-1).AddHours(9),
+            EndTime = today.AddDays(-1).AddHours(10),
             Status = "Completed",
             Price = service4.Price,
-            CreatedAt = DateTime.UtcNow.AddDays(-2)
+            CreatedAt = DateTime.UtcNow.AddDays(-3)
         };
 
         var appointment4 = new Appointment
         {
-            UserId = user2.Id,
+            UserId = user1.Id,
             SalonId = salon2.Id,
             EmployeeId = employee4.Id,
             ServiceId = service5.Id,
-            StartTime = today.AddHours(11),
-            EndTime = today.AddHours(12),
-            Status = "Confirmed",
+            StartTime = today.AddDays(3).AddHours(14),
+            EndTime = today.AddDays(3).AddHours(15),
+            Status = "Pending",
             Price = service5.Price,
-            CreatedAt = DateTime.UtcNow.AddDays(-1)
+            CreatedAt = DateTime.UtcNow
         };
+
+
+        // -------------------------
+        // BEAUTY STUDIO
+        // -------------------------
 
         var appointment5 = new Appointment
         {
             UserId = user1.Id,
-            SalonId = salon1.Id,
-            EmployeeId = employee1.Id,
-            ServiceId = service2.Id,
-            StartTime = today.AddDays(2).AddHours(10),
-            EndTime = today.AddDays(2).AddHours(12),
-            Status = "Pending",
-            Price = service2.Price,
-            CreatedAt = DateTime.UtcNow
+            SalonId = salon3.Id,
+            EmployeeId = employee5.Id,
+            ServiceId = service7.Id,
+            StartTime = today.AddDays(-3).AddHours(13),
+            EndTime = today.AddDays(-3).AddHours(14),
+            Status = "Completed",
+            Price = service7.Price,
+            CreatedAt = DateTime.UtcNow.AddDays(-7)
         };
 
         var appointment6 = new Appointment
         {
             UserId = user2.Id,
-            SalonId = salon1.Id,
-            EmployeeId = employee2.Id,
-            ServiceId = service7.Id,
-            StartTime = today.AddDays(4).AddHours(13),
-            EndTime = today.AddDays(4).AddHours(13).AddMinutes(45),
-            Status = "Cancelled",
-            Price = service7.Price,
-            CreatedAt = DateTime.UtcNow.AddDays(-3)
+            SalonId = salon3.Id,
+            EmployeeId = employee6.Id,
+            ServiceId = service8.Id,
+            StartTime = today.AddDays(4).AddHours(10),
+            EndTime = today.AddDays(4).AddHours(11),
+            Status = "Confirmed",
+            Price = service8.Price,
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
         };
+
+
+        // -------------------------
+        // ELEGANCE BEAUTY STUDIO
+        // -------------------------
 
         var appointment7 = new Appointment
         {
+            UserId = user2.Id,
+            SalonId = salon4.Id,
+            EmployeeId = employee7.Id,
+            ServiceId = service10.Id,
+            StartTime = today.AddDays(-4).AddHours(12),
+            EndTime = today.AddDays(-4).AddHours(13),
+            Status = "Completed",
+            Price = service10.Price,
+            CreatedAt = DateTime.UtcNow.AddDays(-8)
+        };
+
+        var appointment8 = new Appointment
+        {
             UserId = user1.Id,
-            SalonId = salon2.Id,
-            EmployeeId = employee4.Id,
-            ServiceId = service5.Id,
-            StartTime = today.AddDays(6).AddHours(14),
-            EndTime = today.AddDays(6).AddHours(15),
+            SalonId = salon4.Id,
+            EmployeeId = employee8.Id,
+            ServiceId = service12.Id,
+            StartTime = today.AddDays(5).AddHours(15),
+            EndTime = today.AddDays(5).AddHours(15).AddMinutes(45),
             Status = "Pending",
-            Price = service5.Price,
+            Price = service12.Price,
             CreatedAt = DateTime.UtcNow
         };
+
 
         context.Appointments.AddRange(
             appointment1,
@@ -493,13 +719,10 @@ public static class DbSeeder
             appointment4,
             appointment5,
             appointment6,
-            appointment7);
+            appointment7,
+            appointment8);
 
         await context.SaveChangesAsync();
 
-
-        // =========================================================
-        // KRAJ
-        // =========================================================
     }
 }
