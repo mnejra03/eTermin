@@ -1,27 +1,24 @@
 # eTermin
 
-## Sistem za elektronsko upravljanje terminima
+Seminarski projekat izrade sistema za upravljanje terminima u salonima.
 
-**Seminarski projekat – Razvoj softvera II**  
 **Student:** Nejra Muminović
 
 ---
 
 ## O projektu
 
-eTermin je sistem za elektronsko upravljanje terminima namijenjen salonima koji omogućava organizaciju salona, zaposlenika, usluga i termina, kao i upravljanje korisnicima i plaćanjima.
+eTermin je informacioni sistem namijenjen za upravljanje terminima u salonima za uljepšavanje.
 
-Projekat se sastoji od:
+Sistem omogućava korisnicima pregled salona, zaposlenika i usluga, rezervaciju termina, online plaćanje putem PayPal Sandbox sistema i pregled obavijesti.
 
-- ASP.NET Core Web API backend-a
-- SQL Server baze podataka
-- Entity Framework Core-a
+Sistem se sastoji od:
+
+- REST API backend aplikacije
 - WPF desktop aplikacije za administraciju
 - Flutter mobilne aplikacije za korisnike
 
-Desktop aplikacija omogućava administratoru upravljanje salonima, uslugama, zaposlenicima, terminima i statistikama.
-
-Mobilna aplikacija omogućava korisniku pregled salona i usluga, odabir zaposlenika i termina, rezervaciju termina, PayPal plaćanje i pregled obavijesti.
+Backend predstavlja centralni dio sistema i koristi SQL Server bazu podataka.
 
 ---
 
@@ -29,161 +26,149 @@ Mobilna aplikacija omogućava korisniku pregled salona i usluga, odabir zaposlen
 
 ```text
 eTermin/
+│
 ├── API/
 │   └── eTermin.Api/
+│
 ├── Application/
 │   └── eTermin.Application/
+│
 ├── Domain/
 │   └── eTermin.Domain/
+│
 ├── Infrastructure/
 │   └── eTermin.Infrastructure/
+│
 ├── Desktop/
 │   └── eTermin.Desktop/
+│
 ├── Mobile/
 │   └── eTermin.Mobile/
+│
 └── eTermin.sln
 ```
 
-### Opis glavnih dijelova
+### API
 
-- **API** – ASP.NET Core Web API koji predstavlja centralni backend sistema.
-- **Application** – aplikacijski sloj sa servisima, DTO klasama i poslovnom logikom.
-- **Domain** – domenski modeli i entiteti sistema.
-- **Infrastructure** – pristup bazi podataka i implementacija infrastrukturnih komponenti.
-- **Desktop** – WPF aplikacija namijenjena administratoru.
-- **Mobile** – Flutter aplikacija namijenjena krajnjem korisniku.
+ASP.NET Core Web API aplikacija koja predstavlja backend sistema.
+
+### Application
+
+Sadrži aplikacijsku logiku, servise, DTO klase i interfejse.
+
+### Domain
+
+Sadrži domenske entitete sistema.
+
+### Infrastructure
+
+Sadrži pristup bazi podataka, Entity Framework Core konfiguraciju i implementacije servisa.
+
+### Desktop
+
+WPF desktop aplikacija namijenjena administratoru sistema.
+
+### Mobile
+
+Flutter mobilna aplikacija namijenjena korisnicima sistema.
 
 ---
 
-## Tehnologije
+## Korištene tehnologije
 
 ### Backend
 
-- C#
 - .NET 9
 - ASP.NET Core Web API
 - Entity Framework Core
 - SQL Server
-- JWT
+- JWT Authentication
 - BCrypt
-- Swagger
+- Swagger / OpenAPI
 
-### Desktop aplikacija
+### Desktop
 
 - WPF
-- C#
 - .NET 9
 
-### Mobilna aplikacija
+### Mobile
 
 - Flutter
 - Dart
 - HTTP REST API
 - PayPal Sandbox
+- Android Emulator
 
 ---
 
-## Preduvjeti
+# Preduvjeti
 
-Za pokretanje projekta potrebno je imati instalirano:
+Prije pokretanja projekta potrebno je imati instalirano:
 
-- Visual Studio 2022
 - .NET 9 SDK
 - SQL Server
+- Visual Studio 2022
 - Flutter SDK
-- Android Studio / Android Emulator
+- Android Studio
+- Android SDK
+- Android Emulator
 - Git
 
-### Provjera .NET verzije
+Za provjeru .NET verzije:
 
-```powershell
+```bash
 dotnet --version
 ```
 
-Projekt je razvijan uz .NET SDK verziju:
+Za provjeru Flutter instalacije:
 
-```text
-9.0.308
-```
-
-### Provjera Flutter instalacije
-
-```powershell
+```bash
 flutter --version
 ```
 
-### Provjera dostupnih Flutter uređaja
+Za provjeru Flutter okruženja:
 
-```powershell
-flutter devices
+```bash
+flutter doctor
 ```
 
 ---
 
-# Pokretanje backend-a
+# Pokretanje API aplikacije
 
-## 1. Pokrenuti SQL Server
-
-Potrebno je imati pokrenut SQL Server.
-
-Projekt koristi bazu:
+API projekat nalazi se u:
 
 ```text
-eTerminDb
+API/eTermin.Api/
 ```
 
-Connection string nalazi se u:
+API se može pokrenuti iz Visual Studija ili terminala.
+
+U terminalu je potrebno otvoriti folder:
 
 ```text
-API/eTermin.Api/appsettings.json
+API/eTermin.Api
 ```
 
-Primjer connection stringa:
+i izvršiti:
 
-```text
-Server=localhost;Database=eTerminDb;Trusted_Connection=True;TrustServerCertificate=True;
+```bash
+dotnet restore
 ```
 
----
+Zatim:
 
-## 2. Otvoriti projekat
-
-Otvoriti:
-
-```text
-eTermin.sln
+```bash
+dotnet build
 ```
 
-u Visual Studio 2022.
+Nakon uspješnog build-a:
 
-Nakon otvaranja projekta odabrati:
-
-**Build → Build Solution**
-
----
-
-## 3. Pokrenuti API
-
-U **Solution Exploreru** pronaći:
-
-```text
-API
-└── eTermin.Api
+```bash
+dotnet run
 ```
 
-Desnim klikom na `eTermin.Api` odabrati:
-
-**Set as Startup Project**
-
-Zatim kliknuti **Start (▶)**.
-
-API se pokreće na:
-
-```text
-https://localhost:7119
-```
-
-Swagger dokumentacija dostupna je na:
+API je konfigurisan tako da je Swagger dostupan na:
 
 ```text
 https://localhost:7119/swagger
@@ -191,45 +176,68 @@ https://localhost:7119/swagger
 
 Swagger omogućava pregled i testiranje dostupnih API endpointa.
 
-> **Napomena:** API mora ostati pokrenut dok Desktop ili Mobile aplikacija koriste sistem.
+---
+
+# Baza podataka
+
+Projekat koristi Microsoft SQL Server i Entity Framework Core.
+
+Prilikom pokretanja aplikacije izvršavaju se potrebne migracije baze.
+
+Početni podaci se kreiraju putem `DbSeeder`.
+
+Seeder kreira početne korisnike, salone, usluge, zaposlenike, povezivanje zaposlenika sa uslugama i termine.
+
+Ako se projekat pokreće prvi put, početni podaci će biti automatski kreirani.
+
+---
+
+# Početni korisnici
+
+## Administrator
+
+```text
+Email: admin@etermin.ba
+Password: Admin123!
+```
+
+## Korisnik
+
+```text
+Email: user1@gmail.com
+Password: User123!
+```
+
+Drugi testni korisnik:
+
+```text
+Email: user2@gmail.com
+Password: User123!
+```
 
 ---
 
 # Pokretanje Desktop aplikacije
 
-Nakon što je API pokrenut, u **Solution Exploreru** pronaći:
+Desktop aplikacija nalazi se u:
 
 ```text
-Desktop
-└── eTermin.Desktop
+Desktop/eTermin.Desktop/
 ```
 
-Desnim klikom na `eTermin.Desktop` odabrati:
+Desktop aplikacija je WPF aplikacija namijenjena administratoru.
 
-**Set as Startup Project**
+Prije pokretanja potrebno je osigurati da je API pokrenut.
 
-Zatim kliknuti **Start (▶)**.
-
-Desktop aplikacija komunicira sa API-jem preko:
+API adresa koju Desktop aplikacija koristi je:
 
 ```text
 https://localhost:7119/api/
 ```
 
-> **Napomena:** API mora ostati pokrenut dok se koristi Desktop aplikacija.
+Desktop aplikaciju moguće je pokrenuti direktno iz Visual Studija.
 
----
-
-## Prijava u Desktop aplikaciju
-
-Za prijavu koristiti administratorski račun:
-
-```text
-Email: admin@etermin.ba
-Lozinka: Admin1234!
-```
-
-Nakon uspješne prijave otvara se **Dashboard**.
+Nakon pokretanja administrator se prijavljuje administratorskim računom.
 
 ---
 
@@ -241,7 +249,7 @@ Mobilna aplikacija nalazi se u:
 Mobile/eTermin.Mobile/
 ```
 
-Mobilna aplikacija razvijena je u Flutter frameworku.
+Mobilna aplikacija razvijena je u Flutter frameworku i namijenjena je Android uređajima.
 
 Prije prvog pokretanja potrebno je otvoriti terminal u folderu:
 
@@ -251,23 +259,124 @@ Mobile/eTermin.Mobile
 
 i izvršiti:
 
-```powershell
+```bash
 flutter pub get
 ```
 
-### Provjera dostupnih uređaja
+## Pokretanje Android emulatora
 
-```powershell
-flutter devices
-```
+Flutter neće automatski pokrenuti Android emulator kada se izvrši samo:
 
-### Pokretanje aplikacije
-
-```powershell
+```bash
 flutter run
 ```
 
-Mobilna aplikacija može se pokrenuti na Android emulatoru ili fizičkom Android uređaju.
+Ako Android emulator nije pokrenut, Flutter može prikazati samo uređaje kao što su:
+
+```text
+Windows
+Chrome
+Edge
+```
+
+U tom slučaju nije potrebno pokretati aplikaciju na Windowsu ili web pregledniku.
+
+Prvo je potrebno provjeriti dostupne Android emulatore:
+
+```bash
+flutter emulators
+```
+
+Primjer rezultata:
+
+```text
+1 available emulator:
+
+Id      • Name    • Manufacturer • Platform
+
+Pixel_7 • Pixel 7 • Google       • android
+```
+
+Android emulator se zatim pokreće pomoću:
+
+```bash
+flutter emulators --launch Pixel_7
+```
+
+Ako je naziv emulatora drugačiji, potrebno je koristiti ID koji je prikazan naredbom:
+
+```bash
+flutter emulators
+```
+
+Nakon pokretanja potrebno je sačekati da se Android emulator potpuno otvori.
+
+---
+
+## Provjera dostupnih uređaja
+
+Kada se Android emulator pokrene, izvršiti:
+
+```bash
+flutter devices
+```
+
+Flutter će tada prikazati dostupne uređaje.
+
+Primjer:
+
+```text
+Android SDK built for x86_64 • emulator-5554 • android
+Windows (desktop)             • windows       • windows-x64
+Chrome                        • chrome        • web-javascript
+Edge                          • edge          • web-javascript
+```
+
+Potrebno je pronaći ID Android emulatora.
+
+U prethodnom primjeru ID je:
+
+```text
+emulator-5554
+```
+
+Međutim, ID ne mora uvijek biti isti. Zato nije potrebno pretpostavljati da će kod svakog korisnika biti `emulator-5554`.
+
+---
+
+## Pokretanje Mobile aplikacije
+
+Nakon što je Android emulator pokrenut i prikazan pomoću:
+
+```bash
+flutter devices
+```
+
+aplikacija se pokreće pomoću:
+
+```bash
+flutter run -d <ANDROID_DEVICE_ID>
+```
+
+Na primjer, ako je ID:
+
+```text
+emulator-5554
+```
+
+koristi se:
+
+```bash
+flutter run -d emulator-5554
+```
+
+Ako Flutter prikaže neki drugi Android ID, koristi se taj ID.
+
+Primjer:
+
+```bash
+flutter run -d emulator-5556
+```
 
 ---
 
@@ -291,299 +400,347 @@ Adresa `10.0.2.2` omogućava Android emulatoru pristup lokalnom računaru.
 
 ---
 
+# Redoslijed pokretanja Mobile aplikacije
+
+Za pokretanje mobilne aplikacije potrebno je izvršiti sljedeće korake:
+
+### 1. Otvoriti Mobile projekat
+
+```text
+Mobile/eTermin.Mobile
+```
+
+### 2. Preuzeti dependencies
+
+```bash
+flutter pub get
+```
+
+### 3. Provjeriti dostupne emulatore
+
+```bash
+flutter emulators
+```
+
+### 4. Pokrenuti Android emulator
+
+Primjer:
+
+```bash
+flutter emulators --launch Pixel_7
+```
+
+### 5. Sačekati da se Android emulator potpuno pokrene
+
+### 6. Provjeriti dostupne uređaje
+
+```bash
+flutter devices
+```
+
+### 7. Pokrenuti Flutter aplikaciju na Android emulatoru
+
+```bash
+flutter run -d <ANDROID_DEVICE_ID>
+```
+
+Na primjer:
+
+```bash
+flutter run -d emulator-5554
+```
+
+---
+
 # Početni podaci
 
-Prilikom prvog pokretanja API-ja automatski se kreiraju početni podaci za testiranje.
+`DbSeeder` automatski kreira početne podatke.
 
-Početni podaci uključuju:
+Sistem sadrži četiri salona:
 
-- administratorski račun
-- korisnike
-- salone
-- zaposlenike
-- usluge
-- termine
+1. Belle Studio – Mostar
+2. Glow Beauty – Mostar
+3. Beauty Studio – Sarajevo
+4. Elegance Beauty Studio – Sarajevo
 
-Nije potrebno ručno unositi početne podatke.
+Svaki salon ima približno jednak broj usluga i zaposlenika.
+
+Primjer usluga:
+
+- Šišanje
+- Farbanje kose
+- Manikir
+- Tretman lica
+- Masaža
+- Feniranje
+- Šminkanje
+- Lash Lift
+- Oblikovanje obrva
+- Pedikir
+- Gel nokti
+- Depilacija
+
+Početni podaci uključuju i zaposlenike, njihove usluge i rezervisane termine.
 
 ---
 
 # Glavne funkcionalnosti
 
-## Desktop aplikacija
+## Autentifikacija
 
-Desktop aplikacija omogućava administratoru:
+Korisnik se može:
 
-- Dashboard i pregled statistike
-- upravljanje salonima
-- upravljanje uslugama
-- upravljanje zaposlenicima
-- upravljanje terminima
-- pregled dostupnih termina
-- filtriranje i pretragu
-- pregled prihoda
-- pregled statusa termina
-- uređivanje profila administratora
-- promjenu lozinke
-- odjavu uz potvrdu
+- registrovati
+- prijaviti
+- koristiti JWT autentifikaciju
+- pristupiti funkcionalnostima na osnovu svoje uloge
 
 ---
 
-## Mobile aplikacija
+## Saloni
 
-Mobilna aplikacija omogućava korisniku:
+Korisnik može:
 
-- registraciju i prijavu
-- pregled salona
-- pregled usluga
-- pregled zaposlenika
-- odabir datuma
-- pregled dostupnih termina
-- rezervaciju termina
-- pregled rezerviranih termina
-- PayPal Sandbox plaćanje
-- potvrdu termina nakon uspješnog plaćanja
-- primanje obavijesti
-- pregled obavijesti
-- označavanje obavijesti kao pročitane
-- brisanje obavijesti
-- indikator nepročitanih obavijesti
+- pregledati salone
+- pregledati osnovne informacije o salonima
+- pregledati usluge salona
+- pregledati zaposlenike salona
 
 ---
 
-# Rezervacija termina
+## Usluge
 
-Proces rezervacije termina odvija se kroz nekoliko koraka:
+Za svaku uslugu dostupne su informacije kao što su:
 
-```text
-Odabir salona
-      ↓
-Odabir usluge
-      ↓
-Odabir zaposlenika
-      ↓
-Odabir datuma
-      ↓
-Odabir dostupnog termina
-      ↓
-Kreiranje rezervacije
-      ↓
-Kreiranje plaćanja
-      ↓
-PayPal plaćanje
-      ↓
-Potvrda termina
-```
+- naziv
+- opis
+- cijena
+- trajanje
 
-Sistem provjerava dostupnost termina i sprječava preklapanje rezervacija.
+---
 
-Vrše se provjere kao što su:
+## Zaposlenici
 
-- zauzetost zaposlenika
-- zauzetost korisnika
-- radno vrijeme
-- dostupnost zaposlenika
-- dostupnost odabrane usluge
-- validnost odabranog termina
+Sistem omogućava pregled zaposlenika koji rade u određenom salonu i usluga koje pružaju.
+
+---
+
+## Rezervacija termina
+
+Korisnik može:
+
+1. odabrati salon
+2. odabrati uslugu
+3. odabrati zaposlenika
+4. odabrati datum
+5. odabrati slobodan termin
+6. kreirati rezervaciju
+7. izvršiti plaćanje
+
+Sistem provjerava zauzetost termina i sprječava dvostruku rezervaciju.
 
 ---
 
 # PayPal plaćanje
 
-Za realizaciju online plaćanja koristi se **PayPal Sandbox** okruženje.
+Za online plaćanje koristi se PayPal Sandbox.
 
 Proces plaćanja:
 
 ```text
 Kreiranje rezervacije
-      ↓
-Kreiranje Pending plaćanja
-      ↓
+        ↓
+Kreiranje pending payment zapisa
+        ↓
 Kreiranje PayPal Order-a
-      ↓
-PayPal Sandbox
-      ↓
-Odobravanje plaćanja
-      ↓
-Capture Order
-      ↓
-Status plaćanja: Completed
-      ↓
-Status termina: Confirmed
+        ↓
+Otvaranje PayPal stranice
+        ↓
+Korisnik odobrava plaćanje
+        ↓
+Capture PayPal Order
+        ↓
+Payment = Completed
+        ↓
+Appointment = Confirmed
+        ↓
+Kreiranje notifikacije
 ```
 
-Nakon uspješnog plaćanja:
-
-- plaćanje dobija status `Completed`
-- termin dobija status `Confirmed`
-- čuva se PayPal transaction ID
-- korisniku se kreira obavijest o uspješnom plaćanju
-
-Za testiranje plaćanja koriste se PayPal Sandbox korisnički računi.
+Koristi se PayPal Sandbox okruženje, tako da se za testiranje ne koriste stvarne bankovne kartice niti stvarni novac.
 
 ---
 
-# Sistem obavijesti
+# Notifikacije
 
-Sistem omogućava kreiranje i upravljanje obavijestima korisnika.
-
-Obavijest se, između ostalog, kreira nakon uspješnog PayPal plaćanja.
+Sistem omogućava kreiranje i pregled notifikacija.
 
 Korisnik može:
 
-- pregledati obavijesti
-- označiti obavijest kao pročitanu
-- obrisati obavijest
+- pregledati notifikacije
+- označiti notifikaciju kao pročitanu
+- obrisati notifikaciju
 
-Na glavnom ekranu Mobile aplikacije prikazuje se **crvena tačkica na ikoni obavijesti** kada postoji nepročitana obavijest.
+Nakon uspješnog PayPal plaćanja korisnik dobija notifikaciju da je plaćanje uspješno izvršeno i da je termin potvrđen.
+
+Na glavnom ekranu mobilne aplikacije prikazuje se crvena tačkica na ikoni za notifikacije kada postoje nepročitane notifikacije.
 
 ---
 
-# Autentifikacija i sigurnost
+# Sigurnost
 
-Za autentifikaciju korisnika koristi se **JWT (JSON Web Token)**.
+Za autentifikaciju se koristi JWT.
 
-Nakon uspješne prijave korisnik dobija autentifikacijski token koji se koristi prilikom pozivanja zaštićenih API endpointa.
+Lozinke korisnika se hashiraju pomoću BCrypt algoritma.
 
-Lozinke korisnika se ne čuvaju u otvorenom obliku, već se koriste hashirane lozinke pomoću **BCrypt** algoritma.
-
-API koristi autorizaciju za zaštitu funkcionalnosti koje zahtijevaju prijavljenog korisnika ili administratorske privilegije.
+API endpointi koji zahtijevaju autentifikaciju zaštićeni su odgovarajućim autorizacijskim mehanizmima.
 
 ---
 
 # Arhitektura
 
-Osnovna arhitektura sistema:
+Backend koristi slojevitu arhitekturu:
 
 ```text
-                 ┌──────────────────┐
-                 │   WPF Desktop    │
-                 │   Administrator  │
-                 └────────┬─────────┘
-                          │
-                          │ HTTP / JSON
-                          │
-                 ┌────────▼─────────┐
-                 │ ASP.NET Core API │
-                 │                  │
-                 │ Application      │
-                 │ Domain           │
-                 │ Infrastructure   │
-                 └────────┬─────────┘
-                          │
-                          │ EF Core
-                          │
-                 ┌────────▼─────────┐
-                 │    SQL Server    │
-                 │    eTerminDb     │
-                 └──────────────────┘
-                          ▲
-                          │
-                       HTTP / JSON
-                          │
-                 ┌────────┴─────────┐
-                 │  Flutter Mobile  │
-                 │     Korisnik     │
-                 └──────────────────┘
+API
+ ↓
+Application
+ ↓
+Domain
+ ↑
+Infrastructure
 ```
 
-Desktop i Mobile aplikacija ne pristupaju direktno SQL Server bazi.
+### API layer
 
-Komunikacija sa bazom odvija se preko ASP.NET Core Web API-ja.
+Prima HTTP zahtjeve i vraća HTTP odgovore.
+
+### Application layer
+
+Sadrži poslovnu logiku, servise, DTO klase i interfejse.
+
+### Domain layer
+
+Sadrži osnovne domenske entitete.
+
+### Infrastructure layer
+
+Implementira pristup bazi podataka i vanjskim servisima.
 
 ---
 
-# API dokumentacija
+# Swagger
 
-Nakon pokretanja API-ja, dostupna je Swagger dokumentacija:
+Swagger se koristi za dokumentaciju i testiranje REST API-ja.
+
+Nakon pokretanja API aplikacije Swagger je dostupan na:
 
 ```text
 https://localhost:7119/swagger
 ```
 
-Swagger omogućava pregled API endpointa i testiranje zahtjeva.
-
-API obuhvata funkcionalnosti vezane za:
-
-- autentifikaciju
-- korisnike
-- salone
-- zaposlenike
-- usluge
-- termine
-- dostupne termine
-- plaćanja
-- PayPal
-- obavijesti
-- statistiku
-- preporuke
+Swagger omogućava pregled svih dostupnih endpointa i slanje testnih zahtjeva.
 
 ---
 
-# Baza podataka
+# SQL Server
 
-Sistem koristi Microsoft SQL Server bazu:
+Sistem koristi Microsoft SQL Server bazu podataka.
+
+Entity Framework Core koristi se za:
+
+- mapiranje entiteta
+- migracije
+- pristup podacima
+- kreiranje i ažuriranje baze
+
+---
+
+# Reset baze podataka
+
+Ako je potrebno ponovo kreirati početne podatke, moguće je obrisati postojeću bazu i ponovo pokrenuti API.
+
+Nakon toga `DbSeeder` ponovo kreira početne podatke.
+
+> **Napomena:** Seeder provjerava da li već postoji administratorski korisnik. Ako baza već sadrži početne podatke, novi seed podaci se neće automatski dodati. Za potpuno novi skup početnih podataka potrebno je resetovati bazu.
+
+---
+
+# Redoslijed pokretanja cijelog sistema
+
+Preporučeni redoslijed pokretanja:
+
+### 1. SQL Server
+
+Provjeriti da je SQL Server pokrenut.
+
+### 2. API
+
+Pokrenuti:
 
 ```text
-eTerminDb
+API/eTermin.Api
 ```
 
-Entity Framework Core koristi se za komunikaciju između aplikacije i baze podataka.
+Swagger:
 
-Podaci o korisnicima, salonima, zaposlenicima, uslugama, terminima, plaćanjima i obavijestima čuvaju se u bazi podataka.
-
----
-
-# Reset baze
-
-Ako je potrebno resetovati lokalnu bazu, izvršiti:
-
-```sql
-USE master;
-GO
-
-ALTER DATABASE eTerminDb
-SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-GO
-
-DROP DATABASE eTerminDb;
-GO
+```text
+https://localhost:7119/swagger
 ```
 
-Nakon toga ponovo pokrenuti `eTermin.Api`.
+### 3. Desktop aplikacija
 
-Baza i početni podaci će se ponovo kreirati automatski.
+Pokrenuti:
 
-> **Napomena:** Reset baze briše postojeće lokalne podatke.
+```text
+Desktop/eTermin.Desktop
+```
+
+### 4. Android emulator
+
+Provjeriti dostupne emulatore:
+
+```bash
+flutter emulators
+```
+
+Pokrenuti emulator:
+
+```bash
+flutter emulators --launch Pixel_7
+```
+
+### 5. Mobile aplikacija
+
+Provjeriti uređaje:
+
+```bash
+flutter devices
+```
+
+Pokrenuti aplikaciju na Android emulatoru:
+
+```bash
+flutter run -d <ANDROID_DEVICE_ID>
+```
 
 ---
 
-# Redoslijed pokretanja
+# Napomena
 
-Za pokretanje kompletnog sistema preporučuje se sljedeći redoslijed:
+eTermin je razvijen kao seminarski projekat sa ciljem demonstracije primjene modernih tehnologija za razvoj distribuiranog informacionog sistema.
 
-1. Pokrenuti SQL Server
-2. Otvoriti `eTermin.sln`
-3. Odabrati **Build → Build Solution**
-4. Pokrenuti `eTermin.Api`
-5. Provjeriti Swagger
-6. Ostaviti API pokrenut
-7. Pokrenuti `eTermin.Desktop` ili Mobile aplikaciju
-8. Prijaviti se u aplikaciju
+Projekat objedinjuje:
 
-### Za Mobile aplikaciju dodatno:
-
-1. Otvoriti folder `Mobile/eTermin.Mobile`
-2. Pokrenuti `flutter pub get`
-3. Pokrenuti Android emulator
-4. Pokrenuti `flutter run`
-
----
-
-## Napomena
-
-Projekat je razvijen kao seminarski projekat iz predmeta **Razvoj softvera II**.
-
-Sistem je organizovan tako da backend predstavlja centralni sloj između korisničkih aplikacija i baze podataka.
-
-WPF aplikacija namijenjena je administratorskom dijelu sistema, dok je Flutter aplikacija namijenjena krajnjim korisnicima za rezervaciju i upravljanje terminima.
+- REST API
+- SQL Server
+- Entity Framework Core
+- JWT autentifikaciju
+- WPF desktop aplikaciju
+- Flutter mobilnu aplikaciju
+- PayPal Sandbox plaćanje
+- sistem notifikacija
+- upravljanje salonima
+- upravljanje zaposlenicima
+- upravljanje uslugama
+- rezervaciju termina
