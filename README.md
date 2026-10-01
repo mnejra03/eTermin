@@ -1,16 +1,16 @@
-# eTermin
+﻿# eTermin
 
 Seminarski projekat izrade sistema za upravljanje terminima u salonima.
 
-**Student:** Nejra Muminović
+**Student:** Nejra MuminoviÄ‡
 
 ---
 
 ## O projektu
 
-eTermin je informacioni sistem namijenjen za upravljanje terminima u salonima za uljepšavanje.
+eTermin je informacioni sistem namijenjen za upravljanje terminima u salonima za uljepĹˇavanje.
 
-Sistem omogućava korisnicima pregled salona, zaposlenika i usluga, rezervaciju termina, online plaćanje putem PayPal Sandbox sistema i pregled obavijesti.
+Sistem omoguÄ‡ava korisnicima pregled salona, zaposlenika i usluga, rezervaciju termina, online plaÄ‡anje putem PayPal Sandbox sistema i pregled obavijesti.
 
 Sistem se sastoji od:
 
@@ -26,26 +26,26 @@ Backend predstavlja centralni dio sistema i koristi SQL Server bazu podataka.
 
 ```text
 eTermin/
-│
-├── API/
-│   └── eTermin.Api/
-│
-├── Application/
-│   └── eTermin.Application/
-│
-├── Domain/
-│   └── eTermin.Domain/
-│
-├── Infrastructure/
-│   └── eTermin.Infrastructure/
-│
-├── Desktop/
-│   └── eTermin.Desktop/
-│
-├── Mobile/
-│   └── eTermin.Mobile/
-│
-└── eTermin.sln
+â”‚
+â”śâ”€â”€ API/
+â”‚   â””â”€â”€ eTermin.Api/
+â”‚
+â”śâ”€â”€ Application/
+â”‚   â””â”€â”€ eTermin.Application/
+â”‚
+â”śâ”€â”€ Domain/
+â”‚   â””â”€â”€ eTermin.Domain/
+â”‚
+â”śâ”€â”€ Infrastructure/
+â”‚   â””â”€â”€ eTermin.Infrastructure/
+â”‚
+â”śâ”€â”€ Desktop/
+â”‚   â””â”€â”€ eTermin.Desktop/
+â”‚
+â”śâ”€â”€ Mobile/
+â”‚   â””â”€â”€ eTermin.Mobile/
+â”‚
+â””â”€â”€ eTermin.sln
 ```
 
 ### API
@@ -54,15 +54,15 @@ ASP.NET Core Web API aplikacija koja predstavlja backend sistema.
 
 ### Application
 
-Sadrži aplikacijsku logiku, servise, DTO klase i interfejse.
+SadrĹľi aplikacijsku logiku, servise, DTO klase i interfejse.
 
 ### Domain
 
-Sadrži domenske entitete sistema.
+SadrĹľi domenske entitete sistema.
 
 ### Infrastructure
 
-Sadrži pristup bazi podataka, Entity Framework Core konfiguraciju i implementacije servisa.
+SadrĹľi pristup bazi podataka, Entity Framework Core konfiguraciju i implementacije servisa.
 
 ### Desktop
 
@@ -74,7 +74,7 @@ Flutter mobilna aplikacija namijenjena korisnicima sistema.
 
 ---
 
-## Korištene tehnologije
+## KoriĹˇtene tehnologije
 
 ### Backend
 
@@ -126,7 +126,7 @@ Za provjeru Flutter instalacije:
 flutter --version
 ```
 
-Za provjeru Flutter okruženja:
+Za provjeru Flutter okruĹľenja:
 
 ```bash
 flutter doctor
@@ -153,7 +153,7 @@ API projekat nalazi se u:
 API/eTermin.Api/
 ```
 
-API se može pokrenuti iz Visual Studija ili terminala.
+API se moĹľe pokrenuti iz Visual Studija ili terminala.
 
 U terminalu je potrebno otvoriti folder:
 
@@ -161,7 +161,7 @@ U terminalu je potrebno otvoriti folder:
 API/eTermin.Api
 ```
 
-i izvršiti:
+i izvrĹˇiti:
 
 ```bash
 dotnet restore
@@ -173,7 +173,7 @@ Zatim:
 dotnet build
 ```
 
-Nakon uspješnog build-a:
+Nakon uspjeĹˇnog build-a:
 
 ```bash
 dotnet run
@@ -182,10 +182,10 @@ dotnet run
 API je konfigurisan tako da je Swagger dostupan na:
 
 ```text
-https://localhost:7119/swagger
+http://localhost:5130/swagger
 ```
 
-Swagger omogućava pregled i testiranje dostupnih API endpointa.
+Swagger omoguÄ‡ava pregled i testiranje dostupnih API endpointa.
 
 ---
 
@@ -193,13 +193,13 @@ Swagger omogućava pregled i testiranje dostupnih API endpointa.
 
 Projekat koristi Microsoft SQL Server i Entity Framework Core.
 
-Prilikom pokretanja aplikacije izvršavaju se potrebne migracije baze.
+Prilikom pokretanja aplikacije izvrĹˇavaju se potrebne migracije baze.
 
-Početni podaci se kreiraju putem `DbSeeder`.
+PoÄŤetni podaci se kreiraju putem `DbSeeder`.
 
-Seeder kreira početne korisnike, salone, usluge, zaposlenike, povezivanje zaposlenika sa uslugama i termine.
+Seeder kreira poÄŤetne korisnike, salone, usluge, zaposlenike, povezivanje zaposlenika sa uslugama i termine.
 
-Ako se projekat pokreće prvi put, početni podaci će biti automatski kreirani.
+Ako se projekat pokreÄ‡e prvi put, poÄŤetni podaci Ä‡e biti automatski kreirani.
 
 ---
 
@@ -220,12 +220,12 @@ Prije pokretanja potrebno je osigurati da je API pokrenut.
 API adresa koju Desktop aplikacija koristi je:
 
 ```text
-https://localhost:7119/api/
+http://localhost:5130/api/
 ```
 
-Desktop aplikaciju moguće je pokrenuti direktno iz Visual Studija.
+Desktop aplikaciju moguÄ‡e je pokrenuti direktno iz Visual Studija.
 
-Nakon pokretanja administrator se prijavljuje administratorskim računom.
+Nakon pokretanja administrator se prijavljuje administratorskim raÄŤunom.
 
 ---
 
@@ -237,7 +237,7 @@ Mobilna aplikacija nalazi se u:
 Mobile/eTermin.Mobile/
 ```
 
-Mobilna aplikacija razvijena je u Flutter frameworku i namijenjena je Android uređajima.
+Mobilna aplikacija razvijena je u Flutter frameworku i namijenjena je Android ureÄ‘ajima.
 
 Prije prvog pokretanja potrebno je otvoriti terminal u folderu:
 
@@ -245,7 +245,7 @@ Prije prvog pokretanja potrebno je otvoriti terminal u folderu:
 Mobile/eTermin.Mobile
 ```
 
-i izvršiti:
+i izvrĹˇiti:
 
 ```bash
 flutter pub get
@@ -253,13 +253,13 @@ flutter pub get
 
 ## Pokretanje Android emulatora
 
-Flutter neće automatski pokrenuti Android emulator kada se izvrši samo:
+Flutter neÄ‡e automatski pokrenuti Android emulator kada se izvrĹˇi samo:
 
 ```bash
 flutter run
 ```
 
-Ako Android emulator nije pokrenut, Flutter može prikazati samo uređaje kao što su:
+Ako Android emulator nije pokrenut, Flutter moĹľe prikazati samo ureÄ‘aje kao Ĺˇto su:
 
 ```text
 Windows
@@ -267,7 +267,7 @@ Chrome
 Edge
 ```
 
-U tom slučaju nije potrebno pokretati aplikaciju na Windowsu ili web pregledniku.
+U tom sluÄŤaju nije potrebno pokretati aplikaciju na Windowsu ili web pregledniku.
 
 Prvo je potrebno provjeriti dostupne Android emulatore:
 
@@ -280,47 +280,47 @@ Primjer rezultata:
 ```text
 1 available emulator:
 
-Id      • Name    • Manufacturer • Platform
+Id      â€˘ Name    â€˘ Manufacturer â€˘ Platform
 
-Pixel_7 • Pixel 7 • Google       • android
+Pixel_7 â€˘ Pixel 7 â€˘ Google       â€˘ android
 ```
 
-Android emulator se zatim pokreće pomoću:
+Android emulator se zatim pokreÄ‡e pomoÄ‡u:
 
 ```bash
 flutter emulators --launch Pixel_7
 ```
 
-Ako je naziv emulatora drugačiji, potrebno je koristiti ID koji je prikazan naredbom:
+Ako je naziv emulatora drugaÄŤiji, potrebno je koristiti ID koji je prikazan naredbom:
 
 ```bash
 flutter emulators
 ```
 
-Nakon pokretanja potrebno je sačekati da se Android emulator potpuno otvori.
+Nakon pokretanja potrebno je saÄŤekati da se Android emulator potpuno otvori.
 
 ---
 
-## Provjera dostupnih uređaja
+## Provjera dostupnih ureÄ‘aja
 
-Kada se Android emulator pokrene, izvršiti:
+Kada se Android emulator pokrene, izvrĹˇiti:
 
 ```bash
 flutter devices
 ```
 
-Flutter će tada prikazati dostupne uređaje.
+Flutter Ä‡e tada prikazati dostupne ureÄ‘aje.
 
 Primjer:
 
 ```text
-Android SDK built for x86_64 • emulator-5554 • android
-Windows (desktop)             • windows       • windows-x64
-Chrome                        • chrome        • web-javascript
-Edge                          • edge          • web-javascript
+Android SDK built for x86_64 â€˘ emulator-5554 â€˘ android
+Windows (desktop)             â€˘ windows       â€˘ windows-x64
+Chrome                        â€˘ chrome        â€˘ web-javascript
+Edge                          â€˘ edge          â€˘ web-javascript
 ```
 
-Potrebno je pronaći ID Android emulatora.
+Potrebno je pronaÄ‡i ID Android emulatora.
 
 U prethodnom primjeru ID je:
 
@@ -328,19 +328,19 @@ U prethodnom primjeru ID je:
 emulator-5554
 ```
 
-Međutim, ID ne mora uvijek biti isti. Zato nije potrebno pretpostavljati da će kod svakog korisnika biti `emulator-5554`.
+MeÄ‘utim, ID ne mora uvijek biti isti. Zato nije potrebno pretpostavljati da Ä‡e kod svakog korisnika biti `emulator-5554`.
 
 ---
 
 ## Pokretanje Mobile aplikacije
 
-Nakon što je Android emulator pokrenut i prikazan pomoću:
+Nakon Ĺˇto je Android emulator pokrenut i prikazan pomoÄ‡u:
 
 ```bash
 flutter devices
 ```
 
-aplikacija se pokreće pomoću:
+aplikacija se pokreÄ‡e pomoÄ‡u:
 
 ```bash
 flutter run -d <ANDROID_DEVICE_ID>
@@ -358,7 +358,7 @@ koristi se:
 flutter run -d emulator-5554
 ```
 
-Ako Flutter prikaže neki drugi Android ID, koristi se taj ID.
+Ako Flutter prikaĹľe neki drugi Android ID, koristi se taj ID.
 
 Primjer:
 
@@ -382,15 +382,15 @@ Za Android emulator koristi se:
 http://10.0.2.2:5130/api
 ```
 
-Adresa `10.0.2.2` omogućava Android emulatoru pristup lokalnom računaru.
+Adresa `10.0.2.2` omoguÄ‡ava Android emulatoru pristup lokalnom raÄŤunaru.
 
-> **Napomena:** API mora biti pokrenut prije korištenja Mobile aplikacije.
+> **Napomena:** API mora biti pokrenut prije koriĹˇtenja Mobile aplikacije.
 
 ---
 
 # Redoslijed pokretanja Mobile aplikacije
 
-Za pokretanje mobilne aplikacije potrebno je izvršiti sljedeće korake:
+Za pokretanje mobilne aplikacije potrebno je izvrĹˇiti sljedeÄ‡e korake:
 
 ### 1. Otvoriti Mobile projekat
 
@@ -418,9 +418,9 @@ Primjer:
 flutter emulators --launch Pixel_7
 ```
 
-### 5. Sačekati da se Android emulator potpuno pokrene
+### 5. SaÄŤekati da se Android emulator potpuno pokrene
 
-### 6. Provjeriti dostupne uređaje
+### 6. Provjeriti dostupne ureÄ‘aje
 
 ```bash
 flutter devices
@@ -440,35 +440,35 @@ flutter run -d emulator-5554
 
 ---
 
-# Početni podaci
+# PoÄŤetni podaci
 
-`DbSeeder` automatski kreira početne podatke.
+`DbSeeder` automatski kreira poÄŤetne podatke.
 
-Sistem sadrži četiri salona:
+Sistem sadrĹľi ÄŤetiri salona:
 
-1. Belle Studio – Mostar
-2. Glow Beauty – Mostar
-3. Beauty Studio – Sarajevo
-4. Elegance Beauty Studio – Sarajevo
+1. Belle Studio â€“ Mostar
+2. Glow Beauty â€“ Mostar
+3. Beauty Studio â€“ Sarajevo
+4. Elegance Beauty Studio â€“ Sarajevo
 
-Svaki salon ima približno jednak broj usluga i zaposlenika.
+Svaki salon ima pribliĹľno jednak broj usluga i zaposlenika.
 
 Primjer usluga:
 
-- Šišanje
+- Ĺ iĹˇanje
 - Farbanje kose
 - Manikir
 - Tretman lica
-- Masaža
+- MasaĹľa
 - Feniranje
-- Šminkanje
+- Ĺ minkanje
 - Lash Lift
 - Oblikovanje obrva
 - Pedikir
 - Gel nokti
 - Depilacija
 
-Početni podaci uključuju i zaposlenike, njihove usluge i rezervisane termine.
+PoÄŤetni podaci ukljuÄŤuju i zaposlenike, njihove usluge i rezervisane termine.
 
 ---
 
@@ -476,7 +476,7 @@ Početni podaci uključuju i zaposlenike, njihove usluge i rezervisane termine.
 
 ## Autentifikacija
 
-Korisnik se može:
+Korisnik se moĹľe:
 
 - registrovati
 - prijaviti
@@ -487,7 +487,7 @@ Korisnik se može:
 
 ## Saloni
 
-Korisnik može:
+Korisnik moĹľe:
 
 - pregledati salone
 - pregledati osnovne informacije o salonima
@@ -498,7 +498,7 @@ Korisnik može:
 
 ## Usluge
 
-Za svaku uslugu dostupne su informacije kao što su:
+Za svaku uslugu dostupne su informacije kao Ĺˇto su:
 
 - naziv
 - opis
@@ -509,13 +509,13 @@ Za svaku uslugu dostupne su informacije kao što su:
 
 ## Zaposlenici
 
-Sistem omogućava pregled zaposlenika koji rade u određenom salonu i usluga koje pružaju.
+Sistem omoguÄ‡ava pregled zaposlenika koji rade u odreÄ‘enom salonu i usluga koje pruĹľaju.
 
 ---
 
 ## Rezervacija termina
 
-Korisnik može:
+Korisnik moĹľe:
 
 1. odabrati salon
 2. odabrati uslugu
@@ -523,55 +523,55 @@ Korisnik može:
 4. odabrati datum
 5. odabrati slobodan termin
 6. kreirati rezervaciju
-7. izvršiti plaćanje
+7. izvrĹˇiti plaÄ‡anje
 
-Sistem provjerava zauzetost termina i sprječava dvostruku rezervaciju.
+Sistem provjerava zauzetost termina i sprjeÄŤava dvostruku rezervaciju.
 
 ---
 
-# PayPal plaćanje
+# PayPal plaÄ‡anje
 
-Za online plaćanje koristi se PayPal Sandbox.
+Za online plaÄ‡anje koristi se PayPal Sandbox.
 
-Proces plaćanja:
+Proces plaÄ‡anja:
 
 ```text
 Kreiranje rezervacije
-        ↓
+        â†“
 Kreiranje pending payment zapisa
-        ↓
+        â†“
 Kreiranje PayPal Order-a
-        ↓
+        â†“
 Otvaranje PayPal stranice
-        ↓
-Korisnik odobrava plaćanje
-        ↓
+        â†“
+Korisnik odobrava plaÄ‡anje
+        â†“
 Capture PayPal Order
-        ↓
+        â†“
 Payment = Completed
-        ↓
+        â†“
 Appointment = Confirmed
-        ↓
+        â†“
 Kreiranje notifikacije
 ```
 
-Koristi se PayPal Sandbox okruženje, tako da se za testiranje ne koriste stvarne bankovne kartice niti stvarni novac.
+Koristi se PayPal Sandbox okruĹľenje, tako da se za testiranje ne koriste stvarne bankovne kartice niti stvarni novac.
 
 ---
 
 # Notifikacije
 
-Sistem omogućava kreiranje i pregled notifikacija.
+Sistem omoguÄ‡ava kreiranje i pregled notifikacija.
 
-Korisnik može:
+Korisnik moĹľe:
 
 - pregledati notifikacije
-- označiti notifikaciju kao pročitanu
+- oznaÄŤiti notifikaciju kao proÄŤitanu
 - obrisati notifikaciju
 
-Nakon uspješnog PayPal plaćanja korisnik dobija notifikaciju da je plaćanje uspješno izvršeno i da je termin potvrđen.
+Nakon uspjeĹˇnog PayPal plaÄ‡anja korisnik dobija notifikaciju da je plaÄ‡anje uspjeĹˇno izvrĹˇeno i da je termin potvrÄ‘en.
 
-Na glavnom ekranu mobilne aplikacije prikazuje se crvena tačkica na ikoni za notifikacije kada postoje nepročitane notifikacije.
+Na glavnom ekranu mobilne aplikacije prikazuje se crvena taÄŤkica na ikoni za notifikacije kada postoje neproÄŤitane notifikacije.
 
 ---
 
@@ -579,9 +579,9 @@ Na glavnom ekranu mobilne aplikacije prikazuje se crvena tačkica na ikoni za no
 
 Za autentifikaciju se koristi JWT.
 
-Lozinke korisnika se hashiraju pomoću BCrypt algoritma.
+Lozinke korisnika se hashiraju pomoÄ‡u BCrypt algoritma.
 
-API endpointi koji zahtijevaju autentifikaciju zaštićeni su odgovarajućim autorizacijskim mehanizmima.
+API endpointi koji zahtijevaju autentifikaciju zaĹˇtiÄ‡eni su odgovarajuÄ‡im autorizacijskim mehanizmima.
 
 ---
 
@@ -591,25 +591,25 @@ Backend koristi slojevitu arhitekturu:
 
 ```text
 API
- ↓
+ â†“
 Application
- ↓
+ â†“
 Domain
- ↑
+ â†‘
 Infrastructure
 ```
 
 ### API layer
 
-Prima HTTP zahtjeve i vraća HTTP odgovore.
+Prima HTTP zahtjeve i vraÄ‡a HTTP odgovore.
 
 ### Application layer
 
-Sadrži poslovnu logiku, servise, DTO klase i interfejse.
+SadrĹľi poslovnu logiku, servise, DTO klase i interfejse.
 
 ### Domain layer
 
-Sadrži osnovne domenske entitete.
+SadrĹľi osnovne domenske entitete.
 
 ### Infrastructure layer
 
@@ -624,10 +624,10 @@ Swagger se koristi za dokumentaciju i testiranje REST API-ja.
 Nakon pokretanja API aplikacije Swagger je dostupan na:
 
 ```text
-https://localhost:7119/swagger
+http://localhost:5130/swagger
 ```
 
-Swagger omogućava pregled svih dostupnih endpointa i slanje testnih zahtjeva.
+Swagger omoguÄ‡ava pregled svih dostupnih endpointa i slanje testnih zahtjeva.
 
 ---
 
@@ -640,23 +640,23 @@ Entity Framework Core koristi se za:
 - mapiranje entiteta
 - migracije
 - pristup podacima
-- kreiranje i ažuriranje baze
+- kreiranje i aĹľuriranje baze
 
 ---
 
 # Reset baze podataka
 
-Ako je potrebno ponovo kreirati početne podatke, moguće je obrisati postojeću bazu i ponovo pokrenuti API.
+Ako je potrebno ponovo kreirati poÄŤetne podatke, moguÄ‡e je obrisati postojeÄ‡u bazu i ponovo pokrenuti API.
 
-Nakon toga `DbSeeder` ponovo kreira početne podatke.
+Nakon toga `DbSeeder` ponovo kreira poÄŤetne podatke.
 
-> **Napomena:** Seeder provjerava da li već postoji administratorski korisnik. Ako baza već sadrži početne podatke, novi seed podaci se neće automatski dodati. Za potpuno novi skup početnih podataka potrebno je resetovati bazu.
+> **Napomena:** Seeder provjerava da li veÄ‡ postoji administratorski korisnik. Ako baza veÄ‡ sadrĹľi poÄŤetne podatke, novi seed podaci se neÄ‡e automatski dodati. Za potpuno novi skup poÄŤetnih podataka potrebno je resetovati bazu.
 
 ---
 
 # Redoslijed pokretanja cijelog sistema
 
-Preporučeni redoslijed pokretanja:
+PreporuÄŤeni redoslijed pokretanja:
 
 ### 1. SQL Server
 
@@ -673,7 +673,7 @@ API/eTermin.Api
 Swagger:
 
 ```text
-https://localhost:7119/swagger
+http://localhost:5130/swagger
 ```
 
 ### 3. Desktop aplikacija
@@ -700,7 +700,7 @@ flutter emulators --launch Pixel_7
 
 ### 5. Mobile aplikacija
 
-Provjeriti uređaje:
+Provjeriti ureÄ‘aje:
 
 ```bash
 flutter devices
@@ -726,7 +726,7 @@ Projekat objedinjuje:
 - JWT autentifikaciju
 - WPF desktop aplikaciju
 - Flutter mobilnu aplikaciju
-- PayPal Sandbox plaćanje
+- PayPal Sandbox plaÄ‡anje
 - sistem notifikacija
 - upravljanje salonima
 - upravljanje zaposlenicima
