@@ -163,6 +163,18 @@ Ako projekat sadrži `.env.example`, potrebno je napraviti lokalni `.env` fajl n
 
 Napomena: u trenutnoj dokumentaciji nije potvrđeno da svi dijelovi eTermin sistema čitaju konfiguraciju iz `.env` fajla. API connection string je opisan zasebno u `API/eTermin.Api/appsettings.json`, a Mobile API adresa je navedena u `lib/services/api_service.dart`. Prilagoditi konfiguraciju na mjestu koje konkretni dio aplikacije zaista koristi.
 
+# Podaci za prijavu
+
+Podaci za prijavu administratora i korisnika čuvaju se u lokalnom `.env` fajlu u glavnom folderu projekta.
+
+Nakon kloniranja repozitorija:
+
+1. Kopirati `.env.example` u novi fajl `.env`.
+2. Popuniti konfiguracijske vrijednosti, uključujući email adrese i lozinke početnih korisnika i administratora.
+3. Pokrenuti API kako bi se izvršilo inicijalno seedovanje baze podataka.
+
+Za prijavu u Desktop aplikaciju koristiti administratorski račun, a za prijavu u mobilnu aplikaciju koristiti korisnički račun.
+
 
 # Pokretanje API aplikacije
 
