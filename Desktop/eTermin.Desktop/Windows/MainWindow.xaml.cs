@@ -73,11 +73,10 @@ public partial class MainWindow : Window
             dashboardWindow.Show();
             Close();
         }
-        catch
-        {
-            ShowError(
-                "Nije moguće povezati se sa serverom.");
-        }
+        catch (Exception ex)
+{
+    ShowError($"Greška pri prijavi: {ex.Message}");
+}
         finally
         {
             LoginButton.IsEnabled = true;
