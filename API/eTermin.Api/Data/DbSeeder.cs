@@ -19,6 +19,15 @@ public static class DbSeeder
             ?? throw new InvalidOperationException(
                 "Seed__UserPassword nije konfigurisan.");
 
+        var adminEmail =
+    Environment.GetEnvironmentVariable("Seed__AdminEmail")
+    ?? throw new InvalidOperationException(
+        "Seed__AdminEmail nije konfigurisan.");
+
+var userEmail =
+    Environment.GetEnvironmentVariable("Seed__UserEmail")
+    ?? throw new InvalidOperationException(
+        "Seed__UserEmail nije konfigurisan.");
 
         // =========================================================
         // PROVJERA
@@ -31,7 +40,7 @@ public static class DbSeeder
         var seedAdminExists =
             await context.Users
                 .AnyAsync(x =>
-                    x.Email == "admin@etermin.ba");
+                    x.Email == adminEmail);
 
         if (seedAdminExists)
             return;
@@ -45,7 +54,7 @@ public static class DbSeeder
         {
             FirstName = "Admin",
             LastName = "eTermin",
-            Email = "admin@etermin.ba",
+            Email = adminEmail,
             PasswordHash =
                BCrypt.Net.BCrypt.HashPassword(
     adminPassword),
@@ -57,7 +66,7 @@ public static class DbSeeder
         {
             FirstName = "Nejra",
             LastName = "Muminović",
-            Email = "nejra@etermin.ba",
+            Email = userEmail,
             PasswordHash =
                BCrypt.Net.BCrypt.HashPassword(
     userPassword),
