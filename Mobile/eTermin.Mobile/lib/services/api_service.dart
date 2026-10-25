@@ -313,8 +313,22 @@ class ApiService {
 
     final message = response.body.isEmpty
         ? 'Termin se ne može otkazati. Status: ${response.statusCode}'
-        : response.body;
+        : _errorMessage(response.body);
     throw Exception(message);
+  }
+
+  String _errorMessage(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic> &&
+          decoded['message'] is String &&
+          (decoded['message'] as String).isNotEmpty) {
+        return decoded['message'] as String;
+      }
+    } on FormatException {
+      return body;
+    }
+    return body;
   }
 
   Future<void> changePassword({

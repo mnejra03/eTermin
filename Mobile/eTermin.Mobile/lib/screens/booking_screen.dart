@@ -168,8 +168,33 @@ class _BookingScreenState extends State<BookingScreen> {
     }
 
     final startTime = DateTime.parse(selectedSlot['startTime'].toString());
-
     final endTime = DateTime.parse(selectedSlot['endTime'].toString());
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Potvrdite termin'),
+        content: Text(
+          '${widget.salon.name}\n'
+          '${widget.service.name}\n'
+          '${selectedEmployee!.fullName}\n'
+          '${selectedDate.day.toString().padLeft(2, '0')}.'
+          '${selectedDate.month.toString().padLeft(2, '0')}.'
+          '${selectedDate.year}. u $selectedTime\n'
+          'Cijena: ${widget.service.price.toStringAsFixed(2)} KM',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Nazad'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Potvrdi'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
 
     setState(() {
       isBooking = true;
