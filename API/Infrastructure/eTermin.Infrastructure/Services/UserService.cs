@@ -71,6 +71,23 @@ public class UserService : IUserService
         if (user == null)
             return false;
 
+        var hasAppointments = await _context.Appointments
+            .AnyAsync(appointment =>
+                appointment.UserId == id ||
+                appointment.CancelledByUserId == id);
+
+        if (hasAppointments)
+            throw new InvalidOperationException(
+                "Korisnik se ne može obrisati jer je povezan s terminima " +
+                "ili zapisima o otkazivanju termina.");
+
+        var hasStatusHistory = await _context.AppointmentStatusHistories
+            .AnyAsync(history => history.ChangedByUserId == id);
+
+        if (hasStatusHistory)
+            throw new InvalidOperationException(
+                "Korisnik se ne može obrisati jer je zabilježen kao osoba koja je promijenila status termina.");
+
         _context.Users.Remove(user);
 
         await _context.SaveChangesAsync();

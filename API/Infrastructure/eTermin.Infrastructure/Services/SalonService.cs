@@ -173,6 +173,28 @@ public class SalonService : ISalonService
             return false;
         }
 
+        var employeeCount = await _context.Employees
+            .CountAsync(employee => employee.SalonId == id);
+        var serviceCount = await _context.Services
+            .CountAsync(service => service.SalonId == id);
+        var appointmentCount = await _context.Appointments
+            .CountAsync(appointment => appointment.SalonId == id);
+
+        if (employeeCount > 0 || serviceCount > 0 || appointmentCount > 0)
+        {
+            var reasons = new List<string>();
+            if (employeeCount > 0)
+                reasons.Add($"ima {employeeCount} zaposlenika");
+            if (serviceCount > 0)
+                reasons.Add($"ima {serviceCount} usluga");
+            if (appointmentCount > 0)
+                reasons.Add($"ima {appointmentCount} termina");
+
+            throw new InvalidOperationException(
+                $"Salon se ne može obrisati jer {string.Join(", ", reasons)}. " +
+                "Umjesto brisanja, deaktivirajte salon postavljanjem polja IsActive na false.");
+        }
+
         _context.Salons.Remove(salon);
 
         await _context.SaveChangesAsync();

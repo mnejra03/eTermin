@@ -257,6 +257,14 @@ public class EmployeeService : IEmployeeService
             return false;
         }
 
+        var appointmentCount = await _context.Appointments
+            .CountAsync(appointment => appointment.EmployeeId == id);
+
+        if (appointmentCount > 0)
+            throw new InvalidOperationException(
+                $"Zaposlenik se ne može obrisati jer ima {appointmentCount} povezanih termina. " +
+                "Umjesto brisanja, deaktivirajte zaposlenika postavljanjem polja IsActive na false.");
+
         _context.Employees.Remove(employee);
 
         await _context.SaveChangesAsync();
