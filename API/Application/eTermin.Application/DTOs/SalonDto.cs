@@ -11,6 +11,7 @@ public class SalonDto
     public string PhoneNumber { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public int EmployeeCount { get; set; }
+    public int ReservationCount { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public List<SalonImageDto>? Images { get; set; }
     public bool IsActive { get; set; }

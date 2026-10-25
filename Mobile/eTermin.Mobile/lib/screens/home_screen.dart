@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/salon.dart';
@@ -47,8 +49,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   final ApiService _apiService = ApiService();
   bool _hasUnreadNotifications = false;
+  Timer? _notificationTimer;
+  bool _checkingNotifications = false;
 
   List<Salon> _salons = [];
+  List<Salon> _popularSalons = [];
   List<Service> _services = [];
   List<Employee> _employees = [];
 
@@ -108,6 +113,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     _loadMyAppointments();
 
     _checkUnreadNotifications();
+    _notificationTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _checkUnreadNotifications(),
+    );
   }
 
   @override
@@ -127,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void dispose() {
     appRouteObserver.unsubscribe(this);
+    _notificationTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -314,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       );
     }
 
-    if (_salons.isEmpty) {
+    if (_popularSalons.isEmpty) {
       return const SizedBox(
         height: 145,
         child: Center(
@@ -330,10 +340,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       height: 145,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: _salons.length,
+        itemCount: _popularSalons.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
-          final salon = _salons[index];
+          final salon = _popularSalons[index];
 
           return _buildSalonCard(salon);
         },
@@ -416,6 +426,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   Future<void> _loadSalons() async {
     try {
       final salons = await _apiService.getSalons();
+      final popularSalons = await _apiService.getPopularSalons();
       final services = await _apiService.getServices();
       final employees = await _apiService.getEmployees();
 
@@ -423,6 +434,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
       setState(() {
         _salons = salons.where((salon) => salon.isActive).toList();
+        _popularSalons = popularSalons;
 
         _services = services.where((service) => service.isActive).toList();
 
@@ -1899,6 +1911,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Future<void> _checkUnreadNotifications() async {
+    if (_checkingNotifications) return;
+    _checkingNotifications = true;
     try {
       final notifications = await _apiService.getMyNotifications();
 
@@ -1909,8 +1923,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           (notification) => !notification.isRead,
         );
       });
-    } catch (e) {
-      // Ne prikazujemo greÄąË‡ku samo zbog provjere taĂ„Ĺ¤kice.
+    } catch (_) {
+      // Badge refresh failures should not interrupt other home-screen actions.
+    } finally {
+      _checkingNotifications = false;
     }
   }
 }

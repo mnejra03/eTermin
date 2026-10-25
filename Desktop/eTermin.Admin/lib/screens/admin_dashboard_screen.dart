@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/admin_session.dart';
@@ -35,6 +37,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   late Future<DashboardStatistics> _todayStatistics;
   late Future<List<Map<String, dynamic>>> _todayAppointments;
   late Future<Map<String, dynamic>> _availableSlots;
+  Timer? _notificationTimer;
+  int _unreadNotificationCount = 0;
+  bool _loadingNotificationCount = false;
 
   static const _sections = <({String title, IconData icon})>[
     (title: 'Pregled', icon: Icons.dashboard_outlined),
@@ -52,6 +57,35 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void initState() {
     super.initState();
     _reloadDashboard();
+    _refreshUnreadNotificationCount();
+    _notificationTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _refreshUnreadNotificationCount(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshUnreadNotificationCount() async {
+    if (_loadingNotificationCount) return;
+    _loadingNotificationCount = true;
+    try {
+      final notifications = await widget.apiClient.getList('Notifications/my');
+      if (!mounted) return;
+      setState(() {
+        _unreadNotificationCount = notifications
+            .where((notification) => notification['isRead'] != true)
+            .length;
+      });
+    } catch (_) {
+      // A badge refresh failure should not block dashboard navigation.
+    } finally {
+      _loadingNotificationCount = false;
+    }
   }
 
   void _reloadDashboard() {
@@ -95,10 +129,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             ),
             destinations: [
-              for (final item in _sections)
+              for (var index = 0; index < _sections.length; index++)
                 NavigationRailDestination(
-                  icon: Icon(item.icon),
-                  label: Text(item.title),
+                  icon: index == 7 && _unreadNotificationCount > 0
+                      ? Badge(
+                          label: Text('$_unreadNotificationCount'),
+                          child: Icon(_sections[index].icon),
+                        )
+                      : Icon(_sections[index].icon),
+                  label: Text(_sections[index].title),
                 ),
             ],
             trailing: Expanded(

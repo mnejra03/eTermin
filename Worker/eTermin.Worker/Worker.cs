@@ -1,5 +1,6 @@
 using System.Text.Json;
 using eTermin.Application.DTOs;
+using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -85,7 +86,9 @@ public sealed class Worker : BackgroundService
                     consumer: consumer);
 
                 _logger.LogInformation("Consuming appointment reminder messages from {Queue}.", queue);
-                await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+                using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+                while (await timer.WaitForNextTickAsync(stoppingToken))
+                    await ScheduleUpcomingRemindersAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -112,8 +115,7 @@ public sealed class Worker : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<eTerminDbContext>();
         var appointmentIds = await context.Appointments
             .Where(appointment =>
-                appointment.Status != "Cancelled" &&
-                appointment.Status != "Completed" &&
+                appointment.Status == AppointmentStatuses.Confirmed &&
                 appointment.StartTime > DateTime.Now)
             .Select(appointment => appointment.Id)
             .ToListAsync(cancellationToken);
@@ -141,7 +143,7 @@ public sealed class Worker : BackgroundService
             cancellationToken);
 
         if (appointment == null ||
-            appointment.Status is "Cancelled" or "Completed" ||
+            appointment.Status != AppointmentStatuses.Confirmed ||
             appointment.StartTime <= DateTime.Now)
         {
             if (reminder != null && reminder.CreatedAt > DateTime.UtcNow)
@@ -186,7 +188,6 @@ public sealed class Worker : BackgroundService
 
         reminder.UserId = appointment.UserId;
         reminder.CreatedAt = scheduledForUtc;
-        reminder.IsRead = false;
         reminder.Title = "Podsjetnik za termin";
         reminder.Message = $"Termin za uslugu {serviceName} u salonu {salonName} počinje {appointment.StartTime:dd.MM.yyyy. HH:mm}.";
 

@@ -11,6 +11,7 @@ class ChangePasswordScreen extends StatefulWidget {
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final ApiService _apiService = ApiService();
+  final _formKey = GlobalKey<FormState>();
 
   final _currentPasswordController = TextEditingController();
 
@@ -35,37 +36,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   Future<void> _changePassword() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final currentPassword = _currentPasswordController.text;
 
     final newPassword = _newPasswordController.text;
-
-    final confirmPassword = _confirmPasswordController.text;
-
-    if (currentPassword.isEmpty ||
-        newPassword.isEmpty ||
-        confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Popunite sva polja.')));
-      return;
-    }
-
-    if (newPassword != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nova lozinka i potvrda lozinke se ne podudaraju.'),
-        ),
-      );
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nova lozinka mora sadržavati najmanje 6 znakova.'),
-        ),
-      );
-      return;
-    }
 
     setState(() {
       _isLoading = true;
@@ -128,140 +103,164 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
 
-            Center(
-              child: Icon(Icons.lock_outline, size: 55, color: primaryColor),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              'Promjena lozinke',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 8),
-
-            const Text(
-              'Unesite trenutnu lozinku i novu lozinku.',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
-
-            const SizedBox(height: 30),
-
-            TextField(
-              controller: _currentPasswordController,
-              obscureText: _obscureCurrentPassword,
-              decoration: InputDecoration(
-                labelText: 'Trenutna lozinka',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureCurrentPassword
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureCurrentPassword = !_obscureCurrentPassword;
-                    });
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              Center(
+                child: Icon(Icons.lock_outline, size: 55, color: primaryColor),
               ),
-            ),
 
-            const SizedBox(height: 18),
+              const SizedBox(height: 20),
 
-            TextField(
-              controller: _newPasswordController,
-              obscureText: _obscureNewPassword,
-              decoration: InputDecoration(
-                labelText: 'Nova lozinka',
-                prefixIcon: const Icon(Icons.lock_reset_outlined),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureNewPassword
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureNewPassword = !_obscureNewPassword;
-                    });
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              const Text(
+                'Promjena lozinke',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-            ),
 
-            const SizedBox(height: 18),
+              const SizedBox(height: 8),
 
-            TextField(
-              controller: _confirmPasswordController,
-              obscureText: _obscureConfirmPassword,
-              decoration: InputDecoration(
-                labelText: 'Potvrdi novu lozinku',
-                prefixIcon: const Icon(Icons.lock_reset_outlined),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureConfirmPassword
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureConfirmPassword = !_obscureConfirmPassword;
-                    });
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              const Text(
+                'Unesite trenutnu lozinku i novu lozinku.',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
-            ),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _changePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
+              TextFormField(
+                controller: _currentPasswordController,
+                obscureText: _obscureCurrentPassword,
+                decoration: InputDecoration(
+                  labelText: 'Trenutna lozinka',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureCurrentPassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureCurrentPassword = !_obscureCurrentPassword;
+                      });
+                    },
+                  ),
+                  border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'Promijeni lozinku',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Trenutna lozinka je obavezna.'
+                    : null,
               ),
-            ),
-          ],
+
+              const SizedBox(height: 18),
+
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: _obscureNewPassword,
+                decoration: InputDecoration(
+                  labelText: 'Nova lozinka',
+                  prefixIcon: const Icon(Icons.lock_reset_outlined),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureNewPassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureNewPassword = !_obscureNewPassword;
+                      });
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Nova lozinka je obavezna.';
+                  }
+                  if (value.length < 6) {
+                    return 'Nova lozinka mora sadržavati najmanje 6 znakova.';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 18),
+
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  labelText: 'Potvrdi novu lozinku',
+                  prefixIcon: const Icon(Icons.lock_reset_outlined),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Potvrda lozinke je obavezna.';
+                  }
+                  if (value != _newPasswordController.text) {
+                    return 'Lozinke se ne podudaraju.';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _changePassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Promijeni lozinku',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
