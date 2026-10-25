@@ -16,5 +16,8 @@ public interface IAuthService
     Task UpdateProfileAsync(
     int userId,
     UpdateProfileDto updateProfileDto);
-}
 
+    Task RequestPasswordResetAsync(string email);
+
+    Task ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
+}

@@ -4,6 +4,7 @@ using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Net.Mail;
 
 namespace eTermin.Api.Controllers;
 
@@ -113,6 +114,52 @@ public class AuthController : ControllerBase
             {
                 message = ex.Message
             });
+        }
+    }
+
+    [HttpPost("password-reset/request")]
+    public async Task<IActionResult> RequestPasswordReset(
+        RequestPasswordResetDto request)
+    {
+        try
+        {
+            await _authService.RequestPasswordResetAsync(request.Email);
+            return Ok(new
+            {
+                message = "Ako račun postoji, kod za reset lozinke je poslan na email adresu."
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                message = ex.Message
+            });
+        }
+        catch (SmtpException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                message = "Email nije moguće poslati. Pokušajte ponovo kasnije."
+            });
+        }
+    }
+
+    [HttpPost("password-reset/confirm")]
+    public async Task<IActionResult> ConfirmPasswordReset(
+        ResetPasswordDto request)
+    {
+        try
+        {
+            await _authService.ResetPasswordAsync(request);
+            return Ok(new
+            {
+                message = "Lozinka je uspješno resetovana."
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 }

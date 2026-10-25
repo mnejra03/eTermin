@@ -20,7 +20,7 @@ import 'login_screen.dart';
 import 'appointment_details_screen.dart';
 
 import 'change_password_screen.dart';
-
+import 'edit_profile_screen.dart';
 import 'notifications_screen.dart';
 import '../widgets/salon_image.dart';
 
@@ -66,6 +66,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   bool _isLoadingSalons = true;
   String? _salonsError;
+  late String _profileFirstName;
+  late String _profileLastName;
+  late String _profileEmail;
 
   final Color primaryColor = const Color(0xFF7568F5);
   final Color lightPurple = const Color(0xFFF3F1FF);
@@ -93,6 +96,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void initState() {
     super.initState();
+
+    _profileFirstName = widget.firstName;
+    _profileLastName = widget.lastName;
+    _profileEmail = widget.email;
 
     print('HOME INIT');
 
@@ -1680,6 +1687,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   // PROFILE
   // ----------------------------------------------------------
 
+  Future<void> _editProfile() async {
+    final profile = await Navigator.push<Map<String, String>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfileScreen(
+          firstName: _profileFirstName,
+          lastName: _profileLastName,
+          email: _profileEmail,
+        ),
+      ),
+    );
+    if (!mounted || profile == null) return;
+    setState(() {
+      _profileFirstName = profile['firstName']!;
+      _profileLastName = profile['lastName']!;
+      _profileEmail = profile['email']!;
+    });
+  }
+
   Widget _buildProfile() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -1697,7 +1723,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           const SizedBox(height: 15),
 
           Text(
-            '${widget.firstName} ${widget.lastName}',
+            '$_profileFirstName $_profileLastName',
             style: TextStyle(
               color: primaryColor,
               fontSize: 22,
@@ -1720,7 +1746,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ListTile(
                   leading: Icon(Icons.person_outline, color: primaryColor),
                   title: const Text('Ime i prezime'),
-                  subtitle: Text('${widget.firstName} ${widget.lastName}'),
+                  subtitle: Text('$_profileFirstName $_profileLastName'),
                 ),
 
                 const Divider(),
@@ -1728,7 +1754,20 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ListTile(
                   leading: Icon(Icons.email_outlined, color: primaryColor),
                   title: const Text('Email'),
-                  subtitle: Text(widget.email),
+                  subtitle: Text(_profileEmail),
+                ),
+
+                const Divider(),
+
+                ListTile(
+                  leading: Icon(Icons.edit_outlined, color: primaryColor),
+                  title: const Text('Izmijeni profil'),
+                  trailing: Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: primaryColor,
+                  ),
+                  onTap: _editProfile,
                 ),
 
                 const Divider(),

@@ -54,6 +54,13 @@ services:
       PayPal__ClientId: ${PayPal__ClientId:-}
       PayPal__ClientSecret: ${PayPal__ClientSecret:-}
       PayPal__BaseUrl: ${PayPal__BaseUrl:-https://api-m.sandbox.paypal.com}
+      Email__SmtpHost: ${Email__SmtpHost:-}
+      Email__SmtpPort: ${Email__SmtpPort:-587}
+      Email__Username: ${Email__Username:-}
+      Email__Password: ${Email__Password:-}
+      Email__FromAddress: ${Email__FromAddress:-}
+      Email__FromName: ${Email__FromName:-eTermin}
+      Email__EnableSsl: ${Email__EnableSsl:-true}
       RabbitMQ__Enabled: "true"
       RabbitMQ__Host: ${Docker__RabbitMQ__Host:-rabbitmq}
       RabbitMQ__Port: ${Docker__RabbitMQ__Port:-5672}

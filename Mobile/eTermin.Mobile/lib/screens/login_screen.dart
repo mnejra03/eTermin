@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import 'home_screen.dart';
 
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,8 +46,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await _apiService.login(email, password);
-
-      print('LOGIN RESPONSE: $response');
 
       if (!mounted) return;
 
@@ -197,6 +196,35 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                ),
+              ),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final reset = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const ForgotPasswordScreen(),
+                            ),
+                          );
+                          if (!mounted) return;
+                          if (reset == true) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Lozinka je resetovana. Sada se možete prijaviti.',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                  child: const Text('Zaboravili ste lozinku?'),
                 ),
               ),
 
