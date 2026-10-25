@@ -251,7 +251,7 @@ Desktop aplikacija je Flutter Windows klijent u `Desktop/eTermin.Admin/`.
 docker compose up --build -d
 ```
 
-3. U VS Code otvorite **Run and Debug**, izaberite **Flutter Admin (Windows)** i pritisnite **F5**. API u Dockeru već sluša na `http://localhost:5130`; nemojte paralelno pokretati lokalni API.
+3. Otvorite terminal u folderu `Desktop/eTermin.Admin/` i pokrenite `flutter run -d windows`. API u Dockeru već sluša na `http://localhost:5130`; nemojte paralelno pokretati lokalni API.
 
 Testni administratorski nalog za čistu bazu naveden je u tabeli **Podaci za prijavu**.
 
@@ -753,7 +753,13 @@ Ova komanda pokreće SQL Server, API, RabbitMQ i Worker. Swagger je dostupan na 
 
 ### 2. Flutter desktop aplikacija
 
-U VS Code-u otvorite **Run and Debug**, izaberite **Flutter Admin (Windows)** i pritisnite **F5**. Ne pokrećite lokalni API paralelno s Docker API-jem.
+Za pokretanje iz terminala otvorite folder `Desktop/eTermin.Admin/` i izvršite:
+
+```powershell
+flutter run -d windows
+```
+
+Ne pokrećite lokalni API paralelno s Docker API-jem.
 ### 5. Mobile aplikacija
 
 Provjeriti uređaje:
