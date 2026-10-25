@@ -13,6 +13,19 @@ class ApiService {
   static String? _token;
   static const String baseUrl = 'http://10.0.2.2:5130/api';
 
+  static Uri? salonImageUri(String imageUrl) {
+    if (imageUrl.trim().isEmpty) return null;
+    final parsed = Uri.tryParse(imageUrl);
+    if (parsed == null) return null;
+    if (parsed.hasScheme) return parsed;
+
+    return Uri.parse(baseUrl).replace(
+      path: imageUrl.startsWith('/') ? imageUrl : '/$imageUrl',
+      query: null,
+      fragment: null,
+    );
+  }
+
   void logout() {
     _token = null;
   }
@@ -287,11 +300,11 @@ class ApiService {
 
     final response = await http.put(
       Uri.parse('$baseUrl/Appointments/$appointmentId/cancel'),
-        headers: {
-          'Authorization': 'Bearer $_token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'reason': reason}),
+      headers: {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'reason': reason}),
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -481,9 +494,7 @@ class ApiService {
     );
   }
 
-  Future<String> capturePayPalOrder({
-    required int paymentId,
-  }) async {
+  Future<String> capturePayPalOrder({required int paymentId}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Payments/paypal/capture-order'),
       headers: {

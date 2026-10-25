@@ -73,8 +73,11 @@ public class StatisticsService : IStatisticsService
 
         var appointments = allAppointments;
 
-        if (!string.IsNullOrWhiteSpace(status) &&
-            status != "All statuses")
+        if (status == "All statuses")
+        {
+            appointments = allAppointments;
+        }
+        else if (!string.IsNullOrWhiteSpace(status))
         {
             appointments =
                 appointments
@@ -345,4 +348,3 @@ public class StatisticsService : IStatisticsService
         };
     }
 }
-

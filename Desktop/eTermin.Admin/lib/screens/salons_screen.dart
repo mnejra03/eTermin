@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../models/salon.dart';
 import '../services/admin_api_client.dart';
@@ -49,26 +50,48 @@ class _SalonsScreenState extends State<SalonsScreen> {
   }
 
   Future<void> _editSalon([Salon? salon]) async {
-    final result = await showDialog<Map<String, dynamic>>(
+    final result = await showDialog<_SalonFormResult>(
       context: context,
       builder: (_) => _SalonFormDialog(salon: salon, cities: _cities),
     );
     if (result == null) return;
     try {
+      late final int salonId;
       if (salon == null) {
-        await widget.api.post('Salons', result);
+        final created = await widget.api.post('Salons', result.body);
+        salonId = (created['id'] as num).toInt();
       } else {
-        await widget.api.put('Salons/${salon.id}', result);
+        salonId = salon.id;
+        await widget.api.put('Salons/$salonId', result.body);
+      }
+      for (var index = 0; index < result.images.length; index++) {
+        final image = result.images[index];
+        final bytes = await image.readAsBytes();
+        await widget.api.uploadSalonImage(
+          salonId: salonId,
+          bytes: bytes,
+          fileName: image.name,
+          sortOrder: index,
+        );
       }
       await _load();
       if (mounted) {
         _showMessage(
-          salon == null ? 'Salon je dodan.' : 'Salon je izmijenjen.',
+          result.images.isEmpty
+              ? (salon == null ? 'Salon je dodan.' : 'Salon je izmijenjen.')
+              : 'Salon i slike su sačuvani.',
         );
       }
     } catch (error) {
       if (mounted) _showMessage(error.toString());
     }
+  }
+
+  Future<void> _showSalonDetails(Salon salon) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _SalonDetailsDialog(salon: salon, api: widget.api),
+    );
   }
 
   Future<void> _deleteSalon(Salon salon) async {
@@ -186,6 +209,7 @@ class _SalonsScreenState extends State<SalonsScreen> {
             columns: const [
               DataColumn(label: Text('Salon')),
               DataColumn(label: Text('Grad')),
+              DataColumn(label: Text('Zaposlenici')),
               DataColumn(label: Text('Adresa')),
               DataColumn(label: Text('Kontakt')),
               DataColumn(label: Text('Status')),
@@ -197,6 +221,7 @@ class _SalonsScreenState extends State<SalonsScreen> {
                   cells: [
                     DataCell(Text(salon.name)),
                     DataCell(Text(salon.cityName)),
+                    DataCell(Text('${salon.employeeCount}')),
                     DataCell(Text(salon.address)),
                     DataCell(Text('${salon.email}\n${salon.phoneNumber}')),
                     DataCell(
@@ -208,6 +233,11 @@ class _SalonsScreenState extends State<SalonsScreen> {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          IconButton(
+                            tooltip: 'Detalji salona',
+                            onPressed: () => _showSalonDetails(salon),
+                            icon: const Icon(Icons.info_outline),
+                          ),
                           IconButton(
                             tooltip: 'Uredi',
                             onPressed: () => _editSalon(salon),
@@ -246,6 +276,7 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
   late final Map<String, TextEditingController> _fields;
   late bool _isActive;
   late int? _cityId;
+  final List<PlatformFile> _selectedImages = [];
 
   @override
   void initState() {
@@ -270,6 +301,15 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
   }
 
   late final List<TextEditingController> _imageControllers;
+
+  Future<void> _pickImages() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+    );
+    if (result.isEmpty || !mounted) return;
+    setState(() => _selectedImages.addAll(result));
+  }
 
   @override
   void dispose() {
@@ -337,17 +377,23 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
                 .map((controller) => controller.text.trim())
                 .where((value) => value.isNotEmpty)
                 .toList();
-            Navigator.pop(context, {
-              for (final entry in _fields.entries)
-                entry.key: entry.value.text.trim(),
-              'cityId': _cityId,
-              'imageUrl': images.isEmpty ? '' : images.first,
-              'images': [
-                for (var i = 0; i < images.length; i++)
-                  {'imageUrl': images[i], 'sortOrder': i},
-              ],
-              'isActive': _isActive,
-            });
+            Navigator.pop(
+              context,
+              _SalonFormResult(
+                body: {
+                  for (final entry in _fields.entries)
+                    entry.key: entry.value.text.trim(),
+                  'cityId': _cityId,
+                  'imageUrl': images.isEmpty ? '' : images.first,
+                  'images': [
+                    for (var i = 0; i < images.length; i++)
+                      {'imageUrl': images[i], 'sortOrder': i},
+                  ],
+                  'isActive': _isActive,
+                },
+                images: List<PlatformFile>.unmodifiable(_selectedImages),
+              ),
+            );
           },
           child: const Text('Sačuvaj'),
         ),
@@ -387,13 +433,37 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
             ],
           ),
         ),
+      if (_selectedImages.isNotEmpty)
+        Wrap(
+          spacing: 8,
+          children: [
+            for (var index = 0; index < _selectedImages.length; index++)
+              InputChip(
+                avatar: const Icon(Icons.image_outlined, size: 18),
+                label: Text(_selectedImages[index].name),
+                onDeleted: () =>
+                    setState(() => _selectedImages.removeAt(index)),
+              ),
+          ],
+        ),
       Align(
         alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: () =>
-              setState(() => _imageControllers.add(TextEditingController())),
-          icon: const Icon(Icons.add_photo_alternate_outlined),
-          label: const Text('Dodaj sliku salona'),
+        child: Wrap(
+          spacing: 8,
+          children: [
+            TextButton.icon(
+              onPressed: _pickImages,
+              icon: const Icon(Icons.upload_file),
+              label: const Text('Odaberi slike s diska'),
+            ),
+            TextButton.icon(
+              onPressed: () => setState(
+                () => _imageControllers.add(TextEditingController()),
+              ),
+              icon: const Icon(Icons.add_link),
+              label: const Text('Dodaj URL slike'),
+            ),
+          ],
         ),
       ),
     ],
@@ -417,6 +487,117 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
                   : null
             : null,
       ),
+    );
+  }
+}
+
+class _SalonFormResult {
+  const _SalonFormResult({required this.body, required this.images});
+
+  final Map<String, dynamic> body;
+  final List<PlatformFile> images;
+}
+
+class _SalonDetailsDialog extends StatefulWidget {
+  const _SalonDetailsDialog({required this.salon, required this.api});
+
+  final Salon salon;
+  final AdminApiClient api;
+
+  @override
+  State<_SalonDetailsDialog> createState() => _SalonDetailsDialogState();
+}
+
+class _SalonDetailsDialogState extends State<_SalonDetailsDialog> {
+  late final Future<Map<String, dynamic>> _statistics;
+
+  @override
+  void initState() {
+    super.initState();
+    final query = Uri(
+      queryParameters: {
+        'salonId': '${widget.salon.id}',
+        'status': 'All statuses',
+      },
+    ).query;
+    _statistics = widget.api.getMap('Statistics/dashboard?$query');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.salon.name),
+      content: SizedBox(
+        width: 540,
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _statistics,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text('Statistika nije dostupna: ${snapshot.error}');
+            }
+            if (!snapshot.hasData) {
+              return const SizedBox(
+                height: 140,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final data = snapshot.data!;
+            final services = (data['reservationsByService'] as List? ?? [])
+                .whereType<Map<String, dynamic>>()
+                .toList();
+            final popularUser = data['mostActiveUser']?.toString();
+            final appointmentCount =
+                (data['totalAppointments'] as num?)?.toInt() ?? 0;
+            final userCount = (data['totalUsers'] as num?)?.toInt() ?? 0;
+
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${widget.salon.cityName} • ${widget.salon.address}'),
+                  Text(
+                    'Kontakt: ${widget.salon.phoneNumber} • ${widget.salon.email}',
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Broj zaposlenika: ${widget.salon.employeeCount}'),
+                  Text('Ukupno rezervacija: $appointmentCount'),
+                  Text('Korisnici s rezervacijom: $userCount'),
+                  Text(
+                    'Najangažovaniji korisnik: '
+                    '${popularUser == null || popularUser.isEmpty ? 'Nema podataka' : '$popularUser (${data['mostActiveUserCount'] ?? 0} rezervacija)'}',
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Najpopularnije usluge',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  if (services.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text('Još nema rezervacija za ovaj salon.'),
+                    )
+                  else
+                    for (final service in services.take(5))
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(service['serviceName']?.toString() ?? ''),
+                        trailing: Text('${service['count'] ?? 0} rezervacija'),
+                      ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Zatvori'),
+        ),
+      ],
     );
   }
 }

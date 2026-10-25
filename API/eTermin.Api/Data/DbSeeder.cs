@@ -42,7 +42,10 @@ var userEmail =
                     x.Email == adminEmail);
 
         if (seedAdminExists)
+        {
+            await SeedSalonImagesAsync(context);
             return;
+        }
 
 
         // =========================================================
@@ -191,6 +194,7 @@ var userEmail =
 
         await context.SaveChangesAsync();
 
+        await SeedSalonImagesAsync(context);
 
         // =========================================================
         // SERVICES
@@ -817,5 +821,39 @@ var userEmail =
                 EndTime = end
             })
             .ToList();
+    }
+
+    private static async Task SeedSalonImagesAsync(eTerminDbContext context)
+    {
+        var seedImages = new Dictionary<string, string>
+        {
+            ["Belle Studio"] = "/images/salons/belle.jpg",
+            ["Glow Beauty"] = "/images/salons/glow_beauty.jpg",
+            ["Beauty Studio"] = "/images/salons/beauty.jpg",
+            ["Elegance Beauty Studio"] = "/images/salons/elegance_beauty.jpg"
+        };
+
+        foreach (var (salonName, imageUrl) in seedImages)
+        {
+            var salon = await context.Salons
+                .SingleOrDefaultAsync(item => item.Name == salonName);
+            if (salon == null)
+                continue;
+
+            var hasImages = await context.SalonImages
+                .AnyAsync(image => image.SalonId == salon.Id);
+            if (!hasImages)
+            {
+                context.SalonImages.Add(new SalonImage
+                {
+                    SalonId = salon.Id,
+                    ImageUrl = imageUrl,
+                    SortOrder = 0,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        await context.SaveChangesAsync();
     }
 }

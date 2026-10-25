@@ -68,6 +68,8 @@ services:
       Seed__UserPassword: ${Docker__Seed__UserPassword:-Local_User_Password_123!}
     ports:
       - "${API__HostPort:-5130}:8080"
+    volumes:
+      - etermin-salon-images:/app/wwwroot/uploads/salons
     depends_on:
       db:
         condition: service_healthy
@@ -99,3 +101,4 @@ services:
 volumes:
   etermin-sql-data:
   etermin-rabbitmq-data:
+  etermin-salon-images:

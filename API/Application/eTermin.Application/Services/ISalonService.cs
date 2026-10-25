@@ -12,5 +12,10 @@ public interface ISalonService
 
     Task<bool> UpdateAsync(int id, SalonDto salonDto);
 
+    Task<SalonImageDto?> AddImageAsync(
+        int salonId,
+        string imageUrl,
+        int sortOrder);
+
     Task<bool> DeleteAsync(int id);
 }

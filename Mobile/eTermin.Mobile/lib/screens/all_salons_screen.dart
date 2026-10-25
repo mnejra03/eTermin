@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/salon.dart';
 import '../services/api_service.dart';
 import 'salon_details_screen.dart';
+import '../widgets/salon_image.dart';
 
 class AllSalonsScreen extends StatefulWidget {
   const AllSalonsScreen({super.key});
@@ -45,25 +46,6 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
       );
     }
   }
-
-  String _getSalonImage(Salon salon) {
-  switch (salon.name.toLowerCase()) {
-    case 'belle studio':
-      return 'assets/images/belle.jpg';
-
-    case 'glow beauty':
-      return 'assets/images/glow_beauty.jpg';
-
-    case 'beauty studio':
-      return 'assets/images/beauty.jpg';
-
-    case 'elegance beauty studio':
-      return 'assets/images/elegance_beauty.jpg';
-
-    default:
-      return 'assets/images/elegance_beauty.jpg';
-  }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -112,8 +94,8 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
                           Expanded(
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
-                              child: Image.asset(
-                                _getSalonImage(salon),
+                              child: SalonImageView(
+                                imageUrl: salon.imageUrl,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
                               ),
