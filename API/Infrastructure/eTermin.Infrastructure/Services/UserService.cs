@@ -1,6 +1,5 @@
 ﻿using eTermin.Application.DTOs;
 using eTermin.Application.Services;
-using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,35 +43,6 @@ public class UserService : IUserService
                 CreatedAt = u.CreatedAt
             })
             .FirstOrDefaultAsync();
-    }
-
-    public async Task<UserDto> CreateAsync(UserDto userDto)
-    {
-        var user = new User
-        {
-            FirstName = userDto.FirstName,
-            LastName = userDto.LastName,
-            Email = userDto.Email,
-            Role = string.IsNullOrWhiteSpace(userDto.Role)
-                ? "User"
-                : userDto.Role,
-            PasswordHash = string.Empty,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Users.Add(user);
-
-        await _context.SaveChangesAsync();
-
-        return new UserDto
-        {
-            Id = user.Id,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email,
-            Role = user.Role,
-            CreatedAt = user.CreatedAt
-        };
     }
 
     public async Task<bool> UpdateAsync(
