@@ -1,11 +1,10 @@
 ﻿using eTermin.Application.DTOs;
 using eTermin.Application.Services;
-using Microsoft.AspNetCore.Mvc;
-
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 namespace eTermin.Api.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin")]
 [Route("api/[controller]")]
 [ApiController]
 public class UsersController : ControllerBase
@@ -15,16 +14,6 @@ public class UsersController : ControllerBase
     public UsersController(IUserService userService)
     {
         _userService = userService;
-    }
-
-    [HttpGet("admin")]
-    [Authorize(Roles = "Admin")]
-    public IActionResult AdminTest()
-    {
-        return Ok(new
-        {
-            message = "Pristup administratora je uspješan."
-        });
     }
 
     [HttpGet]
@@ -44,18 +33,6 @@ public class UsersController : ControllerBase
             return NotFound();
 
         return Ok(user);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<UserDto>> CreateUser(
-        UserDto userDto)
-    {
-        var user = await _userService.CreateAsync(userDto);
-
-        return CreatedAtAction(
-            nameof(GetUser),
-            new { id = user.Id },
-            user);
     }
 
     [HttpPut("{id}")]

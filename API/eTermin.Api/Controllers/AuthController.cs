@@ -2,6 +2,7 @@
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
 namespace eTermin.Api.Controllers;
@@ -56,54 +57,50 @@ public class AuthController : ControllerBase
     }
 
     [HttpPut("change-password")]
-public async Task<IActionResult> ChangePassword(
-    ChangePasswordDto changePasswordDto)
-{
-    try
-    {
-        var userIdClaim =
-            User.FindFirst(ClaimTypes.NameIdentifier);
-
-        if (userIdClaim == null)
-            return Unauthorized();
-
-        var userId = int.Parse(userIdClaim.Value);
-
-        await _authService.ChangePasswordAsync(
-            userId,
-            changePasswordDto);
-
-        return Ok(new
-        {
-            message = "Lozinka je uspješno promijenjena."
-        });
-    }
-    catch (Exception ex)
-    {
-        return BadRequest(new
-        {
-            message = ex.Message
-        });
-    }
-}
-
-    [HttpPut("profile")]
-    public async Task<IActionResult> UpdateProfile(
-    UpdateProfileDto updateProfileDto)
+    [Authorize]
+    public async Task<IActionResult> ChangePassword(
+        ChangePasswordDto changePasswordDto)
     {
         try
         {
-            var userIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
             if (userIdClaim == null)
                 return Unauthorized();
 
             var userId = int.Parse(userIdClaim.Value);
 
-            await _authService.UpdateProfileAsync(
-                userId,
-                updateProfileDto);
+            await _authService.ChangePasswordAsync(userId, changePasswordDto);
+
+            return Ok(new
+            {
+                message = "Lozinka je uspješno promijenjena."
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
+
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile(
+        UpdateProfileDto updateProfileDto)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            var userId = int.Parse(userIdClaim.Value);
+
+            await _authService.UpdateProfileAsync(userId, updateProfileDto);
 
             return Ok(new
             {
