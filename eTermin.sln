@@ -5,11 +5,11 @@ VisualStudioVersion = 17.14.36811.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eTermin.Api", "API\eTermin.Api\eTermin.Api.csproj", "{650AD067-9AF4-78D8-FD93-BE4BC4A51FBD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eTermin.Application", "Application\eTermin.Application\eTermin.Application.csproj", "{A4AF4492-A03A-3F3E-172F-B542D92563A7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eTermin.Application", "API\Application\eTermin.Application\eTermin.Application.csproj", "{A4AF4492-A03A-3F3E-172F-B542D92563A7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eTermin.Domain", "Domain\eTermin.Domain\eTermin.Domain.csproj", "{D35E7F30-36AA-6821-3301-0E407ECCA556}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eTermin.Domain", "API\Domain\eTermin.Domain\eTermin.Domain.csproj", "{D35E7F30-36AA-6821-3301-0E407ECCA556}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eTermin.Infrastructure", "Infrastructure\eTermin.Infrastructure\eTermin.Infrastructure.csproj", "{5EC4C56D-2A5A-5120-EBB8-BD9556CC6D62}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eTermin.Infrastructure", "API\Infrastructure\eTermin.Infrastructure\eTermin.Infrastructure.csproj", "{5EC4C56D-2A5A-5120-EBB8-BD9556CC6D62}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Worker", "Worker", "{6A5F9DDE-3B88-372A-C771-C486FF97143A}"
 EndProject

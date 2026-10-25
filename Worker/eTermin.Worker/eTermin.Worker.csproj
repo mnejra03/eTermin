@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Infrastructure\eTermin.Infrastructure\eTermin.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Application\eTermin.Application\eTermin.Application.csproj" />
+    <ProjectReference Include="..\..\API\Infrastructure\eTermin.Infrastructure\eTermin.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\API\Application\eTermin.Application\eTermin.Application.csproj" />
   </ItemGroup>
 </Project>

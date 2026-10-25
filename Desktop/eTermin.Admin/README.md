@@ -1,6 +1,6 @@
 # eTermin Admin (Flutter)
 
-Flutter Windows desktop client for eTermin administrators. This is the active desktop application; `../eTermin.Desktop` contains the legacy WPF client.
+Flutter Windows desktop client for eTermin administrators.
 
 ## Run locally
 
@@ -29,4 +29,3 @@ The first screen authenticates against `POST Auth/login` and accepts only the `A
 - Settings: update profile and change password.
 - Appointment detail view: implemented.
 - Statistics PDF and Excel exports: implemented.
-- Visual styling can still be tuned against screenshots of the legacy WPF screens.
