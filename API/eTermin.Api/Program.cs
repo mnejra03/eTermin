@@ -1,6 +1,8 @@
 using eTermin.Api.Data;
+using eTermin.Api.Services;
 using eTermin.Application.Services;
 using eTermin.Application.Validators;
+using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using eTermin.Infrastructure.Services;
 using FluentValidation;
@@ -69,7 +71,9 @@ namespace eTemin.Api
                     builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddScoped<ISalonService, SalonService>();
-            builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+            builder.Services.AddScoped<
+                IEmployeeService,
+                eTermin.Infrastructure.Services.EmployeeService>();
             builder.Services.AddScoped<IServiceService, ServiceService>();
             builder.Services.AddScoped<IAppointmentService, AppointmentService>();
             builder.Services.AddScoped<IUserService, UserService>();
@@ -79,6 +83,9 @@ namespace eTemin.Api
             builder.Services.AddScoped<IPaymentService, PaymentService>();
             builder.Services.AddScoped<IStatisticsService,StatisticsService>(); 
             builder.Services.AddScoped<IRecommendationService,RecommendationService>();
+            builder.Services.AddSingleton<
+                IAppointmentReminderPublisher,
+                RabbitMqAppointmentReminderPublisher>();
 
             builder.Services.AddHttpClient<
     IPayPalService,
@@ -128,9 +135,56 @@ namespace eTemin.Api
                 var context =
                     services.GetRequiredService<eTerminDbContext>();
 
-                DbSeeder.SeedAsync(context)
-                    .GetAwaiter()
-                    .GetResult();
+                context.Database.Migrate();
+
+                var resetAdminPassword =
+                    app.Environment.IsDevelopment() &&
+                    string.Equals(
+                        Environment.GetEnvironmentVariable("ET_ADMIN_RESET_PASSWORD"),
+                        "true",
+                        StringComparison.OrdinalIgnoreCase);
+
+                if (resetAdminPassword)
+                {
+                    var adminEmail = builder.Configuration["Docker:Seed:AdminEmail"]
+                        ?? builder.Configuration["Seed:AdminEmail"]
+                        ?? throw new InvalidOperationException(
+                            "Docker__Seed__AdminEmail nije konfigurisan u .env fajlu.");
+                    var adminPassword = builder.Configuration["Docker:Seed:AdminPassword"]
+                        ?? builder.Configuration["Seed:AdminPassword"]
+                        ?? throw new InvalidOperationException(
+                            "Docker__Seed__AdminPassword nije konfigurisan u .env fajlu.");
+
+                    var admin = context.Users
+                        .SingleOrDefault(user => user.Email == adminEmail);
+
+                    if (admin == null)
+                    {
+                        admin = new User
+                        {
+                            FirstName = "Admin",
+                            LastName = "eTermin",
+                            Email = adminEmail,
+                            Role = "Admin",
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        context.Users.Add(admin);
+                    }
+
+                    admin.Role = "Admin";
+                    admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword);
+                    context.SaveChanges();
+                    Console.WriteLine(
+                        $"Admin lozinka je resetovana za nalog {adminEmail}. Pokreni API ponovo bez reset profila.");
+                    return;
+                }
+
+                if (builder.Configuration.GetValue<bool>("Seed:Enabled"))
+                {
+                    DbSeeder.SeedAsync(context)
+                        .GetAwaiter()
+                        .GetResult();
+                }
             }
 
             if (app.Environment.IsDevelopment())

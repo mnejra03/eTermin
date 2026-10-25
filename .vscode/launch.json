@@ -1,0 +1,52 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "eTermin API (lokalno; Compose API mora biti zaustavljen)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-eTermin-api",
+      "program": "${workspaceFolder}/API/eTermin.Api/bin/Debug/net9.0/eTermin.Api.dll",
+      "cwd": "${workspaceFolder}/API/eTermin.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5130"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Now listening on: (https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      }
+    },
+    {
+      "name": "Reset admin lozinke (jednom)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-eTermin-api",
+      "program": "${workspaceFolder}/API/eTermin.Api/bin/Debug/net9.0/eTermin.Api.dll",
+      "cwd": "${workspaceFolder}/API/eTermin.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ET_ADMIN_RESET_PASSWORD": "true"
+      }
+    },
+    {
+      "name": "Flutter Admin (Windows)",
+      "type": "dart",
+      "request": "launch",
+      "program": "${workspaceFolder}/Desktop/eTermin.Admin/lib/main.dart",
+      "cwd": "${workspaceFolder}/Desktop/eTermin.Admin",
+      "deviceId": "windows"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Lokalni API + Flutter Admin (bez Compose API-ja)",
+      "configurations": [
+        "eTermin API (lokalni eTerminDb)",
+        "Flutter Admin (Windows)"
+      ],
+      "stopAll": true
+    }
+  ]
+}

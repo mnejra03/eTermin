@@ -556,6 +556,14 @@ public class AppointmentService : IAppointmentService
         if (appointment == null)
             return false;
 
+        var reminders = await _context.Notifications
+            .Where(notification =>
+                notification.AppointmentId == id &&
+                notification.Type == "AppointmentReminder")
+            .ToListAsync();
+
+        _context.Notifications.RemoveRange(reminders);
+
         _context.Appointments.Remove(appointment);
 
         await _context.SaveChangesAsync();

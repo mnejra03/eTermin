@@ -1,0 +1,101 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
+    ports:
+      - "${SQL_HOST_PORT:-14330}:1433"
+    volumes:
+      - etermin-sql-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 25s
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RabbitMQ__Username:?Set RabbitMQ__Username in .env}
+      RABBITMQ_DEFAULT_PASS: ${RabbitMQ__Password:?Set RabbitMQ__Password in .env}
+    ports:
+      - "${RabbitMQ__Port:-5672}:5672"
+      - "${RabbitMQ__ManagementPort:-15672}:15672"
+    volumes:
+      - etermin-rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 8080
+      TZ: ${TZ:-Europe/Sarajevo}
+      ConnectionStrings__DefaultConnection: ${Docker__ConnectionString:?Set Docker__ConnectionString in .env}
+      Jwt__Key: ${Jwt__Key:?Set Jwt__Key in .env}
+      Jwt__Issuer: ${Jwt__Issuer:-eTermin.Api}
+      Jwt__Audience: ${Jwt__Audience:-eTermin.Client}
+      Jwt__ExpiresInMinutes: ${Jwt__ExpiresInMinutes:-60}
+      PayPal__ClientId: ${PayPal__ClientId:-}
+      PayPal__ClientSecret: ${PayPal__ClientSecret:-}
+      PayPal__BaseUrl: ${PayPal__BaseUrl:-https://api-m.sandbox.paypal.com}
+      RabbitMQ__Enabled: "true"
+      RabbitMQ__Host: ${Docker__RabbitMQ__Host:-rabbitmq}
+      RabbitMQ__Port: ${Docker__RabbitMQ__Port:-5672}
+      RabbitMQ__Username: ${RabbitMQ__Username}
+      RabbitMQ__Password: ${RabbitMQ__Password}
+      RabbitMQ__Queue: ${RabbitMQ__Queue:-appointment-reminders}
+      Reminder__LeadHours: ${Reminder__LeadHours:-24}
+      Seed__Enabled: "true"
+      Seed__AdminEmail: ${Docker__Seed__AdminEmail:-admin@example.local}
+      Seed__AdminPassword: ${Docker__Seed__AdminPassword:-Local_Admin_Password_123!}
+      Seed__UserEmail: ${Docker__Seed__UserEmail:-user@example.local}
+      Seed__UserPassword: ${Docker__Seed__UserPassword:-Local_User_Password_123!}
+    ports:
+      - "${API__HostPort:-5130}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      TZ: ${TZ:-Europe/Sarajevo}
+      ConnectionStrings__DefaultConnection: ${Docker__ConnectionString:?Set Docker__ConnectionString in .env}
+      RabbitMQ__Enabled: "true"
+      RabbitMQ__Host: ${Docker__RabbitMQ__Host:-rabbitmq}
+      RabbitMQ__Port: ${Docker__RabbitMQ__Port:-5672}
+      RabbitMQ__Username: ${RabbitMQ__Username}
+      RabbitMQ__Password: ${RabbitMQ__Password}
+      RabbitMQ__Queue: ${RabbitMQ__Queue:-appointment-reminders}
+      Reminder__LeadHours: ${Reminder__LeadHours:-24}
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  etermin-sql-data:
+  etermin-rabbitmq-data:

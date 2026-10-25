@@ -187,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _salons.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final salon = _salons[index];
 
@@ -216,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _getSalonImage(salon),
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) {
+                errorBuilder: (_, _, _) {
                   return Container(
                     color: const Color(0xFFF1ECF8),
                     child: const Center(
@@ -502,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             height: 42,
             decoration: BoxDecoration(
-              border: Border.all(color: primaryColor.withOpacity(0.6)),
+              border: Border.all(color: primaryColor.withValues(alpha: 0.6)),
               borderRadius: BorderRadius.circular(9),
             ),
             child: TextField(
@@ -708,7 +708,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: lightPurple,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: primaryColor.withOpacity(0.15)),
+              border: Border.all(color: primaryColor.withValues(alpha: 0.15)),
             ),
             child: nextAppointment == null
                 ? const Text(
@@ -861,7 +861,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: primaryColor.withOpacity(0.55)),
+          border: Border.all(color: primaryColor.withValues(alpha: 0.55)),
         ),
         child: Text(
           text,
@@ -887,7 +887,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: primaryColor.withOpacity(0.55)),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.55)),
       ),
       child: Row(
         children: [
@@ -1019,7 +1019,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               height: 45,
               decoration: BoxDecoration(
-                border: Border.all(color: primaryColor.withOpacity(0.6)),
+                border: Border.all(color: primaryColor.withValues(alpha: 0.6)),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: TextField(
@@ -1097,7 +1097,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 side: BorderSide(
-                                  color: primaryColor.withOpacity(0.25),
+                                  color: primaryColor.withValues(alpha: 0.25),
                                 ),
                               ),
                               child: ListTile(
@@ -1169,7 +1169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 side: BorderSide(
-                                  color: primaryColor.withOpacity(0.25),
+                                  color: primaryColor.withValues(alpha: 0.25),
                                 ),
                               ),
                               child: ListTile(
@@ -1408,10 +1408,10 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryColor.withOpacity(0.2)),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -1515,7 +1515,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: primaryColor.withOpacity(0.15)),
+              border: Border.all(color: primaryColor.withValues(alpha: 0.15)),
             ),
             child: Column(
               children: [

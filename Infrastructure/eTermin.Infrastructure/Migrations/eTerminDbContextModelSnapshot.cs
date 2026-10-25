@@ -157,14 +157,20 @@ namespace eTermin.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AppointmentId");
-
                     b.HasIndex("UserId");
+
+                    b.HasIndex("AppointmentId", "Type")
+                        .IsUnique()
+                        .HasFilter("[AppointmentId] IS NOT NULL AND [Type] = N'AppointmentReminder'");
 
                     b.ToTable("Notifications");
                 });

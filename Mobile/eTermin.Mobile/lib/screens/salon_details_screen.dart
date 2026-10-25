@@ -65,10 +65,10 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
     final remainingMinutes = minutes % 60;
 
     if (remainingMinutes == 0) {
-      return '${hours} h';
+      return '$hours h';
     }
 
-    return '${hours} h ${remainingMinutes} min';
+    return '$hours h $remainingMinutes min';
   }
 
   @override
@@ -118,7 +118,7 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
                 width: double.infinity,
                 height: 145,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) {
+                errorBuilder: (_, _, _) {
                   return _buildImagePlaceholder();
                 },
               ),

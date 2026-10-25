@@ -111,7 +111,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Icon(
               Icons.notifications_none_rounded,
               size: 60,
-              color: primaryColor.withOpacity(0.5),
+              color: primaryColor.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 15),
             const Text(
@@ -128,7 +128,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _notifications.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final notification = _notifications[index];
 
@@ -142,14 +142,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ? Colors.white
                     : const Color(0xFFF3F1FF),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: primaryColor.withOpacity(0.12)),
+                border: Border.all(color: primaryColor.withValues(alpha: 0.12)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
                     radius: 21,
-                    backgroundColor: primaryColor.withOpacity(0.12),
+                    backgroundColor: primaryColor.withValues(alpha: 0.12),
                     child: Icon(
                       Icons.notifications_none_rounded,
                       color: primaryColor,

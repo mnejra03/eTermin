@@ -4,7 +4,6 @@ import '../models/salon.dart';
 import '../models/service.dart';
 import '../services/api_service.dart';
 import 'booking_screen.dart';
-import 'salon_details_screen.dart';
 
 class RecommendationsScreen extends StatefulWidget {
   const RecommendationsScreen({super.key});

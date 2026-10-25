@@ -12,10 +12,14 @@ namespace eTermin.Api.Controllers;
 public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
+    private readonly IAppointmentReminderPublisher _reminderPublisher;
 
-    public AppointmentsController(IAppointmentService appointmentService)
+    public AppointmentsController(
+        IAppointmentService appointmentService,
+        IAppointmentReminderPublisher reminderPublisher)
     {
         _appointmentService = appointmentService;
+        _reminderPublisher = reminderPublisher;
     }
 
     [HttpGet]
@@ -53,25 +57,22 @@ public class AppointmentsController : ControllerBase
 
             var appointmentDto = new AppointmentDto
             {
+                UserId = User.IsInRole("Admin") && createAppointmentDto.UserId.HasValue
+                    ? createAppointmentDto.UserId.Value
+                    : userId,
                 SalonId = createAppointmentDto.SalonId,
                 EmployeeId = createAppointmentDto.EmployeeId,
                 ServiceId = createAppointmentDto.ServiceId,
                 StartTime = createAppointmentDto.StartTime,
                 EndTime = createAppointmentDto.EndTime,
                 Status = createAppointmentDto.Status,
-                Price = createAppointmentDto.Price,
-                UserId = userId
+                Price = createAppointmentDto.Price
             };
-
-            var isAdmin = User.IsInRole("Admin");
-
-            if (!isAdmin)
-            {
-                appointmentDto.UserId = userId;
-            }
 
             var appointment =
                 await _appointmentService.CreateAsync(appointmentDto);
+
+            await _reminderPublisher.PublishAsync(appointment.Id);
 
             return CreatedAtAction(
                 nameof(GetAppointment),
@@ -134,6 +135,8 @@ public class AppointmentsController : ControllerBase
 
             if (!updated)
                 return NotFound();
+
+            await _reminderPublisher.PublishAsync(id);
 
             return NoContent();
         }
