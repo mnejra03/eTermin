@@ -5,6 +5,7 @@ using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace eTermin.Infrastructure.Services;
 
@@ -12,13 +13,16 @@ public class AuthService : IAuthService
 {
     private readonly eTerminDbContext _context;
     private readonly IJwtService _jwtService;
+    private readonly IEmailSender _emailSender;
 
     public AuthService(
         eTerminDbContext context,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        IEmailSender emailSender)
     {
         _context = context;
         _jwtService = jwtService;
+        _emailSender = emailSender;
     }
 
     public async Task<AuthDto> RegisterAsync(RegisterDto registerDto)
@@ -185,6 +189,101 @@ public class AuthService : IAuthService
 
         user.Email =
             updateProfileDto.Email.Trim();
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RequestPasswordResetAsync(string email)
+    {
+        _emailSender.EnsureConfigured();
+
+        var normalizedEmail = email.Trim();
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Email == normalizedEmail);
+        if (user == null)
+            return;
+
+        var now = DateTime.UtcNow;
+        var recentCodeExists = await _context.PasswordResetCodes
+            .AnyAsync(x =>
+                x.UserId == user.Id &&
+                x.UsedAt == null &&
+                x.CreatedAt > now.AddMinutes(-1));
+        if (recentCodeExists)
+            return;
+
+        var previousCodes = await _context.PasswordResetCodes
+            .Where(x => x.UserId == user.Id && x.UsedAt == null)
+            .ToListAsync();
+        foreach (var previousCode in previousCodes)
+            previousCode.UsedAt = now;
+
+        var code = RandomNumberGenerator
+            .GetInt32(0, 1_000_000)
+            .ToString("D6");
+        var resetCode = new PasswordResetCode
+        {
+            UserId = user.Id,
+            CodeHash = BCrypt.Net.BCrypt.HashPassword(code),
+            CreatedAt = now,
+            ExpiresAt = now.AddMinutes(15)
+        };
+        _context.PasswordResetCodes.Add(resetCode);
+        await _context.SaveChangesAsync();
+
+        await _emailSender.SendAsync(
+            user.Email,
+            "eTermin - kod za reset lozinke",
+            $"Vaš kod za reset lozinke je: {code}\n\n" +
+            "Kod vrijedi 15 minuta. Ako niste zatražili reset, " +
+            "zanemarite ovu poruku.");
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordDto resetPasswordDto)
+    {
+        if (string.IsNullOrWhiteSpace(resetPasswordDto.NewPassword) ||
+            resetPasswordDto.NewPassword.Length < 6)
+        {
+            throw new InvalidOperationException(
+                "Nova lozinka mora sadržavati najmanje 6 znakova.");
+        }
+
+        var email = resetPasswordDto.Email.Trim();
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Email == email);
+        if (user == null)
+            throw new InvalidOperationException("Kod nije ispravan ili je istekao.");
+
+        var now = DateTime.UtcNow;
+        var resetCode = await _context.PasswordResetCodes
+            .Where(x =>
+                x.UserId == user.Id &&
+                x.UsedAt == null &&
+                x.ExpiresAt > now)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (resetCode == null || resetCode.FailedAttempts >= 5)
+            throw new InvalidOperationException("Kod nije ispravan ili je istekao.");
+
+        if (!BCrypt.Net.BCrypt.Verify(resetPasswordDto.Code, resetCode.CodeHash))
+        {
+            resetCode.FailedAttempts++;
+            if (resetCode.FailedAttempts >= 5)
+                resetCode.UsedAt = now;
+            await _context.SaveChangesAsync();
+            throw new InvalidOperationException("Kod nije ispravan ili je istekao.");
+        }
+
+        user.PasswordHash =
+            BCrypt.Net.BCrypt.HashPassword(resetPasswordDto.NewPassword);
+        resetCode.UsedAt = now;
+
+        var otherCodes = await _context.PasswordResetCodes
+            .Where(x => x.UserId == user.Id && x.Id != resetCode.Id && x.UsedAt == null)
+            .ToListAsync();
+        foreach (var otherCode in otherCodes)
+            otherCode.UsedAt = now;
 
         await _context.SaveChangesAsync();
     }

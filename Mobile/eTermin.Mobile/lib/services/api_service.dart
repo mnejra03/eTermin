@@ -362,6 +362,67 @@ class ApiService {
     throw Exception(data['message'] ?? 'Promjena lozinke nije uspjela.');
   }
 
+  Future<void> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String email,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/Auth/profile'),
+      headers: {'Content-Type': 'application/json', 'Authorization': '******'},
+      body: jsonEncode({
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+      }),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        response.body.isEmpty
+            ? 'Profil nije moguće izmijeniti (HTTP ${response.statusCode}).'
+            : _errorMessage(response.body),
+      );
+    }
+  }
+
+  Future<void> requestPasswordResetCode(String email) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/Auth/password-reset/request'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        response.body.isEmpty
+            ? 'Kod nije moguće poslati (HTTP ${response.statusCode}).'
+            : _errorMessage(response.body),
+      );
+    }
+  }
+
+  Future<void> resetForgottenPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/Auth/password-reset/confirm'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'code': code,
+        'newPassword': newPassword,
+      }),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        response.body.isEmpty
+            ? 'Lozinku nije moguće resetovati (HTTP ${response.statusCode}).'
+            : _errorMessage(response.body),
+      );
+    }
+  }
+
   Future<List<AppNotification>> getMyNotifications() async {
     final response = await http.get(
       Uri.parse('$baseUrl/Notifications/my'),

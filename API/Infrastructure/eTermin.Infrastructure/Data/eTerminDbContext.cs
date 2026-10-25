@@ -11,6 +11,7 @@ public class eTerminDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<PasswordResetCode> PasswordResetCodes { get; set; }
     public DbSet<City> Cities { get; set; }
     public DbSet<ServiceCategory> ServiceCategories { get; set; }
     public DbSet<Salon> Salons { get; set; }
@@ -43,6 +44,19 @@ public class eTerminDbContext : DbContext
 
         modelBuilder.Entity<City>()
             .ToTable("City");
+
+        modelBuilder.Entity<PasswordResetCode>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PasswordResetCode>()
+            .HasIndex(x => new { x.UserId, x.CreatedAt });
+
+        modelBuilder.Entity<PasswordResetCode>()
+            .Property(x => x.CodeHash)
+            .HasMaxLength(100);
 
         modelBuilder.Entity<ServiceCategory>()
             .ToTable("ServiceCategory");
