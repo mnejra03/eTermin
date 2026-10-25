@@ -34,16 +34,14 @@ public class StatisticsService : IStatisticsService
         {
             appointmentsQuery =
                 appointmentsQuery.Where(x =>
-                    x.StartTime >= from.Value);
+                    x.StartTime >= from.Value.Date);
         }
 
         if (to.HasValue)
         {
-            var endDate = to.Value.Date.AddDays(1);
-
             appointmentsQuery =
                 appointmentsQuery.Where(x =>
-                    x.StartTime < endDate);
+                    x.StartTime < to.Value.Date);
         }
 
         // Ako je odabran salon,
@@ -73,22 +71,13 @@ public class StatisticsService : IStatisticsService
 
         var appointments = allAppointments;
 
-        if (status == "All statuses")
-        {
-            appointments = allAppointments;
-        }
-        else if (!string.IsNullOrWhiteSpace(status))
+        if (!string.IsNullOrWhiteSpace(status) &&
+            status != "All statuses" &&
+            status != "Svi statusi")
         {
             appointments =
                 appointments
                     .Where(x => x.Status == status)
-                    .ToList();
-        }
-        else
-        {
-            appointments =
-                appointments
-                    .Where(x => x.Status == AppointmentStatuses.Completed)
                     .ToList();
         }
 
@@ -266,7 +255,7 @@ public class StatisticsService : IStatisticsService
         if (from.HasValue && to.HasValue)
         {
             var startDate = from.Value.Date;
-            var endDate = to.Value.Date.AddDays(1);
+            var endDate = to.Value.Date;
 
             for (var date = startDate;
                  date < endDate;

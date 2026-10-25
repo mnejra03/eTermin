@@ -189,7 +189,7 @@ public class StatisticsController : ControllerBase
         if (from.HasValue)
             query = query.Where(row => row.StartTime >= from.Value.Date);
         if (to.HasValue)
-            query = query.Where(row => row.StartTime < to.Value.Date.AddDays(1));
+            query = query.Where(row => row.StartTime < to.Value.Date);
         if (salonId.HasValue)
             query = query.Where(row => row.SalonId == salonId.Value);
         if (!string.IsNullOrWhiteSpace(status) && status != "All statuses" && status != "Svi statusi")
