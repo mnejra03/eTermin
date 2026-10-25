@@ -1,6 +1,7 @@
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Constants;
+using eTermin.Api.QueryParameters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,8 +20,13 @@ public class ServiceCategoriesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ServiceCategoryDto>>> GetAll() =>
-        Ok(await _categoryService.GetAllAsync());
+    public async Task<ActionResult<PagedResult<ServiceCategoryDto>>> GetAll(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
+    {
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        return Ok(await _categoryService.GetAllAsync(page, pageSize));
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ServiceCategoryDto>> GetById(int id)
@@ -34,51 +40,26 @@ public class ServiceCategoriesController : ControllerBase
     public async Task<ActionResult<ServiceCategoryDto>> Create(
         ServiceCategoryDto categoryDto)
     {
-        try
-        {
-            var category = await _categoryService.CreateAsync(categoryDto);
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = category.Id },
-                category);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
+        var category = await _categoryService.CreateAsync(categoryDto);
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = category.Id },
+            category);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> Update(
         int id,
-        ServiceCategoryDto categoryDto)
-    {
-        try
-        {
-            return await _categoryService.UpdateAsync(id, categoryDto)
-                ? NoContent()
-                : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
-    }
+        ServiceCategoryDto categoryDto) =>
+        await _categoryService.UpdateAsync(id, categoryDto)
+            ? NoContent()
+            : NotFound();
 
     [HttpDelete("{id}")]
     [Authorize(Roles = UserRoles.Admin)]
-    public async Task<IActionResult> Delete(int id)
-    {
-        try
-        {
-            return await _categoryService.DeleteAsync(id)
-                ? NoContent()
-                : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
-    }
+    public async Task<IActionResult> Delete(int id) =>
+        await _categoryService.DeleteAsync(id)
+            ? NoContent()
+            : NotFound();
 }

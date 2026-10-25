@@ -22,6 +22,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
   bool _loading = true;
   String? _error;
   String _search = '';
+  int _page = 1;
+  int _totalPages = 1;
 
   bool get _employees => widget.kind == CatalogKind.employees;
   String get _endpoint => _employees ? 'Employees' : 'Services';
@@ -33,26 +35,29 @@ class _CatalogScreenState extends State<CatalogScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({int page = 1}) async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final results = await Future.wait([
-        widget.api.getList(_endpoint),
+        widget.api.getPagedList(_endpoint, page: page),
         widget.api.getList('Salons'),
         if (_employees) widget.api.getList('Services'),
         if (!_employees) widget.api.getList('ServiceCategories'),
       ]);
       if (!mounted) return;
       setState(() {
-        _items = results[0];
-        _salons = results[1];
+        final itemPage = results[0] as ApiPage<Map<String, dynamic>>;
+        _items = itemPage.items;
+        _page = itemPage.page;
+        _totalPages = itemPage.totalPages;
+        _salons = results[1] as List<Map<String, dynamic>>;
         if (_employees) {
-          _services = results[2];
+          _services = results[2] as List<Map<String, dynamic>>;
         } else {
-          _categories = results[2];
+          _categories = results[2] as List<Map<String, dynamic>>;
         }
       });
     } catch (error) {
@@ -168,9 +173,35 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ),
         ),
         Expanded(child: _buildBody(visible)),
+        _buildPager(),
       ],
     );
   }
+
+  Widget _buildPager() => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        OutlinedButton(
+          onPressed: _loading || _page <= 1
+              ? null
+              : () => _load(page: _page - 1),
+          child: const Text('Prethodna'),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('Stranica $_page od $_totalPages'),
+        ),
+        OutlinedButton(
+          onPressed: _loading || _page >= _totalPages
+              ? null
+              : () => _load(page: _page + 1),
+          child: const Text('Sljedeća'),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildBody(List<Map<String, dynamic>> visible) {
     if (_loading) return const Center(child: CircularProgressIndicator());

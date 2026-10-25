@@ -74,12 +74,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (_loadingNotificationCount) return;
     _loadingNotificationCount = true;
     try {
-      final notifications = await widget.apiClient.getList('Notifications/my');
+      final response = await widget.apiClient.getMap(
+        'Notifications/my/unread-count',
+      );
       if (!mounted) return;
       setState(() {
-        _unreadNotificationCount = notifications
-            .where((notification) => notification['isRead'] != true)
-            .length;
+        _unreadNotificationCount =
+            (response['unreadCount'] as num?)?.toInt() ?? 0;
       });
     } catch (_) {
       // A badge refresh failure should not block dashboard navigation.

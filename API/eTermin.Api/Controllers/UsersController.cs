@@ -3,6 +3,7 @@ using eTermin.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using eTermin.Domain.Constants;
+using eTermin.Api.QueryParameters;
 
 namespace eTermin.Api.Controllers;
 
@@ -19,9 +20,12 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<UserDto>>> GetUsers()
+    public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
     {
-        var users = await _userService.GetAllAsync();
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        var users = await _userService.GetAllAsync(page, pageSize);
 
         return Ok(users);
     }
@@ -54,15 +58,7 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
-        bool deleted;
-        try
-        {
-            deleted = await _userService.DeleteAsync(id);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
+        var deleted = await _userService.DeleteAsync(id);
 
         if (!deleted)
             return NotFound();

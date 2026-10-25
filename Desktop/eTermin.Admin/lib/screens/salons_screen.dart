@@ -19,6 +19,8 @@ class _SalonsScreenState extends State<SalonsScreen> {
   bool _isLoading = true;
   String? _error;
   String _search = '';
+  int _page = 1;
+  int _totalPages = 1;
 
   @override
   void initState() {
@@ -26,20 +28,23 @@ class _SalonsScreenState extends State<SalonsScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({int page = 1}) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       final results = await Future.wait([
-        widget.api.getList('Salons'),
+        widget.api.getPagedList('Salons', page: page),
         widget.api.getList('Cities'),
       ]);
       if (mounted) {
         setState(() {
-          _salons = results[0].map(Salon.fromJson).toList();
-          _cities = results[1];
+          final salonPage = results[0] as ApiPage<Map<String, dynamic>>;
+          _salons = salonPage.items.map(Salon.fromJson).toList();
+          _page = salonPage.page;
+          _totalPages = salonPage.totalPages;
+          _cities = results[1] as List<Map<String, dynamic>>;
         });
       }
     } catch (error) {
@@ -167,9 +172,35 @@ class _SalonsScreenState extends State<SalonsScreen> {
           ),
         ),
         Expanded(child: _buildBody(visible)),
+        _buildPager(),
       ],
     );
   }
+
+  Widget _buildPager() => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        OutlinedButton(
+          onPressed: _isLoading || _page <= 1
+              ? null
+              : () => _load(page: _page - 1),
+          child: const Text('Prethodna'),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('Stranica $_page od $_totalPages'),
+        ),
+        OutlinedButton(
+          onPressed: _isLoading || _page >= _totalPages
+              ? null
+              : () => _load(page: _page + 1),
+          child: const Text('Sljedeća'),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildBody(List<Salon> visible) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());

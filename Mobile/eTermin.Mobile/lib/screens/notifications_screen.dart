@@ -14,6 +14,7 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final ApiService _apiService = ApiService();
+  final ScrollController _scrollController = ScrollController();
 
   final Color primaryColor = const Color(0xFF7568F5);
 
@@ -23,35 +24,57 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   String? _error;
   Timer? _refreshTimer;
   bool _isRefreshing = false;
+  bool _isLoadingMore = false;
+  int _page = 1;
+  int _totalPages = 1;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_loadNextPageWhenVisible);
     _loadNotifications();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 30),
-      (_) => _loadNotifications(),
+      (_) => _loadNotifications(page: _page),
     );
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _scrollController
+      ..removeListener(_loadNextPageWhenVisible)
+      ..dispose();
     super.dispose();
   }
 
-  Future<void> _loadNotifications() async {
+  void _loadNextPageWhenVisible() {
+    if (_scrollController.position.extentAfter < 300 &&
+        !_isLoading &&
+        !_isLoadingMore &&
+        _page < _totalPages) {
+      _loadNotifications(page: _page + 1, append: true);
+    }
+  }
+
+  Future<void> _loadNotifications({int page = 1, bool append = false}) async {
     if (_isRefreshing) return;
     _isRefreshing = true;
+    if (append) _isLoadingMore = true;
     try {
-      final notifications = await _apiService.getMyNotifications();
+      final result = await _apiService.getMyNotificationsPage(page: page);
 
       if (!mounted) return;
 
       setState(() {
-        _notifications = notifications;
+        _notifications = append
+            ? [..._notifications, ...result.items]
+            : result.items;
+        _page = result.page;
+        _totalPages = result.totalPages;
         _isLoading = false;
         _error = null;
+        _isLoadingMore = false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -59,6 +82,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
+        _isLoadingMore = false;
       });
     } finally {
       _isRefreshing = false;
@@ -145,10 +169,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return RefreshIndicator(
       onRefresh: _loadNotifications,
       child: ListView.separated(
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: _notifications.length,
+        itemCount:
+            _notifications.length +
+            ((_page < _totalPages || _isLoadingMore) ? 1 : 0),
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
+          if (index >= _notifications.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
           final notification = _notifications[index];
 
           return InkWell(

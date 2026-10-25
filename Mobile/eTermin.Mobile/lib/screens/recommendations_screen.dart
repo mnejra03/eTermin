@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
 
+import '../models/recommendation.dart';
 import '../models/salon.dart';
-import '../models/service.dart';
 import '../services/api_service.dart';
 import 'booking_screen.dart';
 
 class RecommendationsScreen extends StatefulWidget {
-  const RecommendationsScreen({super.key});
+  const RecommendationsScreen({super.key, this.apiService});
+
+  final ApiService? apiService;
 
   @override
-  State<RecommendationsScreen> createState() =>
-      _RecommendationsScreenState();
+  State<RecommendationsScreen> createState() => _RecommendationsScreenState();
 }
 
-class _RecommendationsScreenState
-    extends State<RecommendationsScreen> {
-  final ApiService _apiService = ApiService();
+class _RecommendationsScreenState extends State<RecommendationsScreen> {
+  late final ApiService _apiService = widget.apiService ?? ApiService();
 
   List<Salon> _salons = [];
-  List<Service> _services = [];
-  List<Map<String, dynamic>> _appointments = [];
-
-  List<Service> _recommendations = [];
-
+  List<Recommendation> _recommendations = [];
   bool _isLoading = true;
   String? _error;
 
@@ -33,144 +29,113 @@ class _RecommendationsScreenState
   }
 
   Future<void> _loadRecommendations() async {
+    if (!_isLoading && mounted) {
+      setState(() => _isLoading = true);
+    }
     try {
-      final services = await _apiService.getServices();
+      final recommendations = await _apiService.getMyRecommendations();
       final salons = await _apiService.getSalons();
-      final appointments = await _apiService.getMyAppointments();
-
-      final activeServices =
-          services.where((service) => service.isActive).toList();
-
-      final usedServiceIds = appointments
-          .map((appointment) => appointment['serviceId'])
-          .whereType<int>()
-          .toSet();
-
-      final recommendations = activeServices
-          .where((service) => !usedServiceIds.contains(service.id))
-          .take(5)
-          .toList();
-
       if (!mounted) return;
-
       setState(() {
-        _services = activeServices;
-        _salons = salons.where((salon) => salon.isActive).toList();
-        _appointments = appointments;
         _recommendations = recommendations;
+        _salons = salons.where((salon) => salon.isActive).toList();
+        _error = null;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
-
       setState(() {
-        _error = 'Preporuke se trenutno ne mogu učitati.';
+        _error = error.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
     }
   }
 
-  Salon? _getSalonForService(Service service) {
-    for (final salon in _salons) {
-      if (salon.id == service.salonId) {
-        return salon;
-      }
-    }
+  Future<void> _openRecommendation(Recommendation recommendation) async {
+    final matchingSalons = _salons.where(
+      (salon) => salon.id == recommendation.salonId,
+    );
+    if (matchingSalons.isEmpty) return;
 
-    return null;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingScreen(
+          salon: matchingSalons.first,
+          service: recommendation.toService(),
+        ),
+      ),
+    );
+    if (mounted) await _loadRecommendations();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Preporuke'),
-      ),
+      appBar: AppBar(title: const Text('Preporuke')),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Text(
-                    _error!,
-                    textAlign: TextAlign.center,
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_error!, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _loadRecommendations,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Pokušaj ponovo'),
                   ),
-                )
-              : _recommendations.isEmpty
-                  ? const Center(
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadRecommendations,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  const Text(
+                    'Preporučeno za vas',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Prijedlozi su zasnovani na vašim prethodnim terminima.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  if (_recommendations.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
                       child: Text(
                         'Trenutno nema novih preporuka.',
                         textAlign: TextAlign.center,
                       ),
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        const Text(
-                          'Preporučeno za vas',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        const Text(
-                          'Na osnovu vaših prethodnih termina '
-                          'predlažemo vam sljedeće usluge.',
-                          style: TextStyle(
-                            color: Colors.grey,
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        ..._recommendations.map(
-                          (service) {
-                            final salon =
-                                _getSalonForService(service);
-
-                            return Card(
-                              margin: const EdgeInsets.only(
-                                bottom: 12,
-                              ),
-                              child: ListTile(
-                                leading: const CircleAvatar(
-                                  child: Icon(
-                                    Icons.star,
-                                  ),
-                                ),
-                                title: Text(service.name),
-                                subtitle: Text(
-                                  '${salon?.name ?? 'Salon'} • '
-                                  '${service.price.toStringAsFixed(2)} KM',
-                                ),
-                                trailing: const Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                ),
-                                onTap: salon == null
-                                    ? null
-                                    : () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                BookingScreen(
-                                              salon: salon,
-                                              service: service,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                              ),
-                            );
-                          },
-                        ),
-                      ],
                     ),
+                  ..._recommendations.map((recommendation) {
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: const CircleAvatar(child: Icon(Icons.star)),
+                        title: Text(recommendation.serviceName),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '${recommendation.salonName} • '
+                            '${recommendation.price.toStringAsFixed(2)} KM\n'
+                            '${recommendation.reason}',
+                          ),
+                        ),
+                        isThreeLine: true,
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () => _openRecommendation(recommendation),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
     );
   }
 }

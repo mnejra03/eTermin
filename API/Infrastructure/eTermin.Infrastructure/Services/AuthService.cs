@@ -31,7 +31,7 @@ public class AuthService : IAuthService
             .FirstOrDefaultAsync(x => x.Email == registerDto.Email);
 
         if (existingUser != null)
-            throw new Exception("Korisnik sa ovim emailom već postoji.");
+            throw new BusinessException("Korisnik sa ovim emailom već postoji.");
 
         var passwordHash =
             BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
@@ -102,7 +102,7 @@ public class AuthService : IAuthService
             .FirstOrDefaultAsync(x => x.Id == userId);
 
         if (user == null)
-            throw new Exception("Korisnik ne postoji.");
+            throw new NotFoundException("Korisnik ne postoji.");
 
         var currentPasswordValid =
             BCrypt.Net.BCrypt.Verify(
@@ -110,25 +110,25 @@ public class AuthService : IAuthService
                 user.PasswordHash);
 
         if (!currentPasswordValid)
-            throw new Exception("Trenutna lozinka nije ispravna.");
+            throw new BusinessException("Trenutna lozinka nije ispravna.");
 
         if (string.IsNullOrWhiteSpace(
                 changePasswordDto.NewPassword))
         {
-            throw new Exception(
+            throw new BusinessException(
                 "Nova lozinka ne može biti prazna.");
         }
 
         if (changePasswordDto.NewPassword.Length < 6)
         {
-            throw new Exception(
+            throw new BusinessException(
                 "Nova lozinka mora sadržavati najmanje 6 znakova.");
         }
 
         if (changePasswordDto.CurrentPassword ==
             changePasswordDto.NewPassword)
         {
-            throw new Exception(
+            throw new BusinessException(
                 "Nova lozinka mora biti različita od trenutne.");
         }
 
@@ -147,26 +147,26 @@ public class AuthService : IAuthService
             .FirstOrDefaultAsync(x => x.Id == userId);
 
         if (user == null)
-            throw new Exception("Korisnik ne postoji.");
+            throw new NotFoundException("Korisnik ne postoji.");
 
         if (string.IsNullOrWhiteSpace(
                 updateProfileDto.FirstName))
         {
-            throw new Exception(
+            throw new BusinessException(
                 "Ime ne može biti prazno.");
         }
 
         if (string.IsNullOrWhiteSpace(
                 updateProfileDto.LastName))
         {
-            throw new Exception(
+            throw new BusinessException(
                 "Prezime ne može biti prazno.");
         }
 
         if (string.IsNullOrWhiteSpace(
                 updateProfileDto.Email))
         {
-            throw new Exception(
+            throw new BusinessException(
                 "Email ne može biti prazan.");
         }
 
@@ -177,7 +177,7 @@ public class AuthService : IAuthService
 
         if (emailExists)
         {
-            throw new Exception(
+            throw new BusinessException(
                 "Korisnik sa ovim emailom već postoji.");
         }
 
@@ -244,7 +244,7 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(resetPasswordDto.NewPassword) ||
             resetPasswordDto.NewPassword.Length < 6)
         {
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Nova lozinka mora sadržavati najmanje 6 znakova.");
         }
 
@@ -252,7 +252,7 @@ public class AuthService : IAuthService
         var user = await _context.Users
             .FirstOrDefaultAsync(x => x.Email == email);
         if (user == null)
-            throw new InvalidOperationException("Kod nije ispravan ili je istekao.");
+            throw new BusinessException("Kod nije ispravan ili je istekao.");
 
         var now = DateTime.UtcNow;
         var resetCode = await _context.PasswordResetCodes
@@ -264,7 +264,7 @@ public class AuthService : IAuthService
             .FirstOrDefaultAsync();
 
         if (resetCode == null || resetCode.FailedAttempts >= 5)
-            throw new InvalidOperationException("Kod nije ispravan ili je istekao.");
+            throw new BusinessException("Kod nije ispravan ili je istekao.");
 
         if (!BCrypt.Net.BCrypt.Verify(resetPasswordDto.Code, resetCode.CodeHash))
         {
@@ -272,7 +272,7 @@ public class AuthService : IAuthService
             if (resetCode.FailedAttempts >= 5)
                 resetCode.UsedAt = now;
             await _context.SaveChangesAsync();
-            throw new InvalidOperationException("Kod nije ispravan ili je istekao.");
+            throw new BusinessException("Kod nije ispravan ili je istekao.");
         }
 
         user.PasswordHash =

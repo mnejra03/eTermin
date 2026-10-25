@@ -3,7 +3,6 @@ using eTermin.Application.Services;
 using eTermin.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 using System.Security.Claims;
 
 namespace eTermin.Api.Controllers;
@@ -63,23 +62,12 @@ public class PaymentsController : ControllerBase
         if (!TryGetUserScope(out var userId))
             return Unauthorized();
 
-        try
-        {
-            var payment =
-                await _paymentService.CreateAsync(paymentDto, userId);
+        var payment = await _paymentService.CreateAsync(paymentDto, userId);
 
-            if (payment == null)
-                return NotFound(new { message = "Termin nije pronađen." });
+        if (payment == null)
+            return NotFound(new { message = "Termin nije pronađen." });
 
-            return Ok(payment);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        return Ok(payment);
     }
 
     [HttpPut("{id}/status")]
@@ -115,27 +103,17 @@ public class PaymentsController : ControllerBase
         if (!TryGetUserScope(out var userId))
             return Unauthorized();
 
-        try
-        {
-            var order = await _paymentService.CreatePayPalOrderAsync(
-                request.PaymentId,
-                userId);
+        var order = await _paymentService.CreatePayPalOrderAsync(
+            request.PaymentId,
+            userId);
 
-            if (order == null)
-                return NotFound(new { message = "Uplata nije pronađena." });
+        if (order == null)
+            return NotFound(new { message = "Uplata nije pronađena." });
 
-            return Ok(new
-            {
-                approvalUrl = order.ApprovalUrl
-            });
-        }
-        catch (Exception ex)
+        return Ok(new
         {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+            approvalUrl = order.ApprovalUrl
+        });
     }
 
     [HttpPost("paypal/capture-order")]
@@ -145,32 +123,22 @@ public class PaymentsController : ControllerBase
         if (!TryGetUserScope(out var userId))
             return Unauthorized();
 
-        try
+        var captureId = await _paymentService.CapturePayPalOrderAsync(
+            request.PaymentId,
+            userId);
+
+        if (captureId == null)
         {
-            var captureId = await _paymentService.CapturePayPalOrderAsync(
-                request.PaymentId,
-                userId);
-
-            if (captureId == null)
+            return NotFound(new
             {
-                return NotFound(new
-                {
-                    message = "Uplata nije pronađena."
-                });
-            }
-
-            return Ok(new
-            {
-                captureId
+                message = "Uplata nije pronađena."
             });
         }
-        catch (Exception ex)
+
+        return Ok(new
         {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+            captureId
+        });
     }
 
     [HttpGet("paypal/return")]
@@ -178,30 +146,16 @@ public class PaymentsController : ControllerBase
     public async Task<IActionResult> PayPalReturn(
     [FromQuery] string token)
     {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                return BadRequest(new
-                {
-                    message = "PayPal Order ID nije pronađen."
-                });
-            }
-
-            var order =
-                await _payPalService.GetOrderDetailsAsync(token);
-
-            return Content(
-                order,
-                "application/json");
-        }
-        catch (Exception ex)
+        if (string.IsNullOrWhiteSpace(token))
         {
             return BadRequest(new
             {
-                message = ex.Message
+                message = "PayPal Order ID nije pronađen."
             });
         }
+
+        var order = await _payPalService.GetOrderDetailsAsync(token);
+        return Content(order, "application/json");
     }
 
 
@@ -219,22 +173,8 @@ public class PaymentsController : ControllerBase
     public async Task<IActionResult> GetPayPalOrder(
     string orderId)
     {
-        try
-        {
-            var result =
-                await _payPalService.GetOrderDetailsAsync(orderId);
-
-            return Content(
-                result,
-                "application/json");
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        var result = await _payPalService.GetOrderDetailsAsync(orderId);
+        return Content(result, "application/json");
     }
 
     private bool TryGetUserScope(out int? userId)

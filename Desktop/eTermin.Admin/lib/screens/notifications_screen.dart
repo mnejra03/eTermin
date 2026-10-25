@@ -19,12 +19,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   String? _error;
   Timer? _refreshTimer;
   bool _refreshing = false;
+  int _page = 1;
+  int _totalPages = 1;
 
   @override
   void initState() {
     super.initState();
     _load();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => _load());
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _load(page: _page),
+    );
   }
 
   @override
@@ -33,7 +38,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({int page = 1}) async {
     if (_refreshing) return;
     _refreshing = true;
     if (mounted) {
@@ -43,8 +48,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
     }
     try {
-      final items = await widget.api.getList('Notifications/my');
-      if (mounted) setState(() => _items = items);
+      final result = await widget.api.getPagedList(
+        'Notifications/my',
+        page: page,
+      );
+      if (mounted) {
+        setState(() {
+          _items = result.items;
+          _page = result.page;
+          _totalPages = result.totalPages;
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -56,7 +70,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _markRead(Map<String, dynamic> item) async {
     try {
       await widget.api.put('Notifications/${item['id']}/read', {});
-      await _load();
+      await _load(page: _page);
     } catch (error) {
       if (mounted) _message(error.toString());
     }
@@ -86,7 +100,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     try {
       await widget.api.delete('Notifications/${item['id']}');
-      await _load();
+      await _load(page: _page);
     } catch (error) {
       if (mounted) _message(error.toString());
     }
@@ -125,9 +139,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return ListView.separated(
       padding: const EdgeInsets.all(24),
-      itemCount: _items.length,
+      itemCount: _items.length + 1,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
+        if (index == _items.length) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton(
+                onPressed: _refreshing || _page <= 1
+                    ? null
+                    : () => _load(page: _page - 1),
+                child: const Text('Prethodna'),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Stranica $_page od $_totalPages'),
+              ),
+              OutlinedButton(
+                onPressed: _refreshing || _page >= _totalPages
+                    ? null
+                    : () => _load(page: _page + 1),
+                child: const Text('Sljedeća'),
+              ),
+            ],
+          );
+        }
         final item = _items[index];
         final read = item['isRead'] == true;
         return Card(

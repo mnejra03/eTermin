@@ -1,4 +1,4 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +14,9 @@ public class UserService : IUserService
         _context = context;
     }
 
-    public async Task<List<UserDto>> GetAllAsync()
+    public async Task<PagedResult<UserDto>> GetAllAsync(
+        int page,
+        int pageSize)
     {
         return await _context.Users
             .Select(u => new UserDto
@@ -26,7 +28,8 @@ public class UserService : IUserService
                 Role = u.Role,
                 CreatedAt = u.CreatedAt
             })
-            .ToListAsync();
+            .OrderBy(user => user.Id)
+            .ToPagedResultAsync(page, pageSize);
     }
 
     public async Task<UserDto?> GetByIdAsync(int id)
@@ -77,7 +80,7 @@ public class UserService : IUserService
                 appointment.CancelledByUserId == id);
 
         if (hasAppointments)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Korisnik se ne može obrisati jer je povezan s terminima " +
                 "ili zapisima o otkazivanju termina.");
 
@@ -85,7 +88,7 @@ public class UserService : IUserService
             .AnyAsync(history => history.ChangedByUserId == id);
 
         if (hasStatusHistory)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Korisnik se ne može obrisati jer je zabilježen kao osoba koja je promijenila status termina.");
 
         _context.Users.Remove(user);

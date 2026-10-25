@@ -1,6 +1,7 @@
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Constants;
+using eTermin.Api.QueryParameters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,8 +20,13 @@ public class CitiesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<CityDto>>> GetAll() =>
-        Ok(await _cityService.GetAllAsync());
+    public async Task<ActionResult<PagedResult<CityDto>>> GetAll(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
+    {
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        return Ok(await _cityService.GetAllAsync(page, pageSize));
+    }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<CityDto>> GetById(int id)
@@ -33,44 +39,19 @@ public class CitiesController : ControllerBase
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<CityDto>> Create(CityDto cityDto)
     {
-        try
-        {
-            var city = await _cityService.CreateAsync(cityDto);
-            return CreatedAtAction(nameof(GetById), new { id = city.Id }, city);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
+        var city = await _cityService.CreateAsync(cityDto);
+        return CreatedAtAction(nameof(GetById), new { id = city.Id }, city);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = UserRoles.Admin)]
-    public async Task<IActionResult> Update(int id, CityDto cityDto)
-    {
-        try
-        {
-            return await _cityService.UpdateAsync(id, cityDto)
-                ? NoContent()
-                : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
-    }
+    public async Task<IActionResult> Update(int id, CityDto cityDto) =>
+        await _cityService.UpdateAsync(id, cityDto)
+            ? NoContent()
+            : NotFound();
 
     [HttpDelete("{id}")]
     [Authorize(Roles = UserRoles.Admin)]
-    public async Task<IActionResult> Delete(int id)
-    {
-        try
-        {
-            return await _cityService.DeleteAsync(id) ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
-    }
+    public async Task<IActionResult> Delete(int id) =>
+        await _cityService.DeleteAsync(id) ? NoContent() : NotFound();
 }

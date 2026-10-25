@@ -4,7 +4,12 @@ namespace eTermin.Application.Services;
 
 public interface INotificationService
 {
-    Task<List<NotificationDto>> GetByUserIdAsync(int userId);
+    Task<PagedResult<NotificationDto>> GetByUserIdAsync(
+        int userId,
+        int page,
+        int pageSize);
+
+    Task<int> GetUnreadCountByUserIdAsync(int userId);
 
     Task<NotificationDto?> GetByIdAsync(int id);
 

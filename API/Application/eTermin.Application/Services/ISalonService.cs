@@ -4,9 +4,9 @@ namespace eTermin.Application.Services;
 
 public interface ISalonService
 {
-    Task<List<SalonDto>> GetAllAsync();
+    Task<PagedResult<SalonDto>> GetAllAsync(int page, int pageSize);
 
-    Task<List<SalonDto>> GetPopularAsync();
+    Task<PagedResult<SalonDto>> GetPopularAsync(int page, int pageSize);
 
     Task<SalonDto?> GetByIdAsync(int id);
 

@@ -1,4 +1,4 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
@@ -16,7 +16,9 @@ public class ServiceService : IServiceService
         _context = context;
     }
 
-    public async Task<List<ServiceDto>> GetAllAsync()
+    public async Task<PagedResult<ServiceDto>> GetAllAsync(
+        int page,
+        int pageSize)
     {
         return await _context.Services
             .Select(s => new ServiceDto
@@ -34,7 +36,9 @@ public class ServiceService : IServiceService
                 Price = s.Price,
                 IsActive = s.IsActive
             })
-            .ToListAsync();
+            .OrderBy(service => service.Name)
+            .ThenBy(service => service.Id)
+            .ToPagedResultAsync(page, pageSize);
     }
 
     public async Task<ServiceDto?> GetByIdAsync(int id)
@@ -63,7 +67,7 @@ public class ServiceService : IServiceService
     {
         if (!await _context.ServiceCategories.AnyAsync(
                 category => category.Id == serviceDto.ServiceCategoryId))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Odabrana kategorija usluge ne postoji.");
 
         var service = new Service
@@ -109,7 +113,7 @@ public class ServiceService : IServiceService
 
         if (!await _context.ServiceCategories.AnyAsync(
                 category => category.Id == serviceDto.ServiceCategoryId))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Odabrana kategorija usluge ne postoji.");
 
         if (service.SalonId != serviceDto.SalonId)
@@ -122,7 +126,7 @@ public class ServiceService : IServiceService
                      appointment.Status == AppointmentStatuses.Confirmed));
 
             if (hasFutureAppointments)
-                throw new InvalidOperationException(
+                throw new BusinessException(
                     "Usluzi se ne može promijeniti salon dok ima buduće aktivne termine.");
 
             var hasEmployeesFromAnotherSalon = await _context.EmployeeServices
@@ -131,7 +135,7 @@ public class ServiceService : IServiceService
                     employeeService.Employee.SalonId != serviceDto.SalonId);
 
             if (hasEmployeesFromAnotherSalon)
-                throw new InvalidOperationException(
+                throw new BusinessException(
                     "Salon usluge se ne može promijeniti jer je dodijeljena zaposlenicima drugog salona.");
         }
 
@@ -164,7 +168,7 @@ public class ServiceService : IServiceService
 
         if (hasAppointments)
         {
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Usluga se ne može obrisati jer je već korištena u postojećim terminima. " +
                 "Umjesto brisanja, možete je deaktivirati.");
         }

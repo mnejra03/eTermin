@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/salon.dart';
 import '../models/service.dart';
+import '../models/recommendation.dart';
 import '../services/api_service.dart';
 import '../services/app_route_observer.dart';
 
@@ -55,12 +56,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   List<Salon> _salons = [];
   List<Salon> _popularSalons = [];
   List<Service> _services = [];
+  List<Recommendation> _recommendations = [];
   List<Employee> _employees = [];
 
   List<Map<String, dynamic>> _myAppointments = [];
   bool _isLoadingAppointments = false;
   String? _appointmentsError;
   String _appointmentFilter = 'Aktivni';
+  int _appointmentsPage = 1;
+  int _appointmentsTotalPages = 1;
   final Set<int> _payingAppointmentIds = {};
 
   List<Map<String, dynamic>> _homeAvailableSlots = [];
@@ -70,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   String _searchQuery = '';
 
   bool _isLoadingSalons = true;
+  bool _isLoadingRecommendations = true;
   String? _salonsError;
   late String _profileFirstName;
   late String _profileLastName;
@@ -106,9 +111,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     _profileLastName = widget.lastName;
     _profileEmail = widget.email;
 
-    print('HOME INIT');
-
     _loadSalons();
+    _loadRecommendations();
 
     _loadMyAppointments();
 
@@ -131,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void didPopNext() {
     _loadMyAppointments();
+    _loadRecommendations();
   }
 
   @override
@@ -168,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return upcoming.isEmpty ? null : upcoming.first;
   }
 
-  Future<void> _loadMyAppointments() async {
+  Future<void> _loadMyAppointments({int page = 1}) async {
     if (!mounted) return;
     setState(() {
       _isLoadingAppointments = true;
@@ -176,12 +181,22 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     });
 
     try {
-      final appointments = await _apiService.getMyAppointments();
+      final status = switch (_appointmentFilter) {
+        'Završeni' => 'Completed',
+        'Otkazani' => 'Cancelled',
+        _ => 'Active',
+      };
+      final result = await _apiService.getMyAppointmentsPage(
+        page: page,
+        status: status,
+      );
 
       if (!mounted) return;
 
       setState(() {
-        _myAppointments = appointments;
+        _myAppointments = result.items;
+        _appointmentsPage = result.page;
+        _appointmentsTotalPages = result.totalPages;
         _isLoadingAppointments = false;
       });
     } catch (e) {
@@ -190,6 +205,23 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       setState(() {
         _appointmentsError = e.toString();
         _isLoadingAppointments = false;
+      });
+    }
+  }
+
+  Future<void> _loadRecommendations() async {
+    try {
+      final recommendations = await _apiService.getMyRecommendations();
+      if (!mounted) return;
+      setState(() {
+        _recommendations = recommendations;
+        _isLoadingRecommendations = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _recommendations = [];
+        _isLoadingRecommendations = false;
       });
     }
   }
@@ -503,13 +535,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
             for (final slot in slots) {
               if (slot['isAvailable'] == true) {
-                print(
-                  'HOME SLOT: '
-                  '${service.name} | '
-                  '${employee.firstName} ${employee.lastName} | '
-                  'employeeId=${employee.id} | '
-                  '${slot['startTime']} - ${slot['endTime']}',
-                );
                 result.add({
                   'slot': slot,
                   'service': service,
@@ -684,36 +709,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
           const SizedBox(height: 8),
 
-          SizedBox(
-            height: 38,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                ..._services.take(5).map((service) {
-                  final salon = _salons.where(
-                    (salon) => salon.id == service.salonId,
-                  );
-
-                  final salonName = salon.isNotEmpty ? salon.first.name : '';
-
-                  return _buildServiceChip(
-                    '${service.name} Ă˘â‚¬Ë $salonName',
-                    onTap: () {
-                      if (salon.isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                SalonDetailsScreen(salon: salon.first),
-                          ),
-                        );
-                      }
-                    },
-                  );
-                }),
-              ],
-            ),
-          ),
+          _buildRecommendedServices(),
 
           const SizedBox(height: 15),
 
@@ -910,6 +906,95 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  Widget _buildRecommendedServices() {
+    if (_isLoadingRecommendations) {
+      return const SizedBox(
+        height: 92,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_recommendations.isEmpty) {
+      return const SizedBox(
+        height: 50,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text('Trenutno nema preporuka za vas.'),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 112,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _recommendations.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final recommendation = _recommendations[index];
+          final salon = _salons.where(
+            (item) => item.id == recommendation.salonId,
+          );
+          return SizedBox(
+            width: 220,
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: salon.isEmpty
+                    ? null
+                    : () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookingScreen(
+                              salon: salon.first,
+                              service: recommendation.toService(),
+                            ),
+                          ),
+                        );
+                        if (mounted) _loadRecommendations();
+                      },
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        recommendation.serviceName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${recommendation.salonName} • '
+                        '${recommendation.price.toStringAsFixed(2)} KM',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: Text(
+                          recommendation.reason,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   String _formatNextAppointmentDate(dynamic value) {
     final date = DateTime.tryParse(value?.toString() ?? '');
 
@@ -975,33 +1060,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         color: darkText,
         fontSize: 15,
         fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------
-  // SERVICE CHIP
-  // ----------------------------------------------------------
-
-  Widget _buildServiceChip(String text, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 7),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: primaryColor.withValues(alpha: 0.55)),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: darkText,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
       ),
     );
   }
@@ -1447,6 +1505,30 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   },
                 ),
         ),
+        if (_appointmentsError == null && !_isLoadingAppointments)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'Prethodna stranica',
+                  onPressed: _appointmentsPage <= 1
+                      ? null
+                      : () => _loadMyAppointments(page: _appointmentsPage - 1),
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Text('$_appointmentsPage / $_appointmentsTotalPages'),
+                IconButton(
+                  tooltip: 'Sljedeća stranica',
+                  onPressed: _appointmentsPage >= _appointmentsTotalPages
+                      ? null
+                      : () => _loadMyAppointments(page: _appointmentsPage + 1),
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -1460,6 +1542,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           setState(() {
             _appointmentFilter = title;
           });
+          _loadMyAppointments();
         },
         child: Container(
           margin: const EdgeInsets.only(right: 5),
@@ -1914,14 +1997,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     if (_checkingNotifications) return;
     _checkingNotifications = true;
     try {
-      final notifications = await _apiService.getMyNotifications();
+      final unreadCount = await _apiService.getMyUnreadNotificationCount();
 
       if (!mounted) return;
 
       setState(() {
-        _hasUnreadNotifications = notifications.any(
-          (notification) => !notification.isRead,
-        );
+        _hasUnreadNotifications = unreadCount > 0;
       });
     } catch (_) {
       // Badge refresh failures should not interrupt other home-screen actions.

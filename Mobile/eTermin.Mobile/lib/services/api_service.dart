@@ -8,10 +8,28 @@ import '../models/service.dart';
 import '../models/employee.dart';
 
 import '../models/notification.dart';
+import '../models/recommendation.dart';
+
+class ApiPage<T> {
+  const ApiPage({
+    required this.items,
+    required this.totalCount,
+    required this.page,
+    required this.pageSize,
+    required this.totalPages,
+  });
+
+  final List<T> items;
+  final int totalCount;
+  final int page;
+  final int pageSize;
+  final int totalPages;
+}
 
 class ApiService {
   static String? _token;
   static const String baseUrl = 'http://10.0.2.2:5130/api';
+  static const int defaultPageSize = 20;
 
   static Uri? salonImageUri(String imageUrl) {
     if (imageUrl.trim().isEmpty) return null;
@@ -31,6 +49,52 @@ class ApiService {
   }
 
   Map<String, String> get _authHeaders => {'Authorization': 'Bearer $_token'};
+
+  Future<ApiPage<Map<String, dynamic>>> _getPagedData(
+    String path, {
+    int page = 1,
+    int pageSize = defaultPageSize,
+    Map<String, String> queryParameters = const {},
+  }) async {
+    final uri = Uri.parse('$baseUrl/$path').replace(
+      queryParameters: {
+        'page': '$page',
+        'pageSize': '$pageSize',
+        ...queryParameters,
+      },
+    );
+    final response = await http.get(uri, headers: _authHeaders);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _errorMessage(response.body, fallback: 'Podaci se ne mogu učitati.'),
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['items'] is! List) {
+      throw Exception('API je vratio neočekivan odgovor za stranicu.');
+    }
+
+    final items = (decoded['items'] as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+    return ApiPage(
+      items: items,
+      totalCount: (decoded['totalCount'] as num).toInt(),
+      page: (decoded['page'] as num).toInt(),
+      pageSize: (decoded['pageSize'] as num).toInt(),
+      totalPages: (decoded['totalPages'] as num).toInt(),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _getAllPagedData(String path) async {
+    final firstPage = await _getPagedData(path);
+    final items = [...firstPage.items];
+    for (var page = 2; page <= firstPage.totalPages; page++) {
+      items.addAll((await _getPagedData(path, page: page)).items);
+    }
+    return items;
+  }
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
@@ -58,103 +122,63 @@ class ApiService {
     );
   }
 
-  Future<List<Salon>> getSalons() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/Salons'),
-      headers: _authHeaders,
+  Future<List<Salon>> getSalons() async =>
+      (await _getAllPagedData('Salons')).map(Salon.fromJson).toList();
+
+  Future<ApiPage<Salon>> getSalonsPage({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) async {
+    final result = await _getPagedData(
+      'Salons',
+      page: page,
+      pageSize: pageSize,
     );
-
-    if (response.body.isEmpty) {
-      throw Exception('Saloni trenutno nisu dostupni.');
-    }
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        _errorMessage(response.body, fallback: 'Saloni se ne mogu učitati.'),
-      );
-    }
-
-    final data = jsonDecode(response.body);
-
-    if (data is! List) {
-      throw Exception('API je vratio neočekivan odgovor za salone.');
-    }
-
-    return data
-        .map((json) => Salon.fromJson(json as Map<String, dynamic>))
-        .toList();
+    return ApiPage(
+      items: result.items.map(Salon.fromJson).toList(),
+      totalCount: result.totalCount,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages,
+    );
   }
 
   Future<List<Salon>> getPopularSalons() async {
+    final result = await _getPagedData('Salons/popular');
+    return result.items.map(Salon.fromJson).toList();
+  }
+
+  Future<List<Service>> getServices() async =>
+      (await _getAllPagedData('Services')).map(Service.fromJson).toList();
+
+  Future<List<Employee>> getEmployees() async =>
+      (await _getAllPagedData('Employees')).map(Employee.fromJson).toList();
+
+  Future<List<Recommendation>> getMyRecommendations() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/Salons/popular'),
+      Uri.parse('$baseUrl/Recommendations/my'),
       headers: _authHeaders,
     );
-
-    if (response.body.isEmpty) {
-      throw Exception('Popularni saloni trenutno nisu dostupni.');
-    }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         _errorMessage(
           response.body,
-          fallback: 'Popularni saloni trenutno nisu dostupni.',
+          fallback: 'Preporuke se trenutno ne mogu učitati.',
         ),
       );
+    }
+    if (response.body.isEmpty) {
+      throw Exception('Preporuke se trenutno ne mogu učitati.');
     }
 
     final data = jsonDecode(response.body);
     if (data is! List) {
-      throw Exception('API je vratio neočekivan odgovor za popularne salone.');
+      throw Exception('API je vratio neočekivan odgovor za preporuke.');
     }
-
     return data
-        .map((json) => Salon.fromJson(json as Map<String, dynamic>))
+        .map((json) => Recommendation.fromJson(json as Map<String, dynamic>))
         .toList();
-  }
-
-  Future<List<Service>> getServices() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/Services'),
-      headers: _authHeaders,
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        _errorMessage(response.body, fallback: 'Usluge se ne mogu učitati.'),
-      );
-    }
-
-    if (response.body.isEmpty) {
-      throw Exception('Usluge se ne mogu učitati.');
-    }
-
-    final data = jsonDecode(response.body);
-    return (data as List).map((json) => Service.fromJson(json)).toList();
-  }
-
-  Future<List<Employee>> getEmployees() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/Employees'),
-      headers: _authHeaders,
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        _errorMessage(
-          response.body,
-          fallback: 'Zaposlenici se ne mogu učitati.',
-        ),
-      );
-    }
-
-    if (response.body.isEmpty) {
-      throw Exception('Zaposlenici se ne mogu učitati.');
-    }
-
-    final data = jsonDecode(response.body);
-    return (data as List).map((json) => Employee.fromJson(json)).toList();
   }
 
   Future<List<Map<String, dynamic>>> getAvailableSlots({
@@ -206,37 +230,19 @@ class ApiService {
     if (_token == null || _token!.isEmpty) {
       throw Exception('JWT TOKEN NIJE POSTAVLJEN.');
     }
-
-    final response = await http.get(
-      Uri.parse('$baseUrl/Appointments/my'),
-      headers: {'Authorization': 'Bearer $_token'},
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        _errorMessage(response.body, fallback: 'Termini se ne mogu učitati.'),
-      );
-    }
-
-    if (response.body.isEmpty) {
-      throw Exception('Termini se ne mogu učitati.');
-    }
-
-    final decoded = jsonDecode(response.body);
-
-    if (decoded is! List) {
-      throw Exception(
-        'Neočekivan odgovor za moje termine.\n'
-        'Tip: ${decoded.runtimeType}',
-      );
-    }
-
-    return decoded
-        .map<Map<String, dynamic>>(
-          (item) => Map<String, dynamic>.from(item as Map),
-        )
-        .toList();
+    return _getAllPagedData('Appointments/my');
   }
+
+  Future<ApiPage<Map<String, dynamic>>> getMyAppointmentsPage({
+    int page = 1,
+    int pageSize = defaultPageSize,
+    String? status,
+  }) => _getPagedData(
+    'Appointments/my',
+    page: page,
+    pageSize: pageSize,
+    queryParameters: status == null ? const {} : {'status': status},
+  );
 
   Future<List<Map<String, dynamic>>> getPaymentsForAppointment(
     int appointmentId,
@@ -442,29 +448,45 @@ class ApiService {
     }
   }
 
-  Future<List<AppNotification>> getMyNotifications() async {
+  Future<List<AppNotification>> getMyNotifications() async =>
+      (await _getAllPagedData('Notifications/my'))
+          .map(AppNotification.fromJson)
+          .toList();
+
+  Future<ApiPage<AppNotification>> getMyNotificationsPage({
+    int page = 1,
+    int pageSize = defaultPageSize,
+  }) async {
+    final result = await _getPagedData(
+      'Notifications/my',
+      page: page,
+      pageSize: pageSize,
+    );
+    return ApiPage(
+      items: result.items.map(AppNotification.fromJson).toList(),
+      totalCount: result.totalCount,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages,
+    );
+  }
+
+  Future<int> getMyUnreadNotificationCount() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/Notifications/my'),
+      Uri.parse('$baseUrl/Notifications/my/unread-count'),
       headers: _authHeaders,
     );
-
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        _errorMessage(
-          response.body,
-          fallback: 'Obavijesti se ne mogu učitati.',
-        ),
+        _errorMessage(response.body, fallback: 'Notifikacije se ne mogu učitati.'),
       );
     }
 
-    if (response.body.isEmpty) {
-      throw Exception('Obavijesti se ne mogu učitati.');
-    }
     final data = jsonDecode(response.body);
-
-    return (data as List)
-        .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
-        .toList();
+    if (data is! Map<String, dynamic> || data['unreadCount'] is! num) {
+      throw Exception('API je vratio neočekivan broj nepročitanih notifikacija.');
+    }
+    return (data['unreadCount'] as num).toInt();
   }
 
   Future<void> markNotificationAsRead(int id) async {

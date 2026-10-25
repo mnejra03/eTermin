@@ -1,4 +1,4 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
@@ -17,7 +17,9 @@ public class EmployeeService : IEmployeeService
         _context = context;
     }
 
-    public async Task<List<EmployeeDto>> GetAllAsync()
+    public async Task<PagedResult<EmployeeDto>> GetAllAsync(
+        int page,
+        int pageSize)
     {
         return await _context.Employees
             .Select(e => new EmployeeDto
@@ -43,7 +45,10 @@ public class EmployeeService : IEmployeeService
                     .Select(es => es.ServiceId)
                     .ToList()
             })
-            .ToListAsync();
+            .OrderBy(employee => employee.LastName)
+            .ThenBy(employee => employee.FirstName)
+            .ThenBy(employee => employee.Id)
+            .ToPagedResultAsync(page, pageSize);
     }
 
     public async Task<EmployeeDto?> GetByIdAsync(int id)
@@ -168,7 +173,7 @@ public class EmployeeService : IEmployeeService
                      appointment.Status == AppointmentStatuses.Confirmed));
 
             if (hasFutureAppointments)
-                throw new InvalidOperationException(
+                throw new BusinessException(
                     "Zaposleniku se ne može promijeniti salon dok ima buduće aktivne termine.");
         }
 
@@ -261,7 +266,7 @@ public class EmployeeService : IEmployeeService
             .CountAsync(appointment => appointment.EmployeeId == id);
 
         if (appointmentCount > 0)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 $"Zaposlenik se ne može obrisati jer ima {appointmentCount} povezanih termina. " +
                 "Umjesto brisanja, deaktivirajte zaposlenika postavljanjem polja IsActive na false.");
 
@@ -288,7 +293,7 @@ public class EmployeeService : IEmployeeService
         if (services.Count != distinctServiceIds.Length ||
             services.Any(service => service.SalonId != salonId))
         {
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Sve odabrane usluge moraju postojati i pripadati istom salonu kao zaposlenik.");
         }
     }
@@ -297,18 +302,18 @@ public class EmployeeService : IEmployeeService
         IReadOnlyCollection<EmployeeWorkingHourDto>? schedule)
     {
         if (schedule == null)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Raspored radnog vremena je obavezan (može biti prazan za neradne dane).");
 
         if (schedule.Any(x => !Enum.IsDefined(x.DayOfWeek)) ||
             schedule.Select(x => x.DayOfWeek).Distinct().Count() != schedule.Count)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Raspored može sadržavati najviše jedan zapis za svaki dan u sedmici.");
 
         if (schedule.Any(x => x.StartTime < TimeSpan.Zero ||
                               x.EndTime > TimeSpan.FromDays(1) ||
                               x.EndTime <= x.StartTime))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Vrijeme završetka mora biti nakon početka unutar istog dana.");
     }
 }

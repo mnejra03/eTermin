@@ -224,6 +224,14 @@ http://localhost:5130/swagger
 
 Swagger omogućava pregled i testiranje dostupnih API endpointa.
 
+Liste termina, salona, usluga, zaposlenika, korisnika, gradova, kategorija
+usluga i notifikacija podržavaju `page` i `pageSize` query parametre. Početna
+stranica je `1`, podrazumijevana veličina je `20`, a API ograničava veličinu
+stranice na najviše `100`. Odgovor sadrži `items`, `totalCount`, `page`,
+`pageSize` i `totalPages`. Poslovne greške se vraćaju s HTTP statusom `400`,
+nepronađeni zapisi s `404`, a neočekivane greške s opštom porukom `500` i
+bilježe se u API loggeru.
+
 ---
 
 # Baza podataka

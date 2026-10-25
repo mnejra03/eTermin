@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 
 using eTermin.Domain.Constants;
+using eTermin.Api.QueryParameters;
 
 namespace eTermin.Api.Controllers;
 
@@ -20,9 +21,12 @@ public class ServicesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ServiceDto>>> GetServices()
+    public async Task<ActionResult<PagedResult<ServiceDto>>> GetServices(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
     {
-        var services = await _serviceService.GetAllAsync();
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        var services = await _serviceService.GetAllAsync(page, pageSize);
 
         return Ok(services);
     }
@@ -45,19 +49,11 @@ public class ServicesController : ControllerBase
     public async Task<ActionResult<ServiceDto>> CreateService(
         ServiceDto serviceDto)
     {
-        try
-        {
-            var service = await _serviceService.CreateAsync(serviceDto);
-
-            return CreatedAtAction(
-                nameof(GetService),
-                new { id = service.Id },
-                service);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var service = await _serviceService.CreateAsync(serviceDto);
+        return CreatedAtAction(
+            nameof(GetService),
+            new { id = service.Id },
+            service);
     }
 
     [HttpPut("{id}")]
@@ -66,15 +62,7 @@ public class ServicesController : ControllerBase
         int id,
         ServiceDto serviceDto)
     {
-        bool updated;
-        try
-        {
-            updated = await _serviceService.UpdateAsync(id, serviceDto);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var updated = await _serviceService.UpdateAsync(id, serviceDto);
 
         if (!updated)
         {
@@ -88,24 +76,11 @@ public class ServicesController : ControllerBase
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> DeleteService(int id)
     {
-        try
-        {
-            var deleted =
-                await _serviceService.DeleteAsync(id);
+        var deleted = await _serviceService.DeleteAsync(id);
 
-            if (!deleted)
-            {
-                return NotFound();
-            }
+        if (!deleted)
+            return NotFound();
 
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new
-            {
-                message = ex.Message
-            });
-        }
+        return NoContent();
     }
 }
