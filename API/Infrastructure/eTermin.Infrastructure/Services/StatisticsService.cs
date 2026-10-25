@@ -94,9 +94,40 @@ public class StatisticsService : IStatisticsService
         // UKUPAN PRIHOD
         // ==========================================
 
-        var totalRevenue = allAppointments
-    .Where(x => x.Status == AppointmentStatuses.Completed)
-    .Sum(x => x.Price);
+        var completedPayments =
+            from payment in _context.Payments.AsNoTracking()
+            join appointment in _context.Appointments.AsNoTracking()
+                on payment.AppointmentId equals appointment.Id
+            where payment.Status == PaymentStatuses.Completed
+            select new
+            {
+                payment.Amount,
+                appointment.StartTime,
+                appointment.SalonId
+            };
+
+        if (from.HasValue)
+        {
+            completedPayments = completedPayments.Where(x =>
+                x.StartTime >= from.Value.Date);
+        }
+
+        if (to.HasValue)
+        {
+            completedPayments = completedPayments.Where(x =>
+                x.StartTime < to.Value.Date);
+        }
+
+        if (salonId.HasValue)
+        {
+            completedPayments = completedPayments.Where(x =>
+                x.SalonId == salonId.Value);
+        }
+
+        var totalRevenue = await completedPayments
+            .Select(x => x.Amount)
+            .DefaultIfEmpty()
+            .SumAsync();
 
 
         // ==========================================

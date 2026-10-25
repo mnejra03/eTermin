@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
 import '../services/admin_api_client.dart';
 
@@ -97,6 +100,50 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
   }
 
+  String _pdfReportPath(String report) {
+    final query = Uri(queryParameters: _queryParameters()).query;
+    final endpoint = report == 'salon-revenue'
+        ? 'Statistics/export/salon-revenue/pdf'
+        : 'Statistics/export/pdf';
+    return '$endpoint?$query';
+  }
+
+  Future<void> _savePdf(String report) async {
+    final isSalonRevenue = report == 'salon-revenue';
+    try {
+      final filePath = await widget.api.downloadToDownloads(
+        _pdfReportPath(report),
+        isSalonRevenue
+            ? 'etermin-prihod-po-salonima-${DateTime.now().millisecondsSinceEpoch}.pdf'
+            : 'etermin-statistika-${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF izvještaj je sačuvan: $filePath')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  Future<void> _printPdf(String report) async {
+    try {
+      final bytes = await widget.api.downloadBytes(_pdfReportPath(report));
+      await Printing.layoutPdf(
+        onLayout: (_) async => Uint8List.fromList(bytes),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
   String _date(DateTime value) => value.toIso8601String().substring(0, 10);
 
   @override
@@ -154,9 +201,24 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ),
               const Spacer(),
               IconButton(
-                tooltip: 'Preuzmi PDF izvještaj',
-                onPressed: () => _export('pdf'),
+                tooltip: 'Sačuvaj statistički PDF izvještaj',
+                onPressed: () => _savePdf('statistics'),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
+              ),
+              IconButton(
+                tooltip: 'Ispiši statistički PDF izvještaj',
+                onPressed: () => _printPdf('statistics'),
+                icon: const Icon(Icons.print_outlined),
+              ),
+              IconButton(
+                tooltip: 'Sačuvaj PDF: prihod po salonima',
+                onPressed: () => _savePdf('salon-revenue'),
+                icon: const Icon(Icons.request_quote_outlined),
+              ),
+              IconButton(
+                tooltip: 'Ispiši PDF: prihod po salonima',
+                onPressed: () => _printPdf('salon-revenue'),
+                icon: const Icon(Icons.print),
               ),
               IconButton(
                 tooltip: 'Preuzmi Excel izvještaj',

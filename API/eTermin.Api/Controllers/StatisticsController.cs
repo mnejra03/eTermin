@@ -160,6 +160,76 @@ public class StatisticsController : ControllerBase
             "etermin-izvjestaj.xlsx");
     }
 
+    [HttpGet("export/salon-revenue/pdf")]
+    public async Task<IActionResult> ExportSalonRevenuePdf(
+        DateTime? from,
+        DateTime? to,
+        int? salonId,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        var rows = await GetSalonRevenueRowsAsync(
+            from,
+            to,
+            salonId,
+            status,
+            cancellationToken);
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        var pdf = Document.Create(document =>
+            document.Page(page =>
+            {
+                page.Margin(32);
+                page.Header().Column(header =>
+                {
+                    header.Item().Text("eTermin — prihod po salonima")
+                        .FontSize(20).Bold();
+                    header.Item().Text(
+                        $"Period: {from:dd.MM.yyyy} – {to?.AddDays(-1):dd.MM.yyyy}");
+                    if (!string.IsNullOrWhiteSpace(status) &&
+                        status != "All statuses" &&
+                        status != "Svi statusi")
+                    {
+                        header.Item().Text($"Status termina: {status}");
+                    }
+                });
+                page.Content().PaddingTop(18).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(3);
+                        columns.RelativeColumn(1.2f);
+                        columns.RelativeColumn(1.5f);
+                    });
+                    table.Header(header =>
+                    {
+                        header.Cell().Text("Salon").Bold();
+                        header.Cell().AlignRight().Text("Broj uplata").Bold();
+                        header.Cell().AlignRight().Text("Prihod (KM)").Bold();
+                    });
+
+                    foreach (var row in rows)
+                    {
+                        table.Cell().Text(row.SalonName);
+                        table.Cell().AlignRight().Text(row.PaymentCount.ToString());
+                        table.Cell().AlignRight().Text(row.Revenue.ToString("N2"));
+                    }
+
+                    table.Cell().ColumnSpan(2).AlignRight()
+                        .Text("Ukupno").Bold();
+                    table.Cell().AlignRight()
+                        .Text(rows.Sum(row => row.Revenue).ToString("N2")).Bold();
+                });
+                page.Footer().AlignCenter().Text(text =>
+                {
+                    text.Span("eTermin • strana ");
+                    text.CurrentPageNumber();
+                });
+            })).GeneratePdf();
+
+        return File(pdf, "application/pdf", "etermin-prihod-po-salonima.pdf");
+    }
+
     private async Task<List<AppointmentReportRow>> GetReportRowsAsync(
         DateTime? from,
         DateTime? to,
@@ -200,6 +270,54 @@ public class StatisticsController : ControllerBase
             .ToListAsync(cancellationToken);
     }
 
+    private async Task<List<SalonRevenueReportRow>> GetSalonRevenueRowsAsync(
+        DateTime? from,
+        DateTime? to,
+        int? salonId,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        var query =
+            from payment in _context.Payments.AsNoTracking()
+            join appointment in _context.Appointments.AsNoTracking()
+                on payment.AppointmentId equals appointment.Id
+            join salon in _context.Salons.AsNoTracking()
+                on appointment.SalonId equals salon.Id
+            where payment.Status == PaymentStatuses.Completed
+            select new
+            {
+                appointment.SalonId,
+                SalonName = salon.Name,
+                appointment.StartTime,
+                appointment.Status,
+                payment.Amount
+            };
+
+        if (from.HasValue)
+            query = query.Where(row => row.StartTime >= from.Value.Date);
+        if (to.HasValue)
+            query = query.Where(row => row.StartTime < to.Value.Date);
+        if (salonId.HasValue)
+            query = query.Where(row => row.SalonId == salonId.Value);
+        if (!string.IsNullOrWhiteSpace(status) &&
+            status != "All statuses" &&
+            status != "Svi statusi")
+        {
+            query = query.Where(row => row.Status == status);
+        }
+
+        return await query
+            .GroupBy(row => new { row.SalonId, row.SalonName })
+            .Select(group => new SalonRevenueReportRow
+            {
+                SalonName = group.Key.SalonName,
+                PaymentCount = group.Count(),
+                Revenue = group.Sum(row => row.Amount)
+            })
+            .OrderByDescending(row => row.Revenue)
+            .ToListAsync(cancellationToken);
+    }
+
     private sealed class AppointmentReportRow
     {
         public int Id { get; set; }
@@ -211,5 +329,12 @@ public class StatisticsController : ControllerBase
         public DateTime StartTime { get; set; }
         public string Status { get; set; } = string.Empty;
         public decimal Price { get; set; }
+    }
+
+    private sealed class SalonRevenueReportRow
+    {
+        public string SalonName { get; set; } = string.Empty;
+        public int PaymentCount { get; set; }
+        public decimal Revenue { get; set; }
     }
 }

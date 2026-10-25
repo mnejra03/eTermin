@@ -108,6 +108,30 @@ class AdminApiClient {
   }
 
   Future<String> downloadToDownloads(String path, String fileName) async {
+    final bytes = await downloadBytes(path);
+
+    final userDirectory =
+        Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'];
+    if (userDirectory == null || userDirectory.isEmpty) {
+      throw const ApiException('Windows korisnički folder nije pronađen.');
+    }
+    final downloads = Directory(
+      '$userDirectory${Platform.pathSeparator}Downloads',
+    );
+    final targetDirectory = await downloads.exists()
+        ? downloads
+        : Directory(
+            '$userDirectory${Platform.pathSeparator}Documents${Platform.pathSeparator}eTermin',
+          );
+    await targetDirectory.create(recursive: true);
+    final file = File(
+      '${targetDirectory.path}${Platform.pathSeparator}$fileName',
+    );
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
+  Future<List<int>> downloadBytes(String path) async {
     final request = await _client.getUrl(_baseUri.resolve(path));
     request.headers
       ..set(HttpHeaders.acceptHeader, '*/*')
@@ -131,26 +155,7 @@ class AdminApiClient {
       }
       throw ApiException(message ?? 'Izvještaj nije moguće preuzeti.');
     }
-
-    final userDirectory =
-        Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'];
-    if (userDirectory == null || userDirectory.isEmpty) {
-      throw const ApiException('Windows korisnički folder nije pronađen.');
-    }
-    final downloads = Directory(
-      '$userDirectory${Platform.pathSeparator}Downloads',
-    );
-    final targetDirectory = await downloads.exists()
-        ? downloads
-        : Directory(
-            '$userDirectory${Platform.pathSeparator}Documents${Platform.pathSeparator}eTermin',
-          );
-    await targetDirectory.create(recursive: true);
-    final file = File(
-      '${targetDirectory.path}${Platform.pathSeparator}$fileName',
-    );
-    await file.writeAsBytes(bytes, flush: true);
-    return file.path;
+    return bytes;
   }
 
   Future<dynamic> _send(
