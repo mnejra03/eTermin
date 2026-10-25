@@ -11,4 +11,5 @@ public class RecommendationDto
     public decimal Price { get; set; }
     public int SalonId { get; set; }
     public string SalonName { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
 }

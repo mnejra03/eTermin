@@ -1,10 +1,9 @@
-﻿using eTermin.Api.DTOs;
+using eTermin.Api.DTOs;
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Net.Mail;
 
 namespace eTermin.Api.Controllers;
 
@@ -20,32 +19,16 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthDto>> Register(
-        RegisterDto registerDto)
+    public async Task<ActionResult<AuthDto>> Register(RegisterDto registerDto)
     {
-        try
-        {
-            var result =
-                await _authService.RegisterAsync(registerDto);
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        var result = await _authService.RegisterAsync(registerDto);
+        return Ok(result);
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthDto>> Login(
-        LoginDto loginDto)
+    public async Task<ActionResult<AuthDto>> Login(LoginDto loginDto)
     {
-        var result =
-            await _authService.LoginAsync(loginDto);
-
+        var result = await _authService.LoginAsync(loginDto);
         if (result == null)
         {
             return Unauthorized(new
@@ -62,29 +45,11 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ChangePassword(
         ChangePasswordDto changePasswordDto)
     {
-        try
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (!TryGetUserId(out var userId))
+            return Unauthorized();
 
-            if (userIdClaim == null)
-                return Unauthorized();
-
-            var userId = int.Parse(userIdClaim.Value);
-
-            await _authService.ChangePasswordAsync(userId, changePasswordDto);
-
-            return Ok(new
-            {
-                message = "Lozinka je uspješno promijenjena."
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        await _authService.ChangePasswordAsync(userId, changePasswordDto);
+        return Ok(new { message = "Lozinka je uspješno promijenjena." });
     }
 
     [HttpPut("profile")]
@@ -92,74 +57,38 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> UpdateProfile(
         UpdateProfileDto updateProfileDto)
     {
-        try
+        if (!TryGetUserId(out var userId))
+            return Unauthorized();
+
+        await _authService.UpdateProfileAsync(userId, updateProfileDto);
+        return Ok(new
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null)
-                return Unauthorized();
-
-            var userId = int.Parse(userIdClaim.Value);
-
-            await _authService.UpdateProfileAsync(userId, updateProfileDto);
-
-            return Ok(new
-            {
-                message = "Podaci profila su uspješno izmijenjeni."
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+            message = "Podaci profila su uspješno izmijenjeni."
+        });
     }
 
     [HttpPost("password-reset/request")]
     public async Task<IActionResult> RequestPasswordReset(
         RequestPasswordResetDto request)
     {
-        try
+        await _authService.RequestPasswordResetAsync(request.Email);
+        return Ok(new
         {
-            await _authService.RequestPasswordResetAsync(request.Email);
-            return Ok(new
-            {
-                message = "Ako račun postoji, kod za reset lozinke je poslan na email adresu."
-            });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
-            {
-                message = ex.Message
-            });
-        }
-        catch (SmtpException)
-        {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
-            {
-                message = "Email nije moguće poslati. Pokušajte ponovo kasnije."
-            });
-        }
+            message = "Ako račun postoji, kod za reset lozinke je poslan na email adresu."
+        });
     }
 
     [HttpPost("password-reset/confirm")]
     public async Task<IActionResult> ConfirmPasswordReset(
         ResetPasswordDto request)
     {
-        try
-        {
-            await _authService.ResetPasswordAsync(request);
-            return Ok(new
-            {
-                message = "Lozinka je uspješno resetovana."
-            });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        await _authService.ResetPasswordAsync(request);
+        return Ok(new { message = "Lozinka je uspješno resetovana." });
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        return int.TryParse(userIdClaim?.Value, out userId);
     }
 }

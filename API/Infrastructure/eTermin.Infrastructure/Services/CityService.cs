@@ -15,11 +15,13 @@ public class CityService : ICityService
         _context = context;
     }
 
-    public async Task<List<CityDto>> GetAllAsync() =>
+    public async Task<PagedResult<CityDto>> GetAllAsync(
+        int page,
+        int pageSize) =>
         await _context.Cities
             .OrderBy(city => city.Name)
             .Select(city => new CityDto { Id = city.Id, Name = city.Name })
-            .ToListAsync();
+            .ToPagedResultAsync(page, pageSize);
 
     public async Task<CityDto?> GetByIdAsync(int id) =>
         await _context.Cities
@@ -31,7 +33,7 @@ public class CityService : ICityService
     {
         var name = cityDto.Name.Trim();
         if (await _context.Cities.AnyAsync(city => city.Name == name))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Grad s ovim nazivom već postoji.");
 
         var city = new City { Name = name };
@@ -49,7 +51,7 @@ public class CityService : ICityService
         var name = cityDto.Name.Trim();
         if (await _context.Cities.AnyAsync(
                 existing => existing.Id != id && existing.Name == name))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Grad s ovim nazivom već postoji.");
 
         city.Name = name;
@@ -64,7 +66,7 @@ public class CityService : ICityService
             return false;
 
         if (await _context.Salons.AnyAsync(salon => salon.CityId == id))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Grad se ne može obrisati jer ga koristi jedan ili više salona.");
 
         _context.Cities.Remove(city);

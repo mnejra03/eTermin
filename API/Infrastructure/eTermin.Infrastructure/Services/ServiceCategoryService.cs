@@ -15,7 +15,9 @@ public class ServiceCategoryService : IServiceCategoryService
         _context = context;
     }
 
-    public async Task<List<ServiceCategoryDto>> GetAllAsync() =>
+    public async Task<PagedResult<ServiceCategoryDto>> GetAllAsync(
+        int page,
+        int pageSize) =>
         await _context.ServiceCategories
             .OrderBy(category => category.Name)
             .Select(category => new ServiceCategoryDto
@@ -24,7 +26,7 @@ public class ServiceCategoryService : IServiceCategoryService
                 Name = category.Name,
                 Description = category.Description
             })
-            .ToListAsync();
+            .ToPagedResultAsync(page, pageSize);
 
     public async Task<ServiceCategoryDto?> GetByIdAsync(int id) =>
         await _context.ServiceCategories
@@ -42,7 +44,7 @@ public class ServiceCategoryService : IServiceCategoryService
         var name = categoryDto.Name.Trim();
         if (await _context.ServiceCategories.AnyAsync(
                 category => category.Name == name))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Kategorija s ovim nazivom već postoji.");
 
         var category = new ServiceCategory
@@ -69,7 +71,7 @@ public class ServiceCategoryService : IServiceCategoryService
         var name = categoryDto.Name.Trim();
         if (await _context.ServiceCategories.AnyAsync(
                 existing => existing.Id != id && existing.Name == name))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Kategorija s ovim nazivom već postoji.");
 
         category.Name = name;
@@ -86,7 +88,7 @@ public class ServiceCategoryService : IServiceCategoryService
 
         if (await _context.Services.AnyAsync(
                 service => service.ServiceCategoryId == id))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Kategorija se ne može obrisati jer je dodijeljena jednoj ili više usluga.");
 
         _context.ServiceCategories.Remove(category);

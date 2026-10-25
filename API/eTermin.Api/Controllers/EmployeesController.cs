@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 
 using eTermin.Domain.Constants;
+using eTermin.Api.QueryParameters;
 
 namespace eTermin.Api.Controllers;
 
@@ -20,9 +21,12 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<EmployeeDto>>> GetEmployees()
+    public async Task<ActionResult<PagedResult<EmployeeDto>>> GetEmployees(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
     {
-        var employees = await _employeeService.GetAllAsync();
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        var employees = await _employeeService.GetAllAsync(page, pageSize);
 
         return Ok(employees);
     }
@@ -45,19 +49,11 @@ public class EmployeesController : ControllerBase
     public async Task<ActionResult<EmployeeDto>> CreateEmployee(
         EmployeeDto employeeDto)
     {
-        try
-        {
-            var employee = await _employeeService.CreateAsync(employeeDto);
-
-            return CreatedAtAction(
-                nameof(GetEmployee),
-                new { id = employee.Id },
-                employee);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var employee = await _employeeService.CreateAsync(employeeDto);
+        return CreatedAtAction(
+            nameof(GetEmployee),
+            new { id = employee.Id },
+            employee);
     }
 
     [HttpPut("{id}")]
@@ -66,15 +62,7 @@ public class EmployeesController : ControllerBase
         int id,
         EmployeeDto employeeDto)
     {
-        bool updated;
-        try
-        {
-            updated = await _employeeService.UpdateAsync(id, employeeDto);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var updated = await _employeeService.UpdateAsync(id, employeeDto);
 
         if (!updated)
         {
@@ -88,15 +76,7 @@ public class EmployeesController : ControllerBase
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> DeleteEmployee(int id)
     {
-        bool deleted;
-        try
-        {
-            deleted = await _employeeService.DeleteAsync(id);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
+        var deleted = await _employeeService.DeleteAsync(id);
 
         if (!deleted)
         {

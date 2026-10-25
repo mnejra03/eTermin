@@ -1,6 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 
+class ApiPage<T> {
+  const ApiPage({
+    required this.items,
+    required this.totalCount,
+    required this.page,
+    required this.pageSize,
+    required this.totalPages,
+  });
+
+  final List<T> items;
+  final int totalCount;
+  final int page;
+  final int pageSize;
+  final int totalPages;
+}
+
 class AdminApiClient {
   AdminApiClient({required this.token, HttpClient? client})
     : _client = client ?? HttpClient();
@@ -15,11 +31,53 @@ class AdminApiClient {
   final Uri _baseUri = Uri.parse(_configuredBaseUrl);
 
   Future<List<Map<String, dynamic>>> getList(String path) async {
-    final result = await _send('GET', path);
-    if (result is! List) {
+    final uri = _baseUri
+        .resolve(path)
+        .replace(queryParameters: {'page': '1', 'pageSize': '100'});
+    final result = await _send('GET', uri.toString());
+    if (result is List) {
+      return result.whereType<Map<String, dynamic>>().toList();
+    }
+    if (result is! Map<String, dynamic> || result['items'] is! List) {
       throw const ApiException('API je vratio neočekivane podatke.');
     }
-    return result.whereType<Map<String, dynamic>>().toList();
+
+    final firstPage = _parsePage(result);
+    final items = [...firstPage.items];
+    for (var page = 2; page <= firstPage.totalPages; page++) {
+      items.addAll((await getPagedList(path, page: page, pageSize: 100)).items);
+    }
+    return items;
+  }
+
+  Future<ApiPage<Map<String, dynamic>>> getPagedList(
+    String path, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final uri = _baseUri
+        .resolve(path)
+        .replace(queryParameters: {'page': '$page', 'pageSize': '$pageSize'});
+    final result = await _send('GET', uri.toString());
+    if (result is! Map<String, dynamic>) {
+      throw const ApiException('API je vratio neočekivane podatke.');
+    }
+    return _parsePage(result);
+  }
+
+  ApiPage<Map<String, dynamic>> _parsePage(Map<String, dynamic> result) {
+    if (result['items'] is! List) {
+      throw const ApiException('API je vratio neočekivane podatke.');
+    }
+    return ApiPage(
+      items: (result['items'] as List)
+          .whereType<Map<String, dynamic>>()
+          .toList(),
+      totalCount: (result['totalCount'] as num).toInt(),
+      page: (result['page'] as num).toInt(),
+      pageSize: (result['pageSize'] as num).toInt(),
+      totalPages: (result['totalPages'] as num).toInt(),
+    );
   }
 
   Future<Map<String, dynamic>> getMap(String path) async {

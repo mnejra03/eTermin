@@ -4,7 +4,7 @@ namespace eTermin.Application.Services;
 
 public interface IEmployeeService
 {
-    Task<List<EmployeeDto>> GetAllAsync();
+    Task<PagedResult<EmployeeDto>> GetAllAsync(int page, int pageSize);
 
     Task<EmployeeDto?> GetByIdAsync(int id);
 

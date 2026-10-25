@@ -2,6 +2,7 @@ using eTermin.Api.DTOs;
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Constants;
+using eTermin.Api.QueryParameters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -26,9 +27,12 @@ public class AppointmentsController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = UserRoles.Admin)]
-    public async Task<ActionResult<List<AppointmentDto>>> GetAppointments()
+    public async Task<ActionResult<PagedResult<AppointmentDto>>> GetAppointments(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
     {
-        var appointments = await _appointmentService.GetAllAsync();
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        var appointments = await _appointmentService.GetAllAsync(page, pageSize);
 
         return Ok(appointments);
     }
@@ -61,60 +65,49 @@ public class AppointmentsController : ControllerBase
     public async Task<ActionResult<AppointmentDto>> CreateAppointment(
     CreateAppointmentDto createAppointmentDto)
     {
-        try
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null ||
+            !int.TryParse(userIdClaim.Value, out var currentUserId))
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null ||
-                !int.TryParse(userIdClaim.Value, out var currentUserId))
-            {
-                return Unauthorized();
-            }
+            return Unauthorized();
+        }
 
-            var targetUserId = currentUserId;
-            if (User.IsInRole(UserRoles.Admin))
+        var targetUserId = currentUserId;
+        if (User.IsInRole(UserRoles.Admin))
+        {
+            if (createAppointmentDto.UserId is not > 0)
             {
-                if (createAppointmentDto.UserId is not > 0)
+                return BadRequest(new
                 {
-                    return BadRequest(new
-                    {
-                        message = "Administrator mora odabrati korisnika termina."
-                    });
-                }
-
-                targetUserId = createAppointmentDto.UserId.Value;
+                    message = "Administrator mora odabrati korisnika termina."
+                });
             }
 
-            var appointmentDto = new AppointmentDto
-            {
-                UserId = targetUserId,
-                SalonId = createAppointmentDto.SalonId,
-                EmployeeId = createAppointmentDto.EmployeeId,
-                ServiceId = createAppointmentDto.ServiceId,
-                StartTime = createAppointmentDto.StartTime,
-                EndTime = createAppointmentDto.EndTime,
-                Status = AppointmentStatuses.Pending,
-                Price = createAppointmentDto.Price
-            };
-
-            var appointment =
-                await _appointmentService.CreateAsync(
-                    appointmentDto,
-                    currentUserId);
-
-            await _reminderPublisher.PublishAsync(appointment.Id);
-
-            return CreatedAtAction(
-                nameof(GetAppointment),
-                new { id = appointment.Id },
-                appointment);
+            targetUserId = createAppointmentDto.UserId.Value;
         }
-        catch (Exception ex)
+
+        var appointmentDto = new AppointmentDto
         {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+            UserId = targetUserId,
+            SalonId = createAppointmentDto.SalonId,
+            EmployeeId = createAppointmentDto.EmployeeId,
+            ServiceId = createAppointmentDto.ServiceId,
+            StartTime = createAppointmentDto.StartTime,
+            EndTime = createAppointmentDto.EndTime,
+            Status = AppointmentStatuses.Pending,
+            Price = createAppointmentDto.Price
+        };
+
+        var appointment = await _appointmentService.CreateAsync(
+            appointmentDto,
+            currentUserId);
+
+        await _reminderPublisher.PublishAsync(appointment.Id);
+
+        return CreatedAtAction(
+            nameof(GetAppointment),
+            new { id = appointment.Id },
+            appointment);
     }
 
     [HttpPut("{id}")]
@@ -123,13 +116,11 @@ public class AppointmentsController : ControllerBase
     int id,
     AppointmentDto appointmentDto)
     {
-        try
-        {
-            var existingAppointment =
-                await _appointmentService.GetByIdAsync(id);
+        var existingAppointment =
+            await _appointmentService.GetByIdAsync(id);
 
-            if (existingAppointment == null)
-                return NotFound();
+        if (existingAppointment == null)
+            return NotFound();
 
             // Korisnik ne može mijenjati vlasnika termina.
             appointmentDto.UserId = existingAppointment.UserId;
@@ -143,31 +134,22 @@ public class AppointmentsController : ControllerBase
             // Status
             // Price
 
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null ||
-                !int.TryParse(userIdClaim.Value, out var actorUserId))
-                return Unauthorized();
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null ||
+            !int.TryParse(userIdClaim.Value, out var actorUserId))
+            return Unauthorized();
 
-            var updated =
-                await _appointmentService.UpdateAsync(
-                    id,
-                    appointmentDto,
-                    actorUserId);
+        var updated = await _appointmentService.UpdateAsync(
+            id,
+            appointmentDto,
+            actorUserId);
 
-            if (!updated)
-                return NotFound();
+        if (!updated)
+            return NotFound();
 
-            await _reminderPublisher.PublishAsync(id);
+        await _reminderPublisher.PublishAsync(id);
 
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        return NoContent();
     }
 
     [HttpGet("{id}/status-history")]
@@ -210,30 +192,26 @@ public class AppointmentsController : ControllerBase
         if (request.Reason.Trim().Length > 500)
             return BadRequest(new { message = "Razlog može imati najviše 500 znakova." });
 
-        try
-        {
-            var cancelled = await _appointmentService.CancelAsync(
-                id,
-                userId,
-                request.Reason,
-                User.IsInRole(UserRoles.Admin));
-            if (!cancelled)
-                return NotFound();
+        var cancelled = await _appointmentService.CancelAsync(
+            id,
+            userId,
+            request.Reason,
+            User.IsInRole(UserRoles.Admin));
+        if (!cancelled)
+            return NotFound();
 
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
+        return NoContent();
     }
 
     [HttpGet("admin")]
     [Authorize(Roles = UserRoles.Admin)]
-    public async Task<ActionResult<List<AppointmentListDto>>> GetAllAppointmentsForAdmin()
+    public async Task<ActionResult<PagedResult<AppointmentListDto>>> GetAllAppointmentsForAdmin(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
     {
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
         var appointments =
-            await _appointmentService.GetAllForListAsync();
+            await _appointmentService.GetAllForListAsync(page, pageSize);
 
         return Ok(appointments);
     }
@@ -252,7 +230,10 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet("my")]
-    public async Task<ActionResult<List<AppointmentListDto>>> GetMyAppointments()
+    public async Task<ActionResult<PagedResult<AppointmentListDto>>> GetMyAppointments(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize,
+        string? status = null)
     {
         var userIdClaim = User.FindFirst(
             System.Security.Claims.ClaimTypes.NameIdentifier);
@@ -261,9 +242,14 @@ public class AppointmentsController : ControllerBase
             return Unauthorized();
 
         var userId = int.Parse(userIdClaim.Value);
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
 
         var appointments =
-            await _appointmentService.GetMyForListAsync(userId);
+            await _appointmentService.GetMyForListAsync(
+                userId,
+                page,
+                pageSize,
+                status);
 
         return Ok(appointments);
     }
@@ -276,23 +262,13 @@ public class AppointmentsController : ControllerBase
     int serviceId,
     DateTime date)
     {
-        try
-        {
-            var slots = await _appointmentService.GetAvailableSlotsAsync(
-                salonId,
-                employeeId,
-                serviceId,
-                date);
+        var slots = await _appointmentService.GetAvailableSlotsAsync(
+            salonId,
+            employeeId,
+            serviceId,
+            date);
 
-            return Ok(slots);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        return Ok(slots);
     }
 
     [HttpGet("dashboard-available-slots")]
@@ -300,22 +276,11 @@ public class AppointmentsController : ControllerBase
     public async Task<ActionResult<DashboardAvailableSlotsDto>>
      GetDashboardAvailableSlots(int? salonId)
     {
-        try
-        {
-            var result =
-                await _appointmentService.GetDashboardAvailableSlotsAsync(
-                    DateTime.Today,
-                    salonId);
+        var result = await _appointmentService.GetDashboardAvailableSlotsAsync(
+            DateTime.Today,
+            salonId);
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        return Ok(result);
     }
 }
 

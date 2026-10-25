@@ -14,31 +14,63 @@ class AllSalonsScreen extends StatefulWidget {
 
 class _AllSalonsScreenState extends State<AllSalonsScreen> {
   final ApiService _apiService = ApiService();
+  final ScrollController _scrollController = ScrollController();
 
   List<Salon> _salons = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  int _page = 1;
+  int _totalPages = 1;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_loadNextPageWhenVisible);
     _loadSalons();
   }
 
-  Future<void> _loadSalons() async {
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_loadNextPageWhenVisible)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _loadNextPageWhenVisible() {
+    if (_scrollController.position.extentAfter < 400 &&
+        !_isLoading &&
+        !_isLoadingMore &&
+        _page < _totalPages) {
+      _loadSalons(page: _page + 1, append: true);
+    }
+  }
+
+  Future<void> _loadSalons({int page = 1, bool append = false}) async {
+    if (append) {
+      _isLoadingMore = true;
+    } else {
+      _isLoading = true;
+    }
     try {
-      final salons = await _apiService.getSalons();
+      final result = await _apiService.getSalonsPage(page: page);
 
       if (!mounted) return;
 
       setState(() {
-        _salons = salons.where((salon) => salon.isActive).toList();
+        final salons = result.items.where((salon) => salon.isActive).toList();
+        _salons = append ? [..._salons, ...salons] : salons;
+        _page = result.page;
+        _totalPages = result.totalPages;
         _isLoading = false;
+        _isLoadingMore = false;
       });
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
         _isLoading = false;
+        _isLoadingMore = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,6 +91,7 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : GridView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -66,8 +99,11 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
                 mainAxisSpacing: 12,
                 childAspectRatio: 0.72,
               ),
-              itemCount: _salons.length,
+              itemCount: _salons.length + (_page < _totalPages ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index >= _salons.length) {
+                  return const Center(child: CircularProgressIndicator());
+                }
                 final salon = _salons[index];
 
                 return Card(

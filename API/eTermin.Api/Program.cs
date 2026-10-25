@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using DotNetEnv;
+using eTermin.Api.Middleware;
 
 namespace eTemin.Api
 {
@@ -24,18 +25,6 @@ namespace eTemin.Api
             Env.TraversePath().Load();
 
             var builder = WebApplication.CreateBuilder(args);
-
-
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AngularClient", policy =>
-                {
-                    policy
-                        .WithOrigins("http://localhost:4200")
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
-                });
-            });
 
 
             var jwtKey = builder.Configuration["Jwt:Key"]
@@ -194,8 +183,8 @@ namespace eTemin.Api
                     admin.Role = UserRoles.Admin;
                     admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword);
                     context.SaveChanges();
-                    Console.WriteLine(
-                        $"Admin lozinka je resetovana za nalog {adminEmail}. Pokreni API ponovo bez reset profila.");
+                    app.Logger.LogInformation(
+                        "Development admin password reset for configured account. Restart the API without the reset flag.");
                     return;
                 }
 
@@ -217,7 +206,7 @@ namespace eTemin.Api
 
             //app.UseHttpsRedirection();
 
-            app.UseCors("AngularClient");
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             app.UseAuthentication();
             app.UseAuthorization();

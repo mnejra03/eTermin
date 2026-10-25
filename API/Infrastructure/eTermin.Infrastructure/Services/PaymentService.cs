@@ -1,4 +1,4 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
@@ -71,7 +71,7 @@ public class PaymentService : IPaymentService
             return null;
 
         if (appointment.Status != AppointmentStatuses.Pending)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 appointment.Status == AppointmentStatuses.Cancelled
                     ? "Nije moguće platiti otkazani termin."
                     : "Nije moguće platiti termin koji nije na čekanju.");
@@ -82,7 +82,7 @@ public class PaymentService : IPaymentService
             .ToListAsync();
 
         if (existingPayments.Any(x => x.Status == PaymentStatuses.Completed))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Termin je već plaćen.");
 
         var existingPendingPayment = existingPayments
@@ -122,14 +122,14 @@ public class PaymentService : IPaymentService
             return null;
 
         if (payment.Status != PaymentStatuses.Pending)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "PayPal nalog se može kreirati samo za uplatu na čekanju.");
 
         var appointment = await _context.Appointments
             .FirstAsync(x => x.Id == payment.AppointmentId);
 
         if (appointment.Status != AppointmentStatuses.Pending)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 appointment.Status == AppointmentStatuses.Cancelled
                     ? "Nije moguće kreirati PayPal nalog za otkazani termin."
                     : "Nije moguće platiti termin koji nije na čekanju.");
@@ -171,7 +171,7 @@ public class PaymentService : IPaymentService
             .FirstAsync(x => x.Id == payment.AppointmentId);
 
         if (appointment.Status == AppointmentStatuses.Cancelled)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Termin je otkazan; naplata nije pokrenuta.");
 
         if (payment.Status == PaymentStatuses.Completed)
@@ -181,15 +181,15 @@ public class PaymentService : IPaymentService
                 appointment.Status,
                 AppointmentStatuses.Confirmed) ||
             appointment.Status != AppointmentStatuses.Pending)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Termin više nije na čekanju; naplata nije pokrenuta.");
 
         if (string.IsNullOrWhiteSpace(payment.PayPalOrderId))
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Za ovu uplatu nije kreiran PayPal nalog.");
 
         if (payment.Status != PaymentStatuses.Pending)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Samo uplata na čekanju može biti naplaćena.");
 
         var captureId = await _payPalService.CaptureOrderAsync(
@@ -225,7 +225,7 @@ public class PaymentService : IPaymentService
         if (status == PaymentStatuses.Completed &&
             string.IsNullOrWhiteSpace(transactionId))
         {
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Uplata se može označiti završenom samo nakon PayPal potvrde.");
         }
 
@@ -236,16 +236,16 @@ public class PaymentService : IPaymentService
                     x.Id == payment.AppointmentId);
 
             if (appointment == null)
-                throw new InvalidOperationException("Termin uplate nije pronađen.");
+                throw new BusinessException("Termin uplate nije pronađen.");
 
             if (appointment.Status == AppointmentStatuses.Cancelled)
-                throw new InvalidOperationException(
+                throw new BusinessException(
                     "Termin je otkazan; uplata se ne može potvrditi.");
 
             if (!AppointmentStateMachine.CanTransition(
                     appointment.Status,
                     AppointmentStatuses.Confirmed))
-                throw new InvalidOperationException(
+                throw new BusinessException(
                     $"Nije dozvoljen prelaz statusa termina '{appointment.Status}' u '{AppointmentStatuses.Confirmed}'.");
 
             var previousStatus = appointment.Status;

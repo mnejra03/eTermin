@@ -15,12 +15,16 @@ public class NotificationService : INotificationService
         _context = context;
     }
 
-    public async Task<List<NotificationDto>> GetByUserIdAsync(int userId)
+    public async Task<PagedResult<NotificationDto>> GetByUserIdAsync(
+        int userId,
+        int page,
+        int pageSize)
     {
         return await _context.Notifications
             .Where(n => n.UserId == userId &&
                 (n.Type != "AppointmentReminder" || n.CreatedAt <= DateTime.UtcNow))
             .OrderByDescending(n => n.CreatedAt)
+            .ThenByDescending(n => n.Id)
             .Select(n => new NotificationDto
             {
                 Id = n.Id,
@@ -32,7 +36,16 @@ public class NotificationService : INotificationService
                 IsRead = n.IsRead,
                 CreatedAt = n.CreatedAt
             })
-            .ToListAsync();
+            .ToPagedResultAsync(page, pageSize);
+    }
+
+    public Task<int> GetUnreadCountByUserIdAsync(int userId)
+    {
+        return _context.Notifications
+            .CountAsync(n => n.UserId == userId &&
+                !n.IsRead &&
+                (n.Type != "AppointmentReminder" ||
+                    n.CreatedAt <= DateTime.UtcNow));
     }
 
     public async Task<NotificationDto?> GetByIdAsync(int id)

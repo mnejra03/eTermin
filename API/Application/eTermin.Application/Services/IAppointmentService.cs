@@ -5,7 +5,7 @@ namespace eTermin.Application.Services;
 
 public interface IAppointmentService
 {
-    Task<List<AppointmentDto>> GetAllAsync();
+    Task<PagedResult<AppointmentDto>> GetAllAsync(int page, int pageSize);
 
     Task<AppointmentDto?> GetByIdAsync(int id);
 
@@ -28,9 +28,15 @@ public interface IAppointmentService
     DateTime date,
     int? salonId);
 
-    Task<List<AppointmentListDto>> GetAllForListAsync();
+    Task<PagedResult<AppointmentListDto>> GetAllForListAsync(
+        int page,
+        int pageSize);
 
-    Task<List<AppointmentListDto>> GetMyForListAsync(int userId);
+    Task<PagedResult<AppointmentListDto>> GetMyForListAsync(
+        int userId,
+        int page,
+        int pageSize,
+        string? status);
 
     Task<DashboardAvailableSlotsDto> GetDashboardAvailableSlotsAsync(
     DateTime date,

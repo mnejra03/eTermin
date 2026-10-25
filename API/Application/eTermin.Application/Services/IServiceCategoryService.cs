@@ -4,7 +4,7 @@ namespace eTermin.Application.Services;
 
 public interface IServiceCategoryService
 {
-    Task<List<ServiceCategoryDto>> GetAllAsync();
+    Task<PagedResult<ServiceCategoryDto>> GetAllAsync(int page, int pageSize);
 
     Task<ServiceCategoryDto?> GetByIdAsync(int id);
 

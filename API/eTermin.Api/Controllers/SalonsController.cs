@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using System.IO;
 
 using eTermin.Domain.Constants;
+using eTermin.Api.QueryParameters;
 
 namespace eTermin.Api.Controllers;
 
@@ -26,17 +27,23 @@ public class SalonsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<SalonDto>>> GetSalons()
+    public async Task<ActionResult<PagedResult<SalonDto>>> GetSalons(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
     {
-        var salons = await _salonService.GetAllAsync();
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        var salons = await _salonService.GetAllAsync(page, pageSize);
 
         return Ok(salons);
     }
 
     [HttpGet("popular")]
-    public async Task<ActionResult<List<SalonDto>>> GetPopularSalons()
+    public async Task<ActionResult<PagedResult<SalonDto>>> GetPopularSalons(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
     {
-        var salons = await _salonService.GetPopularAsync();
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        var salons = await _salonService.GetPopularAsync(page, pageSize);
 
         return Ok(salons);
     }
@@ -45,19 +52,11 @@ public class SalonsController : ControllerBase
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<SalonDto>> CreateSalon(SalonDto salonDto)
     {
-        try
-        {
-            var salon = await _salonService.CreateAsync(salonDto);
-
-            return CreatedAtAction(
-                nameof(GetSalon),
-                new { id = salon.Id },
-                salon);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var salon = await _salonService.CreateAsync(salonDto);
+        return CreatedAtAction(
+            nameof(GetSalon),
+            new { id = salon.Id },
+            salon);
     }
 
     [HttpGet("{id}")]
@@ -77,15 +76,7 @@ public class SalonsController : ControllerBase
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> UpdateSalon(int id, SalonDto salonDto)
     {
-        bool updated;
-        try
-        {
-            updated = await _salonService.UpdateAsync(id, salonDto);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var updated = await _salonService.UpdateAsync(id, salonDto);
 
         if (!updated)
         {
@@ -126,46 +117,39 @@ public class SalonsController : ControllerBase
             });
         }
 
+        var uploadDirectory = Path.Combine(
+            _environment.WebRootPath ??
+                Path.Combine(_environment.ContentRootPath, "wwwroot"),
+            "uploads",
+            "salons");
+        Directory.CreateDirectory(uploadDirectory);
+        var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        var filePath = Path.Combine(uploadDirectory, fileName);
+
         try
         {
-            var uploadDirectory = Path.Combine(
-                _environment.WebRootPath ??
-                    Path.Combine(_environment.ContentRootPath, "wwwroot"),
-                "uploads",
-                "salons");
-            Directory.CreateDirectory(uploadDirectory);
-            var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-            var filePath = Path.Combine(uploadDirectory, fileName);
-
-            try
+            await using (var output = System.IO.File.Create(filePath))
             {
-                await using (var output = System.IO.File.Create(filePath))
-                {
-                    await using var input = file.OpenReadStream();
-                    await input.CopyToAsync(output);
-                }
+                await using var input = file.OpenReadStream();
+                await input.CopyToAsync(output);
+            }
 
-                var image = await _salonService.AddImageAsync(
-                    id,
-                    $"/uploads/salons/{fileName}",
-                    sortOrder);
-                if (image == null)
-                {
-                    System.IO.File.Delete(filePath);
-                    return NotFound();
-                }
-                return Ok(image);
-            }
-            catch
+            var image = await _salonService.AddImageAsync(
+                id,
+                $"/uploads/salons/{fileName}",
+                sortOrder);
+            if (image == null)
             {
-                if (System.IO.File.Exists(filePath))
-                    System.IO.File.Delete(filePath);
-                throw;
+                System.IO.File.Delete(filePath);
+                return NotFound();
             }
+            return Ok(image);
         }
-        catch (InvalidOperationException exception)
+        catch
         {
-            return BadRequest(new { message = exception.Message });
+            if (System.IO.File.Exists(filePath))
+                System.IO.File.Delete(filePath);
+            throw;
         }
     }
 
@@ -173,15 +157,7 @@ public class SalonsController : ControllerBase
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> DeleteSalon(int id)
     {
-        bool deleted;
-        try
-        {
-            deleted = await _salonService.DeleteAsync(id);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new { message = exception.Message });
-        }
+        var deleted = await _salonService.DeleteAsync(id);
 
         if (!deleted)
         {

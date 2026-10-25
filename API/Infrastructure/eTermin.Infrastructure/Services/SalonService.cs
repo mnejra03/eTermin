@@ -16,7 +16,9 @@ public class SalonService : ISalonService
         _context = context;
     }
 
-    public async Task<List<SalonDto>> GetAllAsync()
+    public async Task<PagedResult<SalonDto>> GetAllAsync(
+        int page,
+        int pageSize)
     {
         return await _context.Salons
             .Select(s => new SalonDto
@@ -49,10 +51,14 @@ public class SalonService : ISalonService
                     .ToList(),
                 IsActive = s.IsActive
             })
-            .ToListAsync();
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.Id)
+            .ToPagedResultAsync(page, pageSize);
     }
 
-    public async Task<List<SalonDto>> GetPopularAsync()
+    public async Task<PagedResult<SalonDto>> GetPopularAsync(
+        int page,
+        int pageSize)
     {
         return await _context.Salons
             .Where(salon => salon.IsActive)
@@ -92,7 +98,8 @@ public class SalonService : ISalonService
             })
             .OrderByDescending(salon => salon.ReservationCount)
             .ThenBy(salon => salon.Name)
-            .ToListAsync();
+            .ThenBy(salon => salon.Id)
+            .ToPagedResultAsync(page, pageSize);
     }
 
     public async Task<SalonDto?> GetByIdAsync(int id)
@@ -135,7 +142,7 @@ public class SalonService : ISalonService
     public async Task<SalonDto> CreateAsync(SalonDto salonDto)
     {
         if (!await _context.Cities.AnyAsync(city => city.Id == salonDto.CityId))
-            throw new InvalidOperationException("Odabrani grad ne postoji.");
+            throw new BusinessException("Odabrani grad ne postoji.");
 
         var salon = new Salon
         {
@@ -170,7 +177,7 @@ public class SalonService : ISalonService
         }
 
         if (!await _context.Cities.AnyAsync(city => city.Id == salonDto.CityId))
-            throw new InvalidOperationException("Odabrani grad ne postoji.");
+            throw new BusinessException("Odabrani grad ne postoji.");
 
         salon.Name = salonDto.Name;
         salon.Description = salonDto.Description;
@@ -223,7 +230,7 @@ public class SalonService : ISalonService
             return null;
 
         if (sortOrder < 0)
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 "Redoslijed slike ne može biti negativan.");
 
         await _context.SalonImages
@@ -279,7 +286,7 @@ public class SalonService : ISalonService
             if (appointmentCount > 0)
                 reasons.Add($"ima {appointmentCount} termina");
 
-            throw new InvalidOperationException(
+            throw new BusinessException(
                 $"Salon se ne može obrisati jer {string.Join(", ", reasons)}. " +
                 "Umjesto brisanja, deaktivirajte salon postavljanjem polja IsActive na false.");
         }

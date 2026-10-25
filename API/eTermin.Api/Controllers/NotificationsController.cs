@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using eTermin.Domain.Constants;
+using eTermin.Api.QueryParameters;
 
 namespace eTermin.Api.Controllers;
 
@@ -22,8 +23,10 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet("my")]
-    public async Task<ActionResult<List<NotificationDto>>>
-        GetMyNotifications()
+    public async Task<ActionResult<PagedResult<NotificationDto>>>
+        GetMyNotifications(
+            int page = 1,
+            int pageSize = PaginationOptions.DefaultPageSize)
     {
         var userIdClaim = User.FindFirst(
             ClaimTypes.NameIdentifier);
@@ -33,12 +36,29 @@ public class NotificationsController : ControllerBase
 
         var userId = int.Parse(userIdClaim.Value);
 
-        Console.WriteLine($"NOTIFICATION USER ID: {userId}");
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
 
         var notifications =
-            await _notificationService.GetByUserIdAsync(userId);
+            await _notificationService.GetByUserIdAsync(
+                userId,
+                page,
+                pageSize);
 
         return Ok(notifications);
+    }
+
+    [HttpGet("my/unread-count")]
+    public async Task<ActionResult<object>> GetMyUnreadNotificationCount()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+            return Unauthorized();
+
+        var userId = int.Parse(userIdClaim.Value);
+        var unreadCount =
+            await _notificationService.GetUnreadCountByUserIdAsync(userId);
+
+        return Ok(new { unreadCount });
     }
 
     [HttpGet("{id}")]
