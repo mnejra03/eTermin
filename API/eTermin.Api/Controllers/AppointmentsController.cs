@@ -3,6 +3,7 @@ using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace eTermin.Api.Controllers;
 
@@ -23,6 +24,7 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<AppointmentDto>>> GetAppointments()
     {
         var appointments = await _appointmentService.GetAllAsync();
@@ -37,6 +39,19 @@ public class AppointmentsController : ControllerBase
 
         if (appointment == null)
             return NotFound();
+
+        if (!User.IsInRole("Admin"))
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null ||
+                !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            if (appointment.UserId != userId)
+                return NotFound();
+        }
 
         return Ok(appointment);
     }
@@ -150,6 +165,7 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteAppointment(int id)
     {
         var deleted =
