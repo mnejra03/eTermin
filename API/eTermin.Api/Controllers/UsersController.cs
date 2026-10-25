@@ -54,8 +54,15 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
-        var deleted =
-            await _userService.DeleteAsync(id);
+        bool deleted;
+        try
+        {
+            deleted = await _userService.DeleteAsync(id);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
 
         if (!deleted)
             return NotFound();

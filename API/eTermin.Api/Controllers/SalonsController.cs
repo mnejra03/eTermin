@@ -85,7 +85,15 @@ public class SalonsController : ControllerBase
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> DeleteSalon(int id)
     {
-        var deleted = await _salonService.DeleteAsync(id);
+        bool deleted;
+        try
+        {
+            deleted = await _salonService.DeleteAsync(id);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
 
         if (!deleted)
         {
