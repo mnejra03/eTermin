@@ -15,7 +15,7 @@ Sistem omogućava korisnicima pregled salona, zaposlenika i usluga, rezervaciju 
 Sistem se sastoji od:
 
 - REST API backend aplikacije
-- Flutter Windows desktop aplikacije za administraciju (legacy WPF kod je u `Desktop/eTermin.Desktop/`)
+- Flutter Windows desktop aplikacije za administraciju
 - Flutter mobilne aplikacije za korisnike
 
 Backend predstavlja centralni dio sistema i koristi SQL Server bazu podataka.
@@ -26,22 +26,20 @@ Backend predstavlja centralni dio sistema i koristi SQL Server bazu podataka.
 
 ```text
 eTermin/
-|-- API/eTermin.Api/
-|-- Application/eTermin.Application/
-|-- Domain/eTermin.Domain/
-|-- Infrastructure/eTermin.Infrastructure/
-|-- Worker/eTermin.Worker/
+|-- API/
+|   |-- eTermin.Api/            # REST API and Dockerfile
+|   |-- eTermin.Application/
+|   |-- eTermin.Domain/
+|   `-- eTermin.Infrastructure/
+|-- Worker/eTermin.Worker/       # .NET background worker and Dockerfile
 |-- Desktop/eTermin.Admin/       # Flutter Windows admin
-|-- Desktop/eTermin.Desktop/     # legacy WPF client
 |-- Mobile/eTermin.Mobile/       # Flutter mobile app
 |-- docker-compose.yml
-|-- Dockerfile.api
-|-- Dockerfile.worker
 `-- eTermin.sln
 ```
 ### API
 
-ASP.NET Core Web API aplikacija koja predstavlja backend sistema.
+Backend projekti su grupisani u `API/`, kao i u referentnom JetGo repozitoriju. ASP.NET Core Web API nalazi se u `API/eTermin.Api/`.
 
 ### Application
 
@@ -57,7 +55,7 @@ Sadrži pristup bazi podataka, Entity Framework Core konfiguraciju i implementac
 
 ### Desktop
 
-Flutter Windows desktop aplikacija namijenjena administratoru nalazi se u `Desktop/eTermin.Admin/`; `Desktop/eTermin.Desktop/` je stari WPF klijent.
+Flutter Windows desktop aplikacija namijenjena administratoru nalazi se u `Desktop/eTermin.Admin/`.
 
 ### Mobile
 
@@ -248,7 +246,7 @@ Ako se projekat pokreće prvi put, početni podaci će biti automatski kreirani.
 
 # Pokretanje Desktop aplikacije
 
-Aktivna desktop aplikacija je Flutter Windows klijent u `Desktop/eTermin.Admin/`. `Desktop/eTermin.Desktop/` je legacy WPF kod.
+Desktop aplikacija je Flutter Windows klijent u `Desktop/eTermin.Admin/`.
 
 1. Pokrenite Docker Desktop.
 2. Iz glavnog foldera projekta pokrenite backend:

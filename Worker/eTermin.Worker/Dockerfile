@@ -7,9 +7,9 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 COPY ["Worker/eTermin.Worker/eTermin.Worker.csproj", "Worker/eTermin.Worker/"]
-COPY ["Application/eTermin.Application/eTermin.Application.csproj", "Application/eTermin.Application/"]
-COPY ["Domain/eTermin.Domain/eTermin.Domain.csproj", "Domain/eTermin.Domain/"]
-COPY ["Infrastructure/eTermin.Infrastructure/eTermin.Infrastructure.csproj", "Infrastructure/eTermin.Infrastructure/"]
+COPY ["API/Application/eTermin.Application/eTermin.Application.csproj", "API/Application/eTermin.Application/"]
+COPY ["API/Domain/eTermin.Domain/eTermin.Domain.csproj", "API/Domain/eTermin.Domain/"]
+COPY ["API/Infrastructure/eTermin.Infrastructure/eTermin.Infrastructure.csproj", "API/Infrastructure/eTermin.Infrastructure/"]
 RUN dotnet restore "Worker/eTermin.Worker/eTermin.Worker.csproj"
 
 COPY . .

@@ -40,7 +40,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: API/eTermin.Api/Dockerfile
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Development
@@ -77,7 +77,7 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile.worker
+      dockerfile: Worker/eTermin.Worker/Dockerfile
     restart: unless-stopped
     environment:
       DOTNET_ENVIRONMENT: Production
