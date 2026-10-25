@@ -5,6 +5,7 @@ import '../models/service.dart';
 import '../services/api_service.dart';
 
 import 'booking_screen.dart';
+import '../widgets/salon_image.dart';
 
 class SalonDetailsScreen extends StatefulWidget {
   final Salon salon;
@@ -113,14 +114,11 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
 
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                _getSalonImage(),
+              child: SalonImageView(
+                imageUrl: widget.salon.imageUrl,
                 width: double.infinity,
                 height: 145,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) {
-                  return _buildImagePlaceholder();
-                },
               ),
             ),
 
@@ -371,37 +369,6 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
     }
 
     return Icons.spa_outlined;
-  }
-
-  String _getSalonImage() {
-    switch (widget.salon.name.toLowerCase()) {
-      case 'bella':
-        return 'assets/images/beauty.jpg';
-
-      case 'glow beauty':
-        return 'assets/images/glow_beauty.jpg';
-
-      case 'belle studio':
-        return 'assets/images/belle.jpg';
-
-      default:
-        return 'assets/images/elegance_beauty.jpg';
-    }
-  }
-
-  Widget _buildImagePlaceholder() {
-    return Container(
-      width: double.infinity,
-      height: 145,
-      color: const Color(0xFFF1ECF8),
-      child: const Center(
-        child: Icon(
-          Icons.storefront_rounded,
-          color: Color(0xFF9C27B0),
-          size: 50,
-        ),
-      ),
-    );
   }
 
   Widget _buildBottomNavigation() {

@@ -10,6 +10,7 @@ public class SalonDto
     public string CityName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public int EmployeeCount { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public List<SalonImageDto>? Images { get; set; }
     public bool IsActive { get; set; }

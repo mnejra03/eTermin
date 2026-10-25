@@ -20,6 +20,7 @@ import 'login_screen.dart';
 import 'change_password_screen.dart';
 
 import 'notifications_screen.dart';
+import '../widgets/salon_image.dart';
 
 class HomeScreen extends StatefulWidget {
   final String firstName;
@@ -173,10 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const Text('Ne'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(
-              context,
-              reasonController.text.trim().isNotEmpty,
-            ),
+            onPressed: () =>
+                Navigator.pop(context, reasonController.text.trim().isNotEmpty),
             child: const Text('Da, otkaĹľi'),
           ),
         ],
@@ -195,18 +194,17 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       await _loadMyAppointments();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Termin je otkazan.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Termin je otkazan.')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Termin nije otkazan: $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Termin nije otkazan: $error')));
     } finally {
       reasonController.dispose();
     }
   }
+
   Future<void> _payAppointment(Map<String, dynamic> appointment) async {
     final appointmentId = appointment['id'];
     final salonId = appointment['salonId'];
@@ -227,9 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _payingAppointmentIds.add(appointmentId));
 
     try {
-      var salon = _firstOrNull(
-        _salons.where((item) => item.id == salonId),
-      );
+      var salon = _firstOrNull(_salons.where((item) => item.id == salonId));
       var service = _firstOrNull(
         _services.where((item) => item.id == serviceId),
       );
@@ -262,8 +258,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final paymentId = pendingPayment == null
           ? await _apiService.createPayment(
               appointmentId: appointmentId,
-              amount: (appointment['price'] as num?)?.toDouble() ??
-                  service!.price,
+              amount:
+                  (appointment['price'] as num?)?.toDouble() ?? service!.price,
               paymentMethod: 'PayPal',
             )
           : pendingPayment['id'] as int;
@@ -306,9 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
       values.isEmpty ? null : values.first;
 
   void _message(String value) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(value)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
   }
 
   Widget _buildPopularSalons() {
@@ -373,22 +367,10 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                _getSalonImage(salon),
+              child: SalonImageView(
+                imageUrl: salon.imageUrl,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) {
-                  return Container(
-                    color: const Color(0xFFF1ECF8),
-                    child: const Center(
-                      child: Icon(
-                        Icons.storefront_rounded,
-                        color: Color(0xFF9C27B0),
-                        size: 35,
-                      ),
-                    ),
-                  );
-                },
               ),
             ),
           ),
@@ -431,31 +413,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(7),
                 ),
               ),
-              child: const Text('Pogledaj Ă˘â‚¬Ĺź', style: TextStyle(fontSize: 10)),
+              child: const Text(
+                'Pogledaj Ă˘â‚¬Ĺź',
+                style: TextStyle(fontSize: 10),
+              ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _getSalonImage(Salon salon) {
-    switch (salon.name.toLowerCase()) {
-      case 'belle studio':
-        return 'assets/images/belle.jpg';
-
-      case 'glow beauty':
-        return 'assets/images/glow_beauty.jpg';
-
-      case 'beauty studio':
-        return 'assets/images/beauty.jpg';
-
-      case 'elegance beauty studio':
-        return 'assets/images/elegance_beauty.jpg';
-
-      default:
-        return 'assets/images/elegance_beauty.jpg';
-    }
   }
 
   Future<void> _loadSalons() async {
@@ -645,7 +611,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: primaryColor,
                   ),
                 ),
-                const TextSpan(text: 'Ä‘Ĺşâ€â€ą', style: TextStyle(fontSize: 22)),
+                const TextSpan(
+                  text: 'Ä‘Ĺşâ€â€ą',
+                  style: TextStyle(fontSize: 22),
+                ),
               ],
             ),
           ),
@@ -1265,8 +1234,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 contentPadding: const EdgeInsets.all(8),
                                 leading: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.asset(
-                                    _getSalonImage(salon),
+                                  child: SalonImageView(
+                                    imageUrl: salon.imageUrl,
                                     width: 65,
                                     height: 65,
                                     fit: BoxFit.cover,
@@ -1591,7 +1560,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: lightPurple,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.calendar_month, color: primaryColor, size: 22),
+                child: Icon(
+                  Icons.calendar_month,
+                  color: primaryColor,
+                  size: 22,
+                ),
               ),
 
               const SizedBox(width: 10),
@@ -1683,7 +1656,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   if (status == 'Pending' && !isPaid)
                     FilledButton.tonalIcon(
-                      onPressed: _payingAppointmentIds.contains(appointment['id'])
+                      onPressed:
+                          _payingAppointmentIds.contains(appointment['id'])
                           ? null
                           : () => _payAppointment(appointment),
                       icon: _payingAppointmentIds.contains(appointment['id'])
@@ -1695,8 +1669,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           : const Icon(Icons.payment),
                       label: const Text('Plati putem PayPal-a'),
                     ),
-                  if ((status == 'Pending' || status == 'Confirmed') &&
-                      !isPaid)
+                  if ((status == 'Pending' || status == 'Confirmed') && !isPaid)
                     TextButton.icon(
                       onPressed: () => _cancelAppointment(appointment),
                       icon: const Icon(Icons.cancel_outlined),

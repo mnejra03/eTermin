@@ -1,4 +1,4 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
@@ -31,6 +31,8 @@ public class SalonService : ISalonService
                     .FirstOrDefault() ?? string.Empty,
                 PhoneNumber = s.PhoneNumber,
                 Email = s.Email,
+                EmployeeCount = _context.Employees.Count(
+                    employee => employee.SalonId == s.Id),
                 ImageUrl = s.Images
                     .OrderBy(image => image.SortOrder)
                     .Select(image => image.ImageUrl)
@@ -66,6 +68,8 @@ public class SalonService : ISalonService
                     .FirstOrDefault() ?? string.Empty,
                 PhoneNumber = s.PhoneNumber,
                 Email = s.Email,
+                EmployeeCount = _context.Employees.Count(
+                    employee => employee.SalonId == s.Id),
                 ImageUrl = s.Images
                     .OrderBy(image => image.SortOrder)
                     .Select(image => image.ImageUrl)
@@ -162,6 +166,47 @@ public class SalonService : ISalonService
                 CreatedAt = DateTime.UtcNow
             });
         }
+    }
+
+    public async Task<SalonImageDto?> AddImageAsync(
+        int salonId,
+        string imageUrl,
+        int sortOrder)
+    {
+        var salonExists = await _context.Salons
+            .AnyAsync(salon => salon.Id == salonId);
+        if (!salonExists)
+            return null;
+
+        if (sortOrder < 0)
+            throw new InvalidOperationException(
+                "Redoslijed slike ne može biti negativan.");
+
+        await _context.SalonImages
+            .Where(image =>
+                image.SalonId == salonId &&
+                image.SortOrder >= sortOrder)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(
+                    image => image.SortOrder,
+                    image => image.SortOrder + 1));
+
+        var salonImage = new SalonImage
+        {
+            SalonId = salonId,
+            ImageUrl = imageUrl,
+            SortOrder = sortOrder,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.SalonImages.Add(salonImage);
+        await _context.SaveChangesAsync();
+
+        return new SalonImageDto
+        {
+            Id = salonImage.Id,
+            ImageUrl = salonImage.ImageUrl,
+            SortOrder = salonImage.SortOrder
+        };
     }
 
     public async Task<bool> DeleteAsync(int id)

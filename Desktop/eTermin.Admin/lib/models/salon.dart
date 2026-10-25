@@ -8,6 +8,7 @@ class Salon {
     required this.cityName,
     required this.phoneNumber,
     required this.email,
+    required this.employeeCount,
     required this.imageUrl,
     required this.images,
     required this.isActive,
@@ -21,6 +22,7 @@ class Salon {
   final String cityName;
   final String phoneNumber;
   final String email;
+  final int employeeCount;
   final String imageUrl;
   final List<Map<String, dynamic>> images;
   final bool isActive;
@@ -34,6 +36,7 @@ class Salon {
     cityName: json['cityName']?.toString() ?? '',
     phoneNumber: json['phoneNumber']?.toString() ?? '',
     email: json['email']?.toString() ?? '',
+    employeeCount: (json['employeeCount'] as num?)?.toInt() ?? 0,
     imageUrl:
         json['imageUrl']?.toString() ??
         ((json['images'] as List?)?.firstOrNull

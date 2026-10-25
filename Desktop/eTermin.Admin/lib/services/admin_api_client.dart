@@ -46,6 +46,67 @@ class AdminApiClient {
     await _send('DELETE', path);
   }
 
+  Future<Map<String, dynamic>> uploadSalonImage({
+    required int salonId,
+    required List<int> bytes,
+    required String fileName,
+    required int sortOrder,
+  }) async {
+    final boundary = '----eTermin${DateTime.now().microsecondsSinceEpoch}';
+    final extension = fileName.split('.').last.toLowerCase();
+    final contentType = switch (extension) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      _ => throw const ApiException('Dozvoljeni su JPG, PNG i WEBP formati.'),
+    };
+    final safeFileName = fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final request = await _client.postUrl(
+      _baseUri.resolve('Salons/$salonId/images'),
+    );
+    request.headers
+      ..set(HttpHeaders.acceptHeader, ContentType.json.mimeType)
+      ..set(HttpHeaders.authorizationHeader, 'Bearer $token')
+      ..set(
+        HttpHeaders.contentTypeHeader,
+        'multipart/form-data; boundary=$boundary',
+      );
+    request
+      ..write('--$boundary\r\n')
+      ..write(
+        'Content-Disposition: form-data; name="file"; filename="$safeFileName"\r\n',
+      )
+      ..write('Content-Type: $contentType\r\n\r\n')
+      ..add(bytes)
+      ..write('\r\n--$boundary\r\n')
+      ..write('Content-Disposition: form-data; name="sortOrder"\r\n\r\n')
+      ..write('$sortOrder\r\n')
+      ..write('--$boundary--\r\n');
+
+    final response = await request.close();
+    final text = await utf8.decoder.bind(response).join();
+    dynamic decoded;
+    if (text.isNotEmpty) {
+      try {
+        decoded = jsonDecode(text);
+      } on FormatException {
+        decoded = text;
+      }
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = decoded is Map<String, dynamic>
+          ? decoded['message']?.toString()
+          : null;
+      throw ApiException(
+        message ?? 'API greška (HTTP ${response.statusCode}).',
+      );
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw const ApiException('API je vratio neočekivan odgovor za sliku.');
+    }
+    return decoded;
+  }
+
   Future<String> downloadToDownloads(String path, String fileName) async {
     final request = await _client.getUrl(_baseUri.resolve(path));
     request.headers
