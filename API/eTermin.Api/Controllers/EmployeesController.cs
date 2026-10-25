@@ -1,9 +1,11 @@
 ﻿using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace eTermin.Api.Controllers;
 
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class EmployeesController : ControllerBase
@@ -37,6 +39,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<EmployeeDto>> CreateEmployee(
         EmployeeDto employeeDto)
     {
@@ -49,6 +52,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateEmployee(
         int id,
         EmployeeDto employeeDto)
@@ -64,6 +68,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteEmployee(int id)
     {
         var deleted = await _employeeService.DeleteAsync(id);
