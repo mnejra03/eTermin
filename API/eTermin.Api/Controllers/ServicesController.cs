@@ -1,7 +1,9 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+
+using eTermin.Domain.Constants;
 
 namespace eTermin.Api.Controllers;
 
@@ -39,25 +41,40 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<ServiceDto>> CreateService(
         ServiceDto serviceDto)
     {
-        var service = await _serviceService.CreateAsync(serviceDto);
+        try
+        {
+            var service = await _serviceService.CreateAsync(serviceDto);
 
-        return CreatedAtAction(
-            nameof(GetService),
-            new { id = service.Id },
-            service);
+            return CreatedAtAction(
+                nameof(GetService),
+                new { id = service.Id },
+                service);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> UpdateService(
         int id,
         ServiceDto serviceDto)
     {
-        var updated = await _serviceService.UpdateAsync(id, serviceDto);
+        bool updated;
+        try
+        {
+            updated = await _serviceService.UpdateAsync(id, serviceDto);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
 
         if (!updated)
         {
@@ -68,7 +85,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> DeleteService(int id)
     {
         try

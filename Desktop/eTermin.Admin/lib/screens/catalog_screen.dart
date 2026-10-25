@@ -18,6 +18,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   List<Map<String, dynamic>> _items = [];
   List<Map<String, dynamic>> _salons = [];
   List<Map<String, dynamic>> _services = [];
+  List<Map<String, dynamic>> _categories = [];
   bool _loading = true;
   String? _error;
   String _search = '';
@@ -42,12 +43,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
         widget.api.getList(_endpoint),
         widget.api.getList('Salons'),
         if (_employees) widget.api.getList('Services'),
+        if (!_employees) widget.api.getList('ServiceCategories'),
       ]);
       if (!mounted) return;
       setState(() {
         _items = results[0];
         _salons = results[1];
-        if (_employees) _services = results[2];
+        if (_employees) {
+          _services = results[2];
+        } else {
+          _categories = results[2];
+        }
       });
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
@@ -64,6 +70,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         item: item,
         salons: _salons,
         services: _services,
+        categories: _categories,
       ),
     );
     if (result == null) return;
@@ -150,7 +157,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
-                onPressed: _salons.isEmpty ? null : () => _edit(),
+                onPressed:
+                    _salons.isEmpty || (!_employees && _categories.isEmpty)
+                    ? null
+                    : () => _edit(),
                 icon: const Icon(Icons.add),
                 label: Text('Dodaj ${_employees ? 'zaposlenika' : 'uslugu'}'),
               ),
@@ -212,6 +222,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 : const [
                     DataColumn(label: Text('Usluga')),
                     DataColumn(label: Text('Salon')),
+                    DataColumn(label: Text('Kategorija')),
                     DataColumn(label: Text('Trajanje')),
                     DataColumn(label: Text('Cijena')),
                     DataColumn(label: Text('Status')),
@@ -248,6 +259,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       : [
                           DataCell(Text(item['name']?.toString() ?? '')),
                           DataCell(Text(salonNames[item['salonId']] ?? '')),
+                          DataCell(
+                            Text(item['serviceCategoryName']?.toString() ?? ''),
+                          ),
                           DataCell(
                             Text('${item['durationInMinutes'] ?? 0} min'),
                           ),
@@ -295,6 +309,7 @@ class _CatalogEditorDialog extends StatefulWidget {
     required this.kind,
     required this.salons,
     required this.services,
+    required this.categories,
     this.item,
   });
 
@@ -302,6 +317,7 @@ class _CatalogEditorDialog extends StatefulWidget {
   final Map<String, dynamic>? item;
   final List<Map<String, dynamic>> salons;
   final List<Map<String, dynamic>> services;
+  final List<Map<String, dynamic>> categories;
 
   @override
   State<_CatalogEditorDialog> createState() => _CatalogEditorDialogState();
@@ -311,8 +327,11 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
   final _formKey = GlobalKey<FormState>();
   late final Map<String, TextEditingController> _fields;
   late int? _salonId;
+  late int? _categoryId;
   late bool _active;
   late Set<int> _serviceIds;
+  final Map<int, List<TimeOfDay>> _workingSchedule = {};
+  String? _scheduleError;
   bool get _employees => widget.kind == CatalogKind.employees;
 
   @override
@@ -320,25 +339,28 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
     super.initState();
     final item = widget.item ?? {};
     final keys = _employees
-        ? [
-            'firstName',
-            'lastName',
-            'email',
-            'phoneNumber',
-            'position',
-            'workingHours',
-          ]
+        ? ['firstName', 'lastName', 'email', 'phoneNumber', 'position']
         : ['name', 'description', 'durationInMinutes', 'price'];
     _fields = {
       for (final key in keys)
         key: TextEditingController(text: item[key]?.toString() ?? ''),
     };
     _salonId = (item['salonId'] as num?)?.toInt();
+    _categoryId = (item['serviceCategoryId'] as num?)?.toInt();
     _active = item['isActive'] as bool? ?? true;
     _serviceIds = ((item['serviceIds'] as List?) ?? [])
         .whereType<num>()
         .map((value) => value.toInt())
         .toSet();
+    for (final entry in (item['workingSchedule'] as List?) ?? const []) {
+      if (entry is! Map) continue;
+      final day = (entry['dayOfWeek'] as num?)?.toInt();
+      final start = _parseTime(entry['startTime']);
+      final end = _parseTime(entry['endTime']);
+      if (day != null && start != null && end != null) {
+        _workingSchedule[day] = [start, end];
+      }
+    }
   }
 
   @override
@@ -384,7 +406,7 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
                   _field('email', 'Email', required: true),
                   _field('phoneNumber', 'Telefon'),
                   _field('position', 'Pozicija'),
-                  _field('workingHours', 'Radno vrijeme'),
+                  _workingScheduleEditor(),
                   if (widget.services.isNotEmpty)
                     ExpansionTile(
                       title: Text('Usluge zaposlenika (${_serviceIds.length})'),
@@ -410,6 +432,23 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
                       ],
                     ),
                 ] else ...[
+                  DropdownButtonFormField<int>(
+                    initialValue: _categoryId,
+                    decoration: const InputDecoration(
+                      labelText: 'Kategorija usluge',
+                    ),
+                    items: [
+                      for (final category in widget.categories)
+                        DropdownMenuItem<int>(
+                          value: (category['id'] as num).toInt(),
+                          child: Text(category['name']?.toString() ?? ''),
+                        ),
+                    ],
+                    onChanged: (value) => setState(() => _categoryId = value),
+                    validator: (value) =>
+                        value == null ? 'Odaberite kategoriju.' : null,
+                  ),
+                  const SizedBox(height: 12),
                   _field('name', 'Naziv usluge', required: true),
                   _field('description', 'Opis', maxLines: 2),
                   _field(
@@ -444,6 +483,16 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
         FilledButton(
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
+            final hasInvalidHours = _workingSchedule.values.any(
+              (times) => _minutes(times[1]) <= _minutes(times[0]),
+            );
+            if (hasInvalidHours) {
+              setState(
+                () =>
+                    _scheduleError = 'Završetak rada mora biti nakon početka.',
+              );
+              return;
+            }
             final body = <String, dynamic>{
               'salonId': _salonId,
               'isActive': _active,
@@ -458,7 +507,20 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
                 body[entry.key] = entry.value.text.trim();
               }
             }
-            if (_employees) body['serviceIds'] = _serviceIds.toList();
+            if (_employees) {
+              body['serviceIds'] = _serviceIds.toList();
+              body['workingSchedule'] = _workingSchedule.entries
+                  .map(
+                    (entry) => {
+                      'dayOfWeek': entry.key,
+                      'startTime': _formatTime(entry.value[0]),
+                      'endTime': _formatTime(entry.value[1]),
+                    },
+                  )
+                  .toList();
+            } else {
+              body['serviceCategoryId'] = _categoryId;
+            }
             Navigator.pop(context, body);
           },
           child: const Text('Sačuvaj'),
@@ -466,6 +528,107 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
       ],
     );
   }
+
+  Widget _workingScheduleEditor() {
+    const days = <int, String>{
+      1: 'Ponedjeljak',
+      2: 'Utorak',
+      3: 'Srijeda',
+      4: 'Četvrtak',
+      5: 'Petak',
+      6: 'Subota',
+      0: 'Nedjelja',
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('Radno vrijeme po danima'),
+          ),
+        ),
+        for (final entry in days.entries)
+          Row(
+            children: [
+              SizedBox(
+                width: 132,
+                child: CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(entry.value),
+                  value: _workingSchedule.containsKey(entry.key),
+                  onChanged: (enabled) => setState(() {
+                    _scheduleError = null;
+                    if (enabled == true) {
+                      _workingSchedule[entry.key] = [
+                        const TimeOfDay(hour: 9, minute: 0),
+                        const TimeOfDay(hour: 17, minute: 0),
+                      ];
+                    } else {
+                      _workingSchedule.remove(entry.key);
+                    }
+                  }),
+                ),
+              ),
+              if (_workingSchedule[entry.key] case final times?) ...[
+                TextButton(
+                  onPressed: () => _pickScheduleTime(entry.key, 0),
+                  child: Text(_formatTime(times[0]).substring(0, 5)),
+                ),
+                const Text('—'),
+                TextButton(
+                  onPressed: () => _pickScheduleTime(entry.key, 1),
+                  child: Text(_formatTime(times[1]).substring(0, 5)),
+                ),
+              ] else
+                const Text('Neradni dan'),
+            ],
+          ),
+        if (_scheduleError != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _scheduleError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _pickScheduleTime(int day, int index) async {
+    final times = _workingSchedule[day];
+    if (times == null) return;
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: times[index],
+    );
+    if (selected == null) return;
+    setState(() {
+      final updated = List<TimeOfDay>.from(times);
+      updated[index] = selected;
+      _workingSchedule[day] = updated;
+      _scheduleError = null;
+    });
+  }
+
+  TimeOfDay? _parseTime(dynamic value) {
+    final parts = value?.toString().split(':') ?? const <String>[];
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null || hour > 23 || minute > 59) {
+      return null;
+    }
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  int _minutes(TimeOfDay time) => time.hour * 60 + time.minute;
+
+  String _formatTime(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:00';
 
   Widget _field(
     String key,

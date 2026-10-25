@@ -3,6 +3,7 @@ using eTermin.Api.Services;
 using eTermin.Application.Services;
 using eTermin.Application.Validators;
 using eTermin.Domain.Entities;
+using eTermin.Domain.Constants;
 using eTermin.Infrastructure.Data;
 using eTermin.Infrastructure.Services;
 using FluentValidation;
@@ -71,6 +72,8 @@ namespace eTemin.Api
                     builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddScoped<ISalonService, SalonService>();
+            builder.Services.AddScoped<ICityService, CityService>();
+            builder.Services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
             builder.Services.AddScoped<
                 IEmployeeService,
                 eTermin.Infrastructure.Services.EmployeeService>();
@@ -165,13 +168,13 @@ namespace eTemin.Api
                             FirstName = "Admin",
                             LastName = "eTermin",
                             Email = adminEmail,
-                            Role = "Admin",
+                            Role = UserRoles.Admin,
                             CreatedAt = DateTime.UtcNow
                         };
                         context.Users.Add(admin);
                     }
 
-                    admin.Role = "Admin";
+                    admin.Role = UserRoles.Admin;
                     admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword);
                     context.SaveChanges();
                     Console.WriteLine(

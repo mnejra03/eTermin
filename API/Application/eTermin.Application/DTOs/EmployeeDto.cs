@@ -16,7 +16,7 @@ public class EmployeeDto
 
     public string Position { get; set; } = string.Empty;
 
-    public string WorkingHours { get; set; } = string.Empty;
+    public List<EmployeeWorkingHourDto> WorkingSchedule { get; set; } = new();
 
     public bool IsActive { get; set; }
 

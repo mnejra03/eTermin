@@ -4,10 +4,12 @@ class Salon {
     required this.name,
     required this.description,
     required this.address,
-    required this.city,
+    required this.cityId,
+    required this.cityName,
     required this.phoneNumber,
     required this.email,
     required this.imageUrl,
+    required this.images,
     required this.isActive,
   });
 
@@ -15,10 +17,12 @@ class Salon {
   final String name;
   final String description;
   final String address;
-  final String city;
+  final int cityId;
+  final String cityName;
   final String phoneNumber;
   final String email;
   final String imageUrl;
+  final List<Map<String, dynamic>> images;
   final bool isActive;
 
   factory Salon.fromJson(Map<String, dynamic> json) => Salon(
@@ -26,10 +30,19 @@ class Salon {
     name: json['name']?.toString() ?? '',
     description: json['description']?.toString() ?? '',
     address: json['address']?.toString() ?? '',
-    city: json['city']?.toString() ?? '',
+    cityId: (json['cityId'] as num?)?.toInt() ?? 0,
+    cityName: json['cityName']?.toString() ?? '',
     phoneNumber: json['phoneNumber']?.toString() ?? '',
     email: json['email']?.toString() ?? '',
-    imageUrl: json['imageUrl']?.toString() ?? '',
+    imageUrl:
+        json['imageUrl']?.toString() ??
+        ((json['images'] as List?)?.firstOrNull
+                as Map<String, dynamic>?)?['imageUrl']
+            ?.toString() ??
+        '',
+    images: ((json['images'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList(),
     isActive: json['isActive'] as bool? ?? false,
   );
 
@@ -38,10 +51,12 @@ class Salon {
     'name': name,
     'description': description,
     'address': address,
-    'city': city,
+    'cityId': cityId,
+    'cityName': cityName,
     'phoneNumber': phoneNumber,
     'email': email,
     'imageUrl': imageUrl,
+    'images': images,
     'isActive': isActive,
   };
 }

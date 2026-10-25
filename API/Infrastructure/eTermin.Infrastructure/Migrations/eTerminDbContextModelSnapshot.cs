@@ -30,6 +30,15 @@ namespace eTermin.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CancelledByUserId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -61,6 +70,8 @@ namespace eTermin.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CancelledByUserId");
+
                     b.HasIndex("EmployeeId");
 
                     b.HasIndex("SalonId");
@@ -70,6 +81,60 @@ namespace eTermin.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Appointments");
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.AppointmentStatusHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ChangedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NewStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreviousStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("AppointmentId", "ChangedAt");
+
+                    b.ToTable("AppointmentStatusHistories");
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.City", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("City", (string)null);
                 });
 
             modelBuilder.Entity("eTermin.Domain.Entities.Employee", b =>
@@ -106,10 +171,6 @@ namespace eTermin.Infrastructure.Migrations
                     b.Property<int>("SalonId")
                         .HasColumnType("int");
 
-                    b.Property<string>("WorkingHours")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("SalonId");
@@ -130,6 +191,34 @@ namespace eTermin.Infrastructure.Migrations
                     b.HasIndex("ServiceId");
 
                     b.ToTable("EmployeeServices");
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.EmployeeWorkingHour", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId", "DayOfWeek")
+                        .IsUnique();
+
+                    b.ToTable("EmployeeWorkingHours");
                 });
 
             modelBuilder.Entity("eTermin.Domain.Entities.Notification", b =>
@@ -228,9 +317,8 @@ namespace eTermin.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CityId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -240,10 +328,6 @@ namespace eTermin.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -260,7 +344,38 @@ namespace eTermin.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CityId");
+
                     b.ToTable("Salons");
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.SalonImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("SalonId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalonId", "SortOrder");
+
+                    b.ToTable("SalonImages");
                 });
 
             modelBuilder.Entity("eTermin.Domain.Entities.Service", b =>
@@ -292,11 +407,42 @@ namespace eTermin.Infrastructure.Migrations
                     b.Property<int>("SalonId")
                         .HasColumnType("int");
 
+                    b.Property<int>("ServiceCategoryId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SalonId");
 
+                    b.HasIndex("ServiceCategoryId");
+
                     b.ToTable("Services");
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.ServiceCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ServiceCategory", (string)null);
                 });
 
             modelBuilder.Entity("eTermin.Domain.Entities.User", b =>
@@ -337,6 +483,11 @@ namespace eTermin.Infrastructure.Migrations
 
             modelBuilder.Entity("Appointment", b =>
                 {
+                    b.HasOne("eTermin.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("eTermin.Domain.Entities.Employee", null)
                         .WithMany()
                         .HasForeignKey("EmployeeId")
@@ -360,6 +511,23 @@ namespace eTermin.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.AppointmentStatusHistory", b =>
+                {
+                    b.HasOne("Appointment", "Appointment")
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("eTermin.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
                 });
 
             modelBuilder.Entity("eTermin.Domain.Entities.Employee", b =>
@@ -390,6 +558,15 @@ namespace eTermin.Infrastructure.Migrations
                     b.Navigation("Service");
                 });
 
+            modelBuilder.Entity("eTermin.Domain.Entities.EmployeeWorkingHour", b =>
+                {
+                    b.HasOne("eTermin.Domain.Entities.Employee", null)
+                        .WithMany("WorkingSchedule")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("eTermin.Domain.Entities.Notification", b =>
                 {
                     b.HasOne("Appointment", null)
@@ -409,6 +586,24 @@ namespace eTermin.Infrastructure.Migrations
                     b.HasOne("Appointment", null)
                         .WithMany()
                         .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.Salon", b =>
+                {
+                    b.HasOne("eTermin.Domain.Entities.City", null)
+                        .WithMany()
+                        .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.SalonImage", b =>
+                {
+                    b.HasOne("eTermin.Domain.Entities.Salon", null)
+                        .WithMany("Images")
+                        .HasForeignKey("SalonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -420,11 +615,29 @@ namespace eTermin.Infrastructure.Migrations
                         .HasForeignKey("SalonId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("eTermin.Domain.Entities.ServiceCategory", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Appointment", b =>
+                {
+                    b.Navigation("StatusHistory");
                 });
 
             modelBuilder.Entity("eTermin.Domain.Entities.Employee", b =>
                 {
                     b.Navigation("EmployeeServices");
+
+                    b.Navigation("WorkingSchedule");
+                });
+
+            modelBuilder.Entity("eTermin.Domain.Entities.Salon", b =>
+                {
+                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("eTermin.Domain.Entities.Service", b =>

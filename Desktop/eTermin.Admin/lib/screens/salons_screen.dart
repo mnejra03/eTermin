@@ -14,6 +14,7 @@ class SalonsScreen extends StatefulWidget {
 
 class _SalonsScreenState extends State<SalonsScreen> {
   List<Salon> _salons = [];
+  List<Map<String, dynamic>> _cities = [];
   bool _isLoading = true;
   String? _error;
   String _search = '';
@@ -30,8 +31,16 @@ class _SalonsScreenState extends State<SalonsScreen> {
       _error = null;
     });
     try {
-      final rows = await widget.api.getList('Salons');
-      if (mounted) setState(() => _salons = rows.map(Salon.fromJson).toList());
+      final results = await Future.wait([
+        widget.api.getList('Salons'),
+        widget.api.getList('Cities'),
+      ]);
+      if (mounted) {
+        setState(() {
+          _salons = results[0].map(Salon.fromJson).toList();
+          _cities = results[1];
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -42,7 +51,7 @@ class _SalonsScreenState extends State<SalonsScreen> {
   Future<void> _editSalon([Salon? salon]) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (_) => _SalonFormDialog(salon: salon),
+      builder: (_) => _SalonFormDialog(salon: salon, cities: _cities),
     );
     if (result == null) return;
     try {
@@ -100,7 +109,7 @@ class _SalonsScreenState extends State<SalonsScreen> {
     final visible = _salons.where((salon) {
       return query.isEmpty ||
           salon.name.toLowerCase().contains(query) ||
-          salon.city.toLowerCase().contains(query) ||
+          salon.cityName.toLowerCase().contains(query) ||
           salon.email.toLowerCase().contains(query);
     }).toList();
 
@@ -127,7 +136,7 @@ class _SalonsScreenState extends State<SalonsScreen> {
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
-                onPressed: () => _editSalon(),
+                onPressed: _cities.isEmpty ? null : () => _editSalon(),
                 icon: const Icon(Icons.add),
                 label: const Text('Dodaj salon'),
               ),
@@ -187,7 +196,7 @@ class _SalonsScreenState extends State<SalonsScreen> {
                 DataRow(
                   cells: [
                     DataCell(Text(salon.name)),
-                    DataCell(Text(salon.city)),
+                    DataCell(Text(salon.cityName)),
                     DataCell(Text(salon.address)),
                     DataCell(Text('${salon.email}\n${salon.phoneNumber}')),
                     DataCell(
@@ -223,9 +232,10 @@ class _SalonsScreenState extends State<SalonsScreen> {
 }
 
 class _SalonFormDialog extends StatefulWidget {
-  const _SalonFormDialog({this.salon});
+  const _SalonFormDialog({required this.cities, this.salon});
 
   final Salon? salon;
+  final List<Map<String, dynamic>> cities;
 
   @override
   State<_SalonFormDialog> createState() => _SalonFormDialogState();
@@ -235,6 +245,7 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late final Map<String, TextEditingController> _fields;
   late bool _isActive;
+  late int? _cityId;
 
   @override
   void initState() {
@@ -244,18 +255,29 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
       'name': TextEditingController(text: salon?.name ?? ''),
       'description': TextEditingController(text: salon?.description ?? ''),
       'address': TextEditingController(text: salon?.address ?? ''),
-      'city': TextEditingController(text: salon?.city ?? ''),
       'phoneNumber': TextEditingController(text: salon?.phoneNumber ?? ''),
       'email': TextEditingController(text: salon?.email ?? ''),
-      'imageUrl': TextEditingController(text: salon?.imageUrl ?? ''),
     };
+    _imageControllers = [
+      for (final image in salon?.images ?? const <Map<String, dynamic>>[])
+        TextEditingController(text: image['imageUrl']?.toString() ?? ''),
+    ];
+    if (_imageControllers.isEmpty && (salon?.imageUrl.isNotEmpty ?? false)) {
+      _imageControllers.add(TextEditingController(text: salon!.imageUrl));
+    }
     _isActive = salon?.isActive ?? true;
+    _cityId = salon?.cityId;
   }
+
+  late final List<TextEditingController> _imageControllers;
 
   @override
   void dispose() {
     for (final field in _fields.values) {
       field.dispose();
+    }
+    for (final image in _imageControllers) {
+      image.dispose();
     }
     super.dispose();
   }
@@ -275,10 +297,24 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
                 _field('name', 'Naziv', required: true),
                 _field('description', 'Opis', maxLines: 2),
                 _field('address', 'Adresa'),
-                _field('city', 'Grad'),
+                DropdownButtonFormField<int>(
+                  initialValue: _cityId,
+                  decoration: const InputDecoration(labelText: 'Grad'),
+                  items: [
+                    for (final city in widget.cities)
+                      DropdownMenuItem<int>(
+                        value: (city['id'] as num).toInt(),
+                        child: Text(city['name']?.toString() ?? ''),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _cityId = value),
+                  validator: (value) =>
+                      value == null ? 'Odaberite grad.' : null,
+                ),
+                const SizedBox(height: 12),
                 _field('phoneNumber', 'Telefon'),
                 _field('email', 'Email'),
-                _field('imageUrl', 'URL slike'),
+                _imagesEditor(),
                 SwitchListTile(
                   title: const Text('Aktivan'),
                   value: _isActive,
@@ -297,9 +333,19 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
         FilledButton(
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
+            final images = _imageControllers
+                .map((controller) => controller.text.trim())
+                .where((value) => value.isNotEmpty)
+                .toList();
             Navigator.pop(context, {
               for (final entry in _fields.entries)
                 entry.key: entry.value.text.trim(),
+              'cityId': _cityId,
+              'imageUrl': images.isEmpty ? '' : images.first,
+              'images': [
+                for (var i = 0; i < images.length; i++)
+                  {'imageUrl': images[i], 'sortOrder': i},
+              ],
               'isActive': _isActive,
             });
           },
@@ -308,6 +354,50 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
       ],
     );
   }
+
+  Widget _imagesEditor() => Column(
+    children: [
+      for (var index = 0; index < _imageControllers.length; index++)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _imageControllers[index],
+                  decoration: InputDecoration(
+                    labelText: 'URL slike ${index + 1}',
+                  ),
+                  validator: (value) {
+                    if (value != null &&
+                        value.trim().isNotEmpty &&
+                        value.trim().length > 1000) {
+                      return 'URL slike može imati najviše 1000 znakova.';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              IconButton(
+                tooltip: 'Ukloni sliku',
+                onPressed: () =>
+                    setState(() => _imageControllers.removeAt(index).dispose()),
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
+          ),
+        ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () =>
+              setState(() => _imageControllers.add(TextEditingController())),
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: const Text('Dodaj sliku salona'),
+        ),
+      ),
+    ],
+  );
 
   Widget _field(
     String key,

@@ -1,7 +1,9 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+
+using eTermin.Domain.Constants;
 
 namespace eTermin.Api.Controllers;
 
@@ -26,15 +28,22 @@ public class SalonsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<SalonDto>> CreateSalon(SalonDto salonDto)
     {
-        var salon = await _salonService.CreateAsync(salonDto);
+        try
+        {
+            var salon = await _salonService.CreateAsync(salonDto);
 
-        return CreatedAtAction(
-            nameof(GetSalon),
-            new { id = salon.Id },
-            salon);
+            return CreatedAtAction(
+                nameof(GetSalon),
+                new { id = salon.Id },
+                salon);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpGet("{id}")]
@@ -51,10 +60,18 @@ public class SalonsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> UpdateSalon(int id, SalonDto salonDto)
     {
-        var updated = await _salonService.UpdateAsync(id, salonDto);
+        bool updated;
+        try
+        {
+            updated = await _salonService.UpdateAsync(id, salonDto);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
 
         if (!updated)
         {
@@ -65,7 +82,7 @@ public class SalonsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> DeleteSalon(int id)
     {
         var deleted = await _salonService.DeleteAsync(id);

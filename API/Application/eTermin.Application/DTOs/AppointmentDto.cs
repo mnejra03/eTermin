@@ -20,5 +20,15 @@ public class AppointmentDto
 
     public decimal Price { get; set; }
 
+    public bool IsPaid { get; set; }
+
     public DateTime CreatedAt { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
+
+    public int? CancelledByUserId { get; set; }
+
+    public string? CancellationReason { get; set; }
+
+    public List<AppointmentStatusHistoryDto> StatusHistory { get; set; } = new();
 }

@@ -6,7 +6,7 @@ class Employee {
   final String email;
   final String phoneNumber;
   final String position;
-  final String workingHours;
+  final List<Map<String, dynamic>> workingSchedule;
   final bool isActive;
   final List<int> serviceIds;
 
@@ -18,7 +18,7 @@ class Employee {
     required this.email,
     required this.phoneNumber,
     required this.position,
-    required this.workingHours,
+    required this.workingSchedule,
     required this.isActive,
     required this.serviceIds,
   });
@@ -34,7 +34,9 @@ class Employee {
       email: json['email'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       position: json['position'] ?? '',
-      workingHours: json['workingHours'] ?? '',
+      workingSchedule: ((json['workingSchedule'] as List?) ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList(),
       isActive: json['isActive'] ?? false,
       serviceIds: (json['serviceIds'] as List<dynamic>? ?? [])
           .map((id) => id as int)

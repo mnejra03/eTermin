@@ -21,6 +21,10 @@ public class ServiceValidator : AbstractValidator<ServiceDto>
             .GreaterThan(0)
             .WithMessage("SalonId mora biti veći od 0.");
 
+        RuleFor(x => x.ServiceCategoryId)
+            .GreaterThan(0)
+            .WithMessage("Kategorija usluge je obavezna.");
+
         RuleFor(x => x.DurationInMinutes)
             .GreaterThan(0)
             .WithMessage("Trajanje usluge mora biti veće od 0 minuta.");

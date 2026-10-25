@@ -1,5 +1,6 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
+using eTermin.Domain.Constants;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +21,7 @@ public class RecommendationService : IRecommendationService
         var bookedServiceIds = await _context.Appointments
             .Where(x =>
                 x.UserId == userId &&
-                x.Status != "Cancelled")
+                x.Status != AppointmentStatuses.Cancelled)
             .Select(x => x.ServiceId)
             .Distinct()
             .ToListAsync();
@@ -41,12 +42,18 @@ public class RecommendationService : IRecommendationService
                 bookedServiceIds.Contains(x.Id))
             .ToListAsync();
 
+        var bookedServiceCategoryIds = bookedServices
+            .Select(x => x.ServiceCategoryId)
+            .Distinct()
+            .ToHashSet();
+
         var bookedServiceNames = bookedServices
             .Select(x => x.Name.ToLower())
             .ToList();
 
         var recommendations = services
             .Where(service =>
+                bookedServiceCategoryIds.Contains(service.ServiceCategoryId) ||
                 bookedServiceNames.Any(name =>
                     service.Name
                         .ToLower()
@@ -70,7 +77,7 @@ public class RecommendationService : IRecommendationService
             List<eTermin.Domain.Entities.Service> services)
     {
         var popularServiceIds = await _context.Appointments
-            .Where(x => x.Status != "Cancelled")
+            .Where(x => x.Status != AppointmentStatuses.Cancelled)
             .GroupBy(x => x.ServiceId)
             .OrderByDescending(x => x.Count())
             .Select(x => x.Key)
@@ -97,6 +104,13 @@ public class RecommendationService : IRecommendationService
         var salons = await _context.Salons
             .Where(x => salonIds.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, x => x.Name);
+        var categoryIds = services
+            .Select(x => x.ServiceCategoryId)
+            .Distinct()
+            .ToList();
+        var categories = await _context.ServiceCategories
+            .Where(x => categoryIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.Name);
 
         return services
             .Select(service => new RecommendationDto
@@ -104,6 +118,9 @@ public class RecommendationService : IRecommendationService
                 ServiceId = service.Id,
                 ServiceName = service.Name,
                 Description = service.Description,
+                ServiceCategoryId = service.ServiceCategoryId,
+                ServiceCategoryName =
+                    categories.GetValueOrDefault(service.ServiceCategoryId, string.Empty),
                 DurationInMinutes =
                     service.DurationInMinutes,
                 Price = service.Price,

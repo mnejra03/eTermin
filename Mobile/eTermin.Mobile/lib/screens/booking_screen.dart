@@ -27,11 +27,7 @@ class BookingScreen extends StatefulWidget {
   State<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen>
-    with WidgetsBindingObserver {
-  String? _paypalOrderId;
-  int? _paymentId;
-
+class _BookingScreenState extends State<BookingScreen> {
   late DateTime selectedDate;
   String? selectedTime;
 
@@ -54,8 +50,6 @@ class _BookingScreenState extends State<BookingScreen>
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addObserver(this);
-
     selectedDate = widget.initialDate ?? DateTime.now();
 
     _loadEmployees();
@@ -63,15 +57,7 @@ class _BookingScreenState extends State<BookingScreen>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _capturePayPalPayment();
-    }
   }
 
   Future<void> _loadEmployees() async {
@@ -209,28 +195,18 @@ class _BookingScreenState extends State<BookingScreen>
 
       // 3. Kreiranje PayPal Ordera
       final paypalOrder = await _apiService.createPayPalOrder(
-        amount: widget.service.price,
-        currency: 'BAM',
-        description: '${widget.service.name} - ${widget.salon.name}',
+        paymentId: paymentId,
       );
 
       final approvalUrl = paypalOrder['approvalUrl']?.toString();
 
-      final orderId = paypalOrder['orderId']?.toString();
-
-      _paypalOrderId = orderId;
-      _paymentId = paymentId;
-
-      if (approvalUrl == null ||
-          approvalUrl.isEmpty ||
-          orderId == null ||
-          orderId.isEmpty) {
+      if (approvalUrl == null || approvalUrl.isEmpty) {
         throw Exception('PayPal nije vratio potrebne podatke.');
       }
 
       if (!mounted) return;
 
-      await Navigator.push(
+      final paymentCompleted = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
           builder: (context) => PaymentScreen(
@@ -240,11 +216,16 @@ class _BookingScreenState extends State<BookingScreen>
             selectedTime: selectedTime!,
             appointmentId: appointmentId,
             paymentId: paymentId,
-            orderId: orderId,
             approvalUrl: approvalUrl,
           ),
         ),
       );
+
+      if (!mounted) return;
+      if (paymentCompleted == true) {
+        setState(() => selectedTime = null);
+      }
+      await _loadAvailableSlots();
     } catch (e) {
       if (!mounted) return;
 
@@ -267,39 +248,6 @@ class _BookingScreenState extends State<BookingScreen>
           isBooking = false;
         });
       }
-    }
-  }
-
-  Future<void> _capturePayPalPayment() async {
-    if (_paypalOrderId == null || _paymentId == null) {
-      return;
-    }
-
-    try {
-      await _apiService.capturePayPalOrder(
-        orderId: _paypalOrderId!,
-        paymentId: _paymentId!,
-      );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PayPal plaćanje je uspješno završeno.')),
-      );
-
-      setState(() {
-        _paypalOrderId = null;
-        _paymentId = null;
-        selectedTime = null;
-      });
-
-      await _loadAvailableSlots();
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
     }
   }
 

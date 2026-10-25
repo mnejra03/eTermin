@@ -7,6 +7,7 @@ import '../services/dashboard_service.dart';
 import 'appointments_screen.dart';
 import 'catalog_screen.dart';
 import 'notifications_screen.dart';
+import 'reference_data_screen.dart';
 import 'salons_screen.dart';
 import 'settings_screen.dart';
 import 'statistics_screen.dart';
@@ -40,6 +41,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     (title: 'Saloni', icon: Icons.storefront_outlined),
     (title: 'Zaposlenici', icon: Icons.people_outline),
     (title: 'Usluge', icon: Icons.spa_outlined),
+    (title: 'Šifarnici', icon: Icons.list_alt_outlined),
     (title: 'Termini', icon: Icons.calendar_month_outlined),
     (title: 'Statistika', icon: Icons.bar_chart_outlined),
     (title: 'Obavijesti', icon: Icons.notifications_outlined),
@@ -158,10 +160,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       api: widget.apiClient,
                       kind: CatalogKind.services,
                     ),
-                    4 => AppointmentsScreen(api: widget.apiClient),
-                    5 => StatisticsScreen(api: widget.apiClient),
-                    6 => NotificationsScreen(api: widget.apiClient),
-                    7 => SettingsScreen(
+                    4 => ReferenceDataScreen(api: widget.apiClient),
+                    5 => AppointmentsScreen(api: widget.apiClient),
+                    6 => StatisticsScreen(api: widget.apiClient),
+                    7 => NotificationsScreen(api: widget.apiClient),
+                    8 => SettingsScreen(
                       api: widget.apiClient,
                       session: widget.session,
                     ),

@@ -1,7 +1,9 @@
 ﻿using eTermin.Api.DTOs;
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
+using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
+using eTermin.Domain.StateMachines;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,7 +32,12 @@ public class AppointmentService : IAppointmentService
         EndTime = a.EndTime,
         Status = a.Status,
         Price = a.Price,
-        CreatedAt = a.CreatedAt
+        IsPaid = _context.Payments.Any(p =>
+            p.AppointmentId == a.Id && p.Status == PaymentStatuses.Completed),
+        CreatedAt = a.CreatedAt,
+        CancelledAt = a.CancelledAt,
+        CancelledByUserId = a.CancelledByUserId,
+        CancellationReason = a.CancellationReason
     })
     .ToListAsync();
     }
@@ -78,7 +85,13 @@ public class AppointmentService : IAppointmentService
 
                 Price = a.Price,
 
-                CreatedAt = a.CreatedAt
+                IsPaid = _context.Payments.Any(p =>
+                    p.AppointmentId == a.Id && p.Status == PaymentStatuses.Completed),
+
+                CreatedAt = a.CreatedAt,
+                CancelledAt = a.CancelledAt,
+                CancelledByUserId = a.CancelledByUserId,
+                CancellationReason = a.CancellationReason
             })
             .ToListAsync();
     }
@@ -127,7 +140,13 @@ public class AppointmentService : IAppointmentService
 
                 Price = a.Price,
 
-                CreatedAt = a.CreatedAt
+                IsPaid = _context.Payments.Any(p =>
+                    p.AppointmentId == a.Id && p.Status == PaymentStatuses.Completed),
+
+                CreatedAt = a.CreatedAt,
+                CancelledAt = a.CancelledAt,
+                CancelledByUserId = a.CancelledByUserId,
+                CancellationReason = a.CancellationReason
             })
             .ToListAsync();
     }
@@ -147,12 +166,19 @@ public class AppointmentService : IAppointmentService
                 EndTime = a.EndTime,
                 Status = a.Status,
                 Price = a.Price,
-                CreatedAt = a.CreatedAt
+                IsPaid = _context.Payments.Any(p =>
+                    p.AppointmentId == a.Id && p.Status == PaymentStatuses.Completed),
+                CreatedAt = a.CreatedAt,
+                CancelledAt = a.CancelledAt,
+                CancelledByUserId = a.CancelledByUserId,
+                CancellationReason = a.CancellationReason
             })
             .FirstOrDefaultAsync();
     }
 
-    public async Task<AppointmentDto> CreateAsync(AppointmentDto appointmentDto)
+    public async Task<AppointmentDto> CreateAsync(
+        AppointmentDto appointmentDto,
+        int actorUserId)
     {
         // Provjera korisnika
         var userExists = await _context.Users
@@ -162,11 +188,12 @@ public class AppointmentService : IAppointmentService
             throw new Exception("Korisnik ne postoji.");
 
         // Provjera salona
-        var salonExists = await _context.Salons
-            .AnyAsync(x => x.Id == appointmentDto.SalonId);
-
-        if (!salonExists)
+        var salon = await _context.Salons
+            .FirstOrDefaultAsync(x => x.Id == appointmentDto.SalonId);
+        if (salon == null)
             throw new Exception("Salon ne postoji.");
+        if (!salon.IsActive)
+            throw new Exception("Odabrani salon nije aktivan i nije dostupan za rezervacije.");
 
         // Provjera zaposlenika
         var employee = await _context.Employees
@@ -174,6 +201,8 @@ public class AppointmentService : IAppointmentService
 
         if (employee == null)
             throw new Exception("Zaposlenik ne postoji.");
+        if (!employee.IsActive)
+            throw new Exception("Odabrani zaposlenik nije aktivan i nije dostupan za rezervacije.");
 
         // Zaposlenik mora pripadati salonu
         if (employee.SalonId != appointmentDto.SalonId)
@@ -185,6 +214,8 @@ public class AppointmentService : IAppointmentService
 
         if (service == null)
             throw new Exception("Usluga ne postoji.");
+        if (!service.IsActive)
+            throw new Exception("Odabrana usluga nije aktivna i nije dostupna za rezervacije.");
 
         // Usluga mora pripadati salonu
         if (service.SalonId != appointmentDto.SalonId)
@@ -215,46 +246,18 @@ public class AppointmentService : IAppointmentService
                 "Termin ne može biti zakazan u prošlosti.");
         }
 
-        // Provjera radnog vremena zaposlenika
-        if (string.IsNullOrWhiteSpace(employee.WorkingHours))
-        {
+        var workingHours = await GetWorkingHoursAsync(
+            employee.Id,
+            startTime.Date);
+        if (!IsWithinWorkingHours(workingHours, startTime, endTime))
             throw new Exception(
-                "Radno vrijeme zaposlenika nije definisano.");
-        }
-
-        var workingHoursParts =
-            employee.WorkingHours.Split('-');
-
-        if (workingHoursParts.Length != 2 ||
-            !TimeSpan.TryParse(
-                workingHoursParts[0],
-                out var workStart) ||
-            !TimeSpan.TryParse(
-                workingHoursParts[1],
-                out var workEnd))
-        {
-            throw new Exception(
-                "Radno vrijeme mora biti u formatu HH:mm-HH:mm.");
-        }
-
-        var workDayStart =
-            startTime.Date.Add(workStart);
-
-        var workDayEnd =
-            startTime.Date.Add(workEnd);
-
-        if (startTime < workDayStart ||
-            endTime > workDayEnd)
-        {
-            throw new Exception(
-                "Termin nije unutar radnog vremena zaposlenika.");
-        }
+                "Zaposlenik ne radi tog dana ili termin nije unutar njegovog radnog vremena.");
 
         // Provjera preklapanja termina
         var overlappingAppointment =
             await _context.Appointments.AnyAsync(a =>
                 a.EmployeeId == appointmentDto.EmployeeId &&
-                a.Status != "Cancelled" &&
+                a.Status != AppointmentStatuses.Cancelled &&
                 a.StartTime < endTime &&
                 a.EndTime > startTime);
 
@@ -266,7 +269,7 @@ public class AppointmentService : IAppointmentService
         var userOverlappingAppointment =
             await _context.Appointments.AnyAsync(a =>
                 a.UserId == appointmentDto.UserId &&
-                a.Status != "Cancelled" &&
+                a.Status != AppointmentStatuses.Cancelled &&
                 a.StartTime < endTime &&
                 a.EndTime > startTime);
 
@@ -283,12 +286,20 @@ public class AppointmentService : IAppointmentService
             ServiceId = appointmentDto.ServiceId,
             StartTime = startTime,
             EndTime = endTime,
-            Status = "Pending",
+            Status = AppointmentStatuses.Pending,
             Price = service.Price,
             CreatedAt = DateTime.UtcNow
         };
 
         _context.Appointments.Add(appointment);
+        _context.AppointmentStatusHistories.Add(new AppointmentStatusHistory
+        {
+            Appointment = appointment,
+            PreviousStatus = null,
+            NewStatus = appointment.Status,
+            ChangedByUserId = actorUserId,
+            ChangedAt = DateTime.UtcNow
+        });
 
         // Prvo moramo sačuvati Appointment
         // kako bi SQL Server generisao njegov Id.
@@ -328,7 +339,8 @@ public class AppointmentService : IAppointmentService
 
     public async Task<bool> UpdateAsync(
     int id,
-    AppointmentDto appointmentDto)
+    AppointmentDto appointmentDto,
+    int actorUserId)
     {
         var appointment = await _context.Appointments
             .FirstOrDefaultAsync(x => x.Id == id);
@@ -339,51 +351,6 @@ public class AppointmentService : IAppointmentService
         // Zapamtimo stari status
         var oldStatus = appointment.Status;
 
-        // Provjera da salon postoji
-        var salon = await _context.Salons
-            .FirstOrDefaultAsync(x => x.Id == appointmentDto.SalonId);
-
-        if (salon == null)
-            throw new Exception("Salon ne postoji.");
-
-        // Uzimamo NOVU odabranu uslugu
-        var service = await _context.Services
-            .FirstOrDefaultAsync(x =>
-                x.Id == appointmentDto.ServiceId &&
-                x.SalonId == appointmentDto.SalonId);
-
-        if (service == null)
-            throw new Exception(
-                "Odabrana usluga ne postoji u odabranom salonu.");
-
-        // Provjera da zaposlenik postoji
-        var employee = await _context.Employees
-            .FirstOrDefaultAsync(x =>
-                x.Id == appointmentDto.EmployeeId &&
-                x.SalonId == appointmentDto.SalonId);
-
-        if (employee == null)
-            throw new Exception(
-                "Odabrani zaposlenik ne pripada odabranom salonu.");
-
-        var employeeProvidesService =
-    await _context.EmployeeServices.AnyAsync(es =>
-        es.EmployeeId == appointmentDto.EmployeeId &&
-        es.ServiceId == appointmentDto.ServiceId);
-
-        if (!employeeProvidesService)
-        {
-            throw new Exception(
-                "Odabrani zaposlenik ne pruža odabranu uslugu.");
-        }
-
-        // Backend sam računa EndTime
-        // prema trajanju NOVE usluge.
-        var startTime = appointmentDto.StartTime;
-
-        var endTime = startTime.AddMinutes(
-            service.DurationInMinutes);
-
         // Provjera da li se mijenja raspored termina
         var scheduleChanged =
             appointment.StartTime != appointmentDto.StartTime ||
@@ -391,109 +358,134 @@ public class AppointmentService : IAppointmentService
             appointment.EmployeeId != appointmentDto.EmployeeId ||
             appointment.ServiceId != appointmentDto.ServiceId;
 
-        // Termin ne može biti pomjeren u prošlost.
-        // Promjena samo statusa za već završeni termin je dozvoljena.
-        if (scheduleChanged && startTime <= DateTime.Now)
+        if (scheduleChanged)
         {
-            throw new Exception(
-                "Termin ne može biti zakazan u prošlosti.");
-        }
+            var salonExists = await _context.Salons
+                .AnyAsync(x => x.Id == appointmentDto.SalonId);
+            if (!salonExists)
+                throw new Exception("Salon ne postoji.");
+            var salonIsActive = await _context.Salons
+                .AnyAsync(x => x.Id == appointmentDto.SalonId && x.IsActive);
+            if (!salonIsActive)
+                throw new Exception(
+                    "Odabrani salon nije aktivan i nije dostupan za rezervacije.");
 
-        if (string.IsNullOrWhiteSpace(employee.WorkingHours))
-        {
-            throw new Exception(
-                "Radno vrijeme zaposlenika nije definisano.");
-        }
+            var service = await _context.Services
+                .FirstOrDefaultAsync(x =>
+                    x.Id == appointmentDto.ServiceId &&
+                    x.SalonId == appointmentDto.SalonId);
+            if (service == null)
+                throw new Exception(
+                    "Odabrana usluga ne postoji u odabranom salonu.");
+            if (!service.IsActive)
+                throw new Exception(
+                    "Odabrana usluga nije aktivna i nije dostupna za rezervacije.");
 
-        var workingHoursParts =
-            employee.WorkingHours.Split('-');
+            var employee = await _context.Employees
+                .FirstOrDefaultAsync(x =>
+                    x.Id == appointmentDto.EmployeeId &&
+                    x.SalonId == appointmentDto.SalonId);
+            if (employee == null)
+                throw new Exception(
+                    "Odabrani zaposlenik ne pripada odabranom salonu.");
+            if (!employee.IsActive)
+                throw new Exception(
+                    "Odabrani zaposlenik nije aktivan i nije dostupan za rezervacije.");
 
-        if (workingHoursParts.Length != 2 ||
-            !TimeSpan.TryParse(
-                workingHoursParts[0],
-                out var workStart) ||
-            !TimeSpan.TryParse(
-                workingHoursParts[1],
-                out var workEnd))
-        {
-            throw new Exception(
-                "Radno vrijeme mora biti u formatu HH:mm-HH:mm.");
-        }
+            var employeeProvidesService =
+                await _context.EmployeeServices.AnyAsync(es =>
+                    es.EmployeeId == appointmentDto.EmployeeId &&
+                    es.ServiceId == appointmentDto.ServiceId);
+            if (!employeeProvidesService)
+                throw new Exception(
+                    "Odabrani zaposlenik ne pruža odabranu uslugu.");
 
-        var workDayStart =
-            startTime.Date.Add(workStart);
+            var startTime = appointmentDto.StartTime;
+            var endTime = startTime.AddMinutes(service.DurationInMinutes);
 
-        var workDayEnd =
-            startTime.Date.Add(workEnd);
+            if (startTime <= DateTime.Now)
+                throw new Exception(
+                    "Termin ne može biti zakazan u prošlosti.");
 
-        if (startTime < workDayStart ||
-            endTime > workDayEnd)
-        {
-            throw new Exception(
-                "Termin nije unutar radnog vremena zaposlenika.");
-        }
+            var workingHours = await GetWorkingHoursAsync(
+                employee.Id,
+                startTime.Date);
+            if (!IsWithinWorkingHours(workingHours, startTime, endTime))
+                throw new Exception(
+                    "Zaposlenik ne radi tog dana ili termin nije unutar njegovog radnog vremena.");
 
-        // Provjera preklapanja za NOVOG zaposlenika
-        var overlappingAppointment =
-            await _context.Appointments.AnyAsync(a =>
+            var employeeOverlaps = await _context.Appointments.AnyAsync(a =>
                 a.Id != id &&
                 a.EmployeeId == appointmentDto.EmployeeId &&
-                a.Status != "Cancelled" &&
+                a.Status != AppointmentStatuses.Cancelled &&
                 a.StartTime < endTime &&
                 a.EndTime > startTime);
+            if (employeeOverlaps)
+                throw new Exception(
+                    "Zaposlenik već ima termin u odabranom vremenu.");
 
-        if (overlappingAppointment)
-        {
-            throw new Exception(
-                "Zaposlenik već ima termin u odabranom vremenu.");
+            var userOverlaps = await _context.Appointments.AnyAsync(a =>
+                a.Id != id &&
+                a.UserId == appointment.UserId &&
+                a.Status != AppointmentStatuses.Cancelled &&
+                a.StartTime < endTime &&
+                a.EndTime > startTime);
+            if (userOverlaps)
+                throw new Exception(
+                    "Korisnik već ima termin u odabranom vremenu.");
+
+            appointment.SalonId = appointmentDto.SalonId;
+            appointment.ServiceId = appointmentDto.ServiceId;
+            appointment.EmployeeId = appointmentDto.EmployeeId;
+            appointment.StartTime = startTime;
+            appointment.EndTime = endTime;
+            appointment.Price = service.Price;
         }
-
-        // Ažuriranje termina
-        appointment.SalonId = appointmentDto.SalonId;
-
-        appointment.ServiceId = appointmentDto.ServiceId;
-
-        appointment.EmployeeId = appointmentDto.EmployeeId;
-
-        appointment.StartTime = startTime;
-
-        appointment.EndTime = endTime;
-
-        // Cijena dolazi iz odabrane usluge.
-        // Admin je ne unosi ručno.
-        appointment.Price = service.Price;
 
         if (!string.IsNullOrWhiteSpace(appointmentDto.Status))
         {
             var newStatus = appointmentDto.Status;
 
-            var allowedStatuses = new[]
-            {
-        "Pending",
-        "Confirmed",
-        "Completed",
-        "Cancelled"
-    };
-
-            if (!allowedStatuses.Contains(newStatus))
+            if (!AppointmentStatuses.IsKnown(newStatus))
             {
                 throw new Exception(
                     "Neispravan status termina.");
             }
 
-            if (oldStatus == "Completed")
+            if (oldStatus == AppointmentStatuses.Completed)
             {
                 throw new Exception(
                     "Završen termin nije moguće mijenjati.");
             }
 
-            if (oldStatus == "Cancelled")
+            if (oldStatus == AppointmentStatuses.Cancelled)
             {
                 throw new Exception(
                     "Otkazan termin nije moguće mijenjati.");
             }
 
-            if (newStatus == "Completed" &&
+            if (oldStatus != newStatus &&
+                !AppointmentStateMachine.CanTransition(oldStatus, newStatus))
+            {
+                throw new InvalidOperationException(
+                    $"Nije dozvoljen prelaz statusa '{oldStatus}' u '{newStatus}'.");
+            }
+
+            if (newStatus == AppointmentStatuses.Confirmed &&
+                oldStatus != AppointmentStatuses.Confirmed)
+            {
+                throw new InvalidOperationException(
+                    "Termin može potvrditi samo uspješno završeno plaćanje.");
+            }
+
+            if (newStatus == AppointmentStatuses.Cancelled &&
+                oldStatus != AppointmentStatuses.Cancelled)
+            {
+                throw new InvalidOperationException(
+                    "Termin otkažite posebnom operacijom uz razlog otkazivanja.");
+            }
+
+            if (newStatus == AppointmentStatuses.Completed &&
                 appointment.EndTime > DateTime.Now)
             {
                 throw new Exception(
@@ -507,10 +499,20 @@ public class AppointmentService : IAppointmentService
         // kreiramo automatsku notifikaciju.
         if (oldStatus != appointment.Status)
         {
+            _context.AppointmentStatusHistories.Add(
+                new AppointmentStatusHistory
+                {
+                    AppointmentId = appointment.Id,
+                    PreviousStatus = oldStatus,
+                    NewStatus = appointment.Status,
+                    ChangedByUserId = actorUserId,
+                    ChangedAt = DateTime.UtcNow
+                });
+
             string? title = null;
             string? message = null;
 
-            if (appointment.Status == "Confirmed")
+            if (appointment.Status == AppointmentStatuses.Confirmed)
             {
                 title = "Termin potvrđen";
 
@@ -518,7 +520,7 @@ public class AppointmentService : IAppointmentService
                     $"Vaš termin je potvrđen za " +
                     $"{appointment.StartTime:dd.MM.yyyy. HH:mm}.";
             }
-            else if (appointment.Status == "Cancelled")
+            else if (appointment.Status == AppointmentStatuses.Cancelled)
             {
                 title = "Termin otkazan";
 
@@ -548,27 +550,86 @@ public class AppointmentService : IAppointmentService
         return true;
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> CancelAsync(
+        int id,
+        int actorUserId,
+        string reason,
+        bool isAdmin)
     {
         var appointment = await _context.Appointments
-            .FindAsync(id);
+            .FirstOrDefaultAsync(x => x.Id == id &&
+                (isAdmin || x.UserId == actorUserId));
 
         if (appointment == null)
             return false;
 
-        var reminders = await _context.Notifications
-            .Where(notification =>
-                notification.AppointmentId == id &&
-                notification.Type == "AppointmentReminder")
-            .ToListAsync();
+        if (appointment.Status == AppointmentStatuses.Cancelled)
+            throw new InvalidOperationException("Termin je već otkazan.");
 
-        _context.Notifications.RemoveRange(reminders);
+        var isPaid = await _context.Payments.AnyAsync(payment =>
+            payment.AppointmentId == id &&
+            payment.Status == PaymentStatuses.Completed);
+        if (isPaid)
+            throw new InvalidOperationException(
+                "Termin je već plaćen i ne može se otkazati kroz ovaj tok.");
 
-        _context.Appointments.Remove(appointment);
+        if (!AppointmentStateMachine.CanTransition(
+                appointment.Status,
+                AppointmentStatuses.Cancelled))
+        {
+            throw new InvalidOperationException(
+                "Moguće je otkazati samo aktivan termin.");
+        }
+
+        var previousStatus = appointment.Status;
+        appointment.Status = AppointmentStatuses.Cancelled;
+        appointment.CancelledAt = DateTime.UtcNow;
+        appointment.CancelledByUserId = actorUserId;
+        appointment.CancellationReason = reason.Trim();
+        _context.AppointmentStatusHistories.Add(
+            new AppointmentStatusHistory
+            {
+                AppointmentId = appointment.Id,
+                PreviousStatus = previousStatus,
+                NewStatus = AppointmentStatuses.Cancelled,
+                ChangedByUserId = actorUserId,
+                ChangedAt = appointment.CancelledAt.Value
+            });
+        _context.Notifications.Add(new Notification
+        {
+            UserId = appointment.UserId,
+            AppointmentId = appointment.Id,
+            Type = "AppointmentCancelled",
+            Title = "Termin otkazan",
+            Message =
+                $"Vaš termin za {appointment.StartTime:dd.MM.yyyy. HH:mm} je otkazan. Razlog: {reason.Trim()}",
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        });
 
         await _context.SaveChangesAsync();
-
         return true;
+    }
+
+    public async Task<List<AppointmentStatusHistoryDto>> GetStatusHistoryAsync(
+        int appointmentId)
+    {
+        return await _context.AppointmentStatusHistories
+            .Where(history => history.AppointmentId == appointmentId)
+            .OrderBy(history => history.ChangedAt)
+            .Select(history => new AppointmentStatusHistoryDto
+            {
+                Id = history.Id,
+                PreviousStatus = history.PreviousStatus,
+                NewStatus = history.NewStatus,
+                ChangedByUserId = history.ChangedByUserId,
+                ChangedByName = _context.Users
+                    .Where(user => user.Id == history.ChangedByUserId)
+                    .Select(user => user.FirstName + " " + user.LastName)
+                    .FirstOrDefault() ?? string.Empty,
+                ChangedAt = history.ChangedAt
+            })
+            .ToListAsync();
     }
 
     public async Task<List<AvailableSlotDto>> GetAvailableSlotsAsync(
@@ -599,31 +660,19 @@ public class AppointmentService : IAppointmentService
             throw new Exception(
                 "Usluga ne postoji ili ne pripada odabranom salonu.");
 
-        // Za sada koristimo WorkingHours zaposlenika.
-        // Očekivani format: "08:00-16:00"
-        if (string.IsNullOrWhiteSpace(employee.WorkingHours))
-            throw new Exception(
-                "Radno vrijeme zaposlenika nije definisano.");
+        var workingHours = await GetWorkingHoursAsync(employee.Id, date.Date);
+        if (workingHours == null)
+            return new List<AvailableSlotDto>();
 
-        var parts = employee.WorkingHours.Split('-');
-
-        if (parts.Length != 2 ||
-            !TimeSpan.TryParse(parts[0], out var workStart) ||
-            !TimeSpan.TryParse(parts[1], out var workEnd))
-        {
-            throw new Exception(
-                "Radno vrijeme mora biti u formatu HH:mm-HH:mm.");
-        }
-
-        var dayStart = date.Date.Add(workStart);
-        var dayEnd = date.Date.Add(workEnd);
+        var dayStart = date.Date.Add(workingHours.StartTime);
+        var dayEnd = date.Date.Add(workingHours.EndTime);
 
         // Uzimamo postojeće aktivne termine tog zaposlenika za taj dan
         var appointments = await _context.Appointments
             .Where(x =>
                 x.EmployeeId == employeeId &&
                 x.StartTime.Date == date.Date &&
-                x.Status != "Cancelled")
+                x.Status != AppointmentStatuses.Cancelled)
             .OrderBy(x => x.StartTime)
             .ToListAsync();
 
@@ -661,7 +710,12 @@ public class AppointmentService : IAppointmentService
             {
                 StartTime = currentStart,
                 EndTime = currentEnd,
-                IsAvailable = !overlaps
+                IsAvailable =
+                    IsWithinWorkingHours(
+                        workingHours,
+                        currentStart,
+                        currentEnd) &&
+                    !overlaps
             });
 
             currentStart = currentStart.AddMinutes(30);
@@ -677,7 +731,7 @@ public class AppointmentService : IAppointmentService
         var query = _context.Appointments
             .Where(a =>
                 a.StartTime.Date == date.Date &&
-                a.Status != "Cancelled");
+                a.Status != AppointmentStatuses.Cancelled);
 
         if (salonId.HasValue)
         {
@@ -749,7 +803,7 @@ public class AppointmentService : IAppointmentService
         var appointmentsQuery = _context.Appointments
             .Where(x =>
                 x.StartTime.Date == date.Date &&
-                x.Status != "Cancelled");
+                x.Status != AppointmentStatuses.Cancelled);
 
         if (salonId.HasValue)
         {
@@ -764,20 +818,14 @@ public class AppointmentService : IAppointmentService
 
         foreach (var employee in activeEmployees)
         {
-            if (string.IsNullOrWhiteSpace(employee.WorkingHours))
+            var workingHours = await GetWorkingHoursAsync(
+                employee.Id,
+                date.Date);
+            if (workingHours == null)
                 continue;
 
-            var parts = employee.WorkingHours.Split('-');
-
-            if (parts.Length != 2 ||
-                !TimeSpan.TryParse(parts[0], out var workStart) ||
-                !TimeSpan.TryParse(parts[1], out var workEnd))
-            {
-                continue;
-            }
-
-            var dayStart = date.Date.Add(workStart);
-            var dayEnd = date.Date.Add(workEnd);
+            var dayStart = date.Date.Add(workingHours.StartTime);
+            var dayEnd = date.Date.Add(workingHours.EndTime);
 
             var employeeServices = activeServices
                 .Where(x => x.SalonId == employee.SalonId)
@@ -790,7 +838,11 @@ public class AppointmentService : IAppointmentService
 
             while (currentStart.AddMinutes(30) <= dayEnd)
             {
-                totalSlots++;
+                if (IsWithinWorkingHours(
+                        workingHours,
+                        currentStart,
+                        currentStart.AddMinutes(30)))
+                    totalSlots++;
                 currentStart = currentStart.AddMinutes(30);
             }
 
@@ -830,5 +882,27 @@ public class AppointmentService : IAppointmentService
             OccupiedSlots = occupiedSlots,
             Percentage = percentage
         };
+    }
+
+    private Task<EmployeeWorkingHour?> GetWorkingHoursAsync(
+        int employeeId,
+        DateTime date)
+    {
+        return _context.EmployeeWorkingHours.FirstOrDefaultAsync(hours =>
+            hours.EmployeeId == employeeId &&
+            hours.DayOfWeek == date.DayOfWeek);
+    }
+
+    private static bool IsWithinWorkingHours(
+        EmployeeWorkingHour? workingHours,
+        DateTime startTime,
+        DateTime endTime)
+    {
+        if (workingHours == null || startTime.Date != endTime.Date)
+            return false;
+
+        var workStart = startTime.Date.Add(workingHours.StartTime);
+        var workEnd = startTime.Date.Add(workingHours.EndTime);
+        return startTime >= workStart && endTime <= workEnd && endTime > startTime;
     }
 }

@@ -23,11 +23,9 @@ public class SalonValidator : AbstractValidator<SalonDto>
             .MaximumLength(200)
             .WithMessage("Adresa može imati najviše 200 znakova.");
 
-        RuleFor(x => x.City)
-            .NotEmpty()
-            .WithMessage("Grad je obavezan.")
-            .MaximumLength(100)
-            .WithMessage("Naziv grada može imati najviše 100 znakova.");
+        RuleFor(x => x.CityId)
+            .GreaterThan(0)
+            .WithMessage("Grad je obavezan.");
 
         RuleFor(x => x.PhoneNumber)
             .NotEmpty()
@@ -44,5 +42,15 @@ public class SalonValidator : AbstractValidator<SalonDto>
         RuleFor(x => x.ImageUrl)
             .MaximumLength(500)
             .WithMessage("URL slike može imati najviše 500 znakova.");
+
+        RuleForEach(x => x.Images)
+            .ChildRules(image =>
+            {
+                image.RuleFor(x => x.ImageUrl)
+                    .NotEmpty()
+                    .WithMessage("URL slike salona je obavezan.")
+                    .MaximumLength(1000)
+                    .WithMessage("URL slike može imati najviše 1000 znakova.");
+            });
     }
 }

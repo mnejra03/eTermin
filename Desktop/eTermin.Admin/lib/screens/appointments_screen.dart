@@ -58,6 +58,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             decoration: const InputDecoration(labelText: 'Status'),
             items: _statuses
                 .skip(1)
+                .where((value) => value != 'Cancelled')
+                .where((value) => value != 'Confirmed' || status == 'Confirmed')
                 .map(
                   (value) => DropdownMenuItem(
                     value: value,
@@ -76,7 +78,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, status),
-              child: const Text('Sačuvaj'),
+              child: const Text('SaĂ„Ĺ¤uvaj'),
             ),
           ],
         ),
@@ -120,14 +122,28 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 _detail('Salon', item['salonName']),
                 _detail('Usluga', item['serviceName']),
                 _detail('Zaposlenik', item['employeeName']),
-                _detail('Početak', _date(item['startTime'])),
-                _detail('Završetak', _date(item['endTime'])),
+                _detail('PoĂ„Ĺ¤etak', _date(item['startTime'])),
+                _detail('ZavrÄąË‡etak', _date(item['endTime'])),
                 _detail(
                   'Status',
                   _statusLabel(item['status']?.toString() ?? ''),
                 ),
                 _detail('Cijena', '${item['price'] ?? 0} KM'),
                 _detail('Kreirano', _date(item['createdAt'])),
+                if (item['cancelledAt'] != null) ...[
+                  _detail('Otkazano', _date(item['cancelledAt'])),
+                  _detail('Razlog otkazivanja', item['cancellationReason']),
+                  _detail('Otkazao korisnik ID', item['cancelledByUserId']),
+                ],
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showStatusHistory(item),
+                    icon: const Icon(Icons.history),
+                    label: const Text('Historija statusa'),
+                  ),
+                ),
               ],
             ),
           ),
@@ -140,6 +156,57 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showStatusHistory(Map<String, dynamic> item) async {
+    try {
+      final history = await widget.api.getList(
+        'Appointments/${item['id']}/status-history',
+      );
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Historija statusa termina #${item['id']}'),
+          content: SizedBox(
+            width: 480,
+            child: history.isEmpty
+                ? const Text('Historija statusa nije dostupna.')
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: history.length,
+                    separatorBuilder: (_, _) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final change = history[index];
+                      final previous = change['previousStatus']?.toString();
+                      final newStatus = change['newStatus']?.toString() ?? '';
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          previous == null
+                              ? 'Kreiran: ${_statusLabel(newStatus)}'
+                              : '${_statusLabel(previous)} → '
+                                    '${_statusLabel(newStatus)}',
+                        ),
+                        subtitle: Text(
+                          '${_date(change['changedAt'])} · '
+                          '${change['changedByName'] ?? ''}',
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Zatvori'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (mounted) _message(error.toString());
+    }
   }
 
   Widget _detail(String label, dynamic value) => Padding(
@@ -193,13 +260,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }
   }
 
-  Future<void> _delete(Map<String, dynamic> item) async {
+  Future<void> _cancel(Map<String, dynamic> item) async {
+    final reasonController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Obrisati termin?'),
-        content: Text(
-          'Termin #${item['id']} za ${item['userName']} bit će obrisan.',
+        title: Text('Otkazati termin #${item['id']}?'),
+        content: SizedBox(
+          width: 420,
+          child: TextField(
+            controller: reasonController,
+            autofocus: true,
+            maxLength: 500,
+            decoration: const InputDecoration(labelText: 'Razlog otkazivanja'),
+          ),
         ),
         actions: [
           TextButton(
@@ -207,32 +281,41 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             child: const Text('Odustani'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Obriši'),
+            onPressed: () =>
+                Navigator.pop(context, reasonController.text.trim().isNotEmpty),
+            child: const Text('Otkazi termin'),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      reasonController.dispose();
+      return;
+    }
     try {
-      await widget.api.delete('Appointments/${item['id']}');
+      await widget.api.put('Appointments/${item['id']}/cancel', {
+        'reason': reasonController.text.trim(),
+      });
       await _load();
+      if (mounted) _message('Termin je otkazan.');
     } catch (error) {
       if (mounted) _message(error.toString());
+    } finally {
+      reasonController.dispose();
     }
   }
 
   String _statusLabel(String value) => switch (value) {
-    'Pending' => 'Na čekanju',
-    'Confirmed' => 'Potvrđen',
-    'Completed' => 'Završen',
+    'Pending' => 'Na Ă„Ĺ¤ekanju',
+    'Confirmed' => 'PotvrĂ„â€en',
+    'Completed' => 'ZavrÄąË‡en',
     'Cancelled' => 'Otkazan',
     _ => value,
   };
 
   String _date(dynamic value) {
     final parsed = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
-    if (parsed == null) return '—';
+    if (parsed == null) return 'Ă˘â‚¬â€ť';
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(parsed.day)}.${two(parsed.month)}.${parsed.year} ${two(parsed.hour)}:${two(parsed.minute)}';
   }
@@ -261,7 +344,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               Expanded(
                 child: TextField(
                   decoration: const InputDecoration(
-                    labelText: 'Pretraži termine',
+                    labelText: 'PretraÄąÄľi termine',
                     prefixIcon: Icon(Icons.search),
                   ),
                   onChanged: (value) => setState(() => _search = value),
@@ -295,7 +378,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                tooltip: 'Osvježi',
+                tooltip: 'OsvjeÄąÄľi',
                 onPressed: _loading ? null : _load,
                 icon: const Icon(Icons.refresh),
               ),
@@ -319,7 +402,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             OutlinedButton.icon(
               onPressed: _load,
               icon: const Icon(Icons.refresh),
-              label: const Text('Pokušaj ponovo'),
+              label: const Text('PokuÄąË‡aj ponovo'),
             ),
           ],
         ),
@@ -329,7 +412,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       return Center(
         child: Text(
           _items.isEmpty
-              ? 'Još nema termina u bazi.'
+              ? 'JoÄąË‡ nema termina u bazi.'
               : 'Nema rezultata za odabrane filtere.',
         ),
       );
@@ -346,8 +429,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               DataColumn(label: Text('Korisnik')),
               DataColumn(label: Text('Salon / usluga')),
               DataColumn(label: Text('Zaposlenik')),
-              DataColumn(label: Text('Početak')),
+              DataColumn(label: Text('PoĂ„Ĺ¤etak')),
               DataColumn(label: Text('Cijena')),
+              DataColumn(label: Text('PlaĂ„â€ˇanje')),
               DataColumn(label: Text('Status')),
               DataColumn(label: Text('Akcije')),
             ],
@@ -367,6 +451,15 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     DataCell(
                       Chip(
                         label: Text(
+                          item['isPaid'] == true
+                              ? 'PlaĂ„â€ˇeno'
+                              : 'Nije plaĂ„â€ˇeno',
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Chip(
+                        label: Text(
                           _statusLabel(item['status']?.toString() ?? ''),
                         ),
                       ),
@@ -380,21 +473,27 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             onPressed: () => _showDetails(item),
                             icon: const Icon(Icons.visibility_outlined),
                           ),
-                          IconButton(
-                            tooltip: 'Promijeni status',
-                            onPressed: () => _changeStatus(item),
-                            icon: const Icon(Icons.edit_outlined),
-                          ),
-                          IconButton(
-                            tooltip: 'Uredi podatke termina',
-                            onPressed: () => _editAppointment(item),
-                            icon: const Icon(Icons.event_note_outlined),
-                          ),
-                          IconButton(
-                            tooltip: 'Obriši',
-                            onPressed: () => _delete(item),
-                            icon: const Icon(Icons.delete_outline),
-                          ),
+                          if (item['status'] != 'Cancelled' &&
+                              item['status'] != 'Completed') ...[
+                            IconButton(
+                              tooltip: 'Promijeni status',
+                              onPressed: () => _changeStatus(item),
+                              icon: const Icon(Icons.edit_outlined),
+                            ),
+                            IconButton(
+                              tooltip: 'Uredi podatke termina',
+                              onPressed: () => _editAppointment(item),
+                              icon: const Icon(Icons.event_note_outlined),
+                            ),
+                          ],
+                          if (item['status'] != 'Cancelled' &&
+                              item['status'] != 'Completed' &&
+                              item['isPaid'] != true)
+                            IconButton(
+                              tooltip: 'Otkazati uz razlog',
+                              onPressed: () => _cancel(item),
+                              icon: const Icon(Icons.event_busy_outlined),
+                            ),
                         ],
                       ),
                     ),
@@ -483,7 +582,7 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
                       .toList(),
                   (id) => _userId = id,
                   (item) =>
-                      '${item['firstName'] ?? ''} ${item['lastName'] ?? ''} · ${item['email'] ?? ''}',
+                      '${item['firstName'] ?? ''} ${item['lastName'] ?? ''} Ă‚Â· ${item['email'] ?? ''}',
                 ),
                 _dropdown(
                   'Salon',
@@ -509,7 +608,8 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
                   _serviceId,
                   _servicesForSalon,
                   (id) => setState(() => _serviceId = id),
-                  (item) => '${item['name'] ?? ''} · ${item['price'] ?? 0} KM',
+                  (item) =>
+                      '${item['name'] ?? ''} Ă‚Â· ${item['price'] ?? 0} KM',
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -535,22 +635,30 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: _status,
-                  decoration: const InputDecoration(labelText: 'Status'),
-                  items:
-                      const ['Pending', 'Confirmed', 'Completed', 'Cancelled']
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(value),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (value) =>
-                      setState(() => _status = value ?? 'Pending'),
-                ),
+                if (widget.appointment != null) ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _status,
+                    decoration: const InputDecoration(labelText: 'Status'),
+                    items: [
+                      const DropdownMenuItem(
+                        value: 'Pending',
+                        child: Text('Pending'),
+                      ),
+                      if (_status == 'Confirmed')
+                        const DropdownMenuItem(
+                          value: 'Confirmed',
+                          child: Text('Confirmed'),
+                        ),
+                      const DropdownMenuItem(
+                        value: 'Completed',
+                        child: Text('Completed'),
+                      ),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _status = value ?? 'Pending'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -583,12 +691,14 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
               'serviceId': _serviceId,
               'startTime': _start.toIso8601String(),
               'endTime': end.toIso8601String(),
-              'status': _status,
+              if (widget.appointment != null) 'status': _status,
               'price': service['price'] ?? 0,
             });
           },
           child: Text(
-            widget.appointment == null ? 'Kreiraj termin' : 'Sačuvaj izmjene',
+            widget.appointment == null
+                ? 'Kreiraj termin'
+                : 'SaĂ„Ĺ¤uvaj izmjene',
           ),
         ),
       ],
