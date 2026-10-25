@@ -10,13 +10,13 @@ public class Salon
 
     public string Address { get; set; } = string.Empty;
 
-    public string City { get; set; } = string.Empty;
+    public int CityId { get; set; }
 
     public string PhoneNumber { get; set; } = string.Empty;
 
     public string Email { get; set; } = string.Empty;
 
-    public string ImageUrl { get; set; } = string.Empty;
+    public ICollection<SalonImage> Images { get; set; } = new List<SalonImage>();
 
     public bool IsActive { get; set; }
 

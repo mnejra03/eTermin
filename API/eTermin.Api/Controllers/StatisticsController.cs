@@ -1,4 +1,4 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using eTermin.Infrastructure.Data;
 using ClosedXML.Excel;
@@ -9,11 +9,13 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
+using eTermin.Domain.Constants;
+
 namespace eTermin.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = UserRoles.Admin)]
 public class StatisticsController : ControllerBase
 {
     private readonly IStatisticsService _statisticsService;

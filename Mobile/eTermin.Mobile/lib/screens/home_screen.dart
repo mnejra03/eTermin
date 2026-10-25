@@ -10,6 +10,7 @@ import 'all_salons_screen.dart';
 import '../models/employee.dart';
 
 import 'booking_screen.dart';
+import 'payment_screen.dart';
 import 'new_appointment_screen.dart';
 
 import 'recommendations_screen.dart';
@@ -52,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingAppointments = false;
   String? _appointmentsError;
   String _appointmentFilter = 'Aktivni';
+  final Set<int> _payingAppointmentIds = {};
 
   List<Map<String, dynamic>> _homeAvailableSlots = [];
   bool _isLoadingHomeSlots = true;
@@ -150,6 +152,165 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _cancelAppointment(Map<String, dynamic> appointment) async {
+    final appointmentId = appointment['id'];
+    if (appointmentId is! int) return;
+
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Otkazati termin?'),
+        content: TextField(
+          controller: reasonController,
+          autofocus: true,
+          maxLength: 500,
+          decoration: const InputDecoration(labelText: 'Razlog otkazivanja'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Ne'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(
+              context,
+              reasonController.text.trim().isNotEmpty,
+            ),
+            child: const Text('Da, otkaĹľi'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      reasonController.dispose();
+      return;
+    }
+
+    try {
+      await _apiService.cancelAppointment(
+        appointmentId,
+        reasonController.text.trim(),
+      );
+      await _loadMyAppointments();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Termin je otkazan.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Termin nije otkazan: $error')),
+      );
+    } finally {
+      reasonController.dispose();
+    }
+  }
+  Future<void> _payAppointment(Map<String, dynamic> appointment) async {
+    final appointmentId = appointment['id'];
+    final salonId = appointment['salonId'];
+    final serviceId = appointment['serviceId'];
+    final startTime = DateTime.tryParse(
+      appointment['startTime']?.toString() ?? '',
+    )?.toLocal();
+
+    if (appointmentId is! int ||
+        salonId is! int ||
+        serviceId is! int ||
+        startTime == null ||
+        appointment['status'] != 'Pending' ||
+        appointment['isPaid'] == true) {
+      return;
+    }
+
+    setState(() => _payingAppointmentIds.add(appointmentId));
+
+    try {
+      var salon = _firstOrNull(
+        _salons.where((item) => item.id == salonId),
+      );
+      var service = _firstOrNull(
+        _services.where((item) => item.id == serviceId),
+      );
+
+      if (salon == null || service == null) {
+        final salons = await _apiService.getSalons();
+        final services = await _apiService.getServices();
+        salon ??= _firstOrNull(salons.where((item) => item.id == salonId));
+        service ??= _firstOrNull(
+          services.where((item) => item.id == serviceId),
+        );
+      }
+
+      if (salon == null || service == null) {
+        throw Exception('Podaci o salonu ili usluzi nisu dostupni.');
+      }
+
+      final payments = await _apiService.getPaymentsForAppointment(
+        appointmentId,
+      );
+      if (payments.any((payment) => payment['status'] == 'Completed')) {
+        await _loadMyAppointments();
+        if (mounted) _message('Ovaj termin je veĂ„â€ˇ plaĂ„â€ˇen.');
+        return;
+      }
+
+      final pendingPayment = _firstOrNull(
+        payments.where((payment) => payment['status'] == 'Pending'),
+      );
+      final paymentId = pendingPayment == null
+          ? await _apiService.createPayment(
+              appointmentId: appointmentId,
+              amount: (appointment['price'] as num?)?.toDouble() ??
+                  service!.price,
+              paymentMethod: 'PayPal',
+            )
+          : pendingPayment['id'] as int;
+
+      final order = await _apiService.createPayPalOrder(paymentId: paymentId);
+      final approvalUrl = order['approvalUrl']?.toString();
+      if (approvalUrl == null || approvalUrl.isEmpty) {
+        throw Exception('PayPal nije vratio link za plaĂ„â€ˇanje.');
+      }
+
+      final timeText =
+          '${startTime.hour.toString().padLeft(2, '0')}:'
+          '${startTime.minute.toString().padLeft(2, '0')}';
+
+      await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PaymentScreen(
+            salon: salon!,
+            service: service!,
+            selectedDate: startTime,
+            selectedTime: timeText,
+            appointmentId: appointmentId,
+            paymentId: paymentId,
+            approvalUrl: approvalUrl,
+          ),
+        ),
+      );
+
+      if (!mounted) return;
+      await _loadMyAppointments();
+    } catch (error) {
+      if (mounted) _message('PlaĂ„â€ˇanje nije pokrenuto: $error');
+    } finally {
+      if (mounted) setState(() => _payingAppointmentIds.remove(appointmentId));
+    }
+  }
+
+  T? _firstOrNull<T>(Iterable<T> values) =>
+      values.isEmpty ? null : values.first;
+
+  void _message(String value) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(value)),
+    );
+  }
+
   Widget _buildPopularSalons() {
     if (_isLoadingSalons) {
       return const SizedBox(
@@ -242,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           Text(
-            '📍 ${salon.city}',
+            'Ä‘Ĺşâ€śĹ¤ ${salon.city}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 10, color: Colors.grey),
@@ -270,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(7),
                 ),
               ),
-              child: const Text('Pogledaj ›', style: TextStyle(fontSize: 10)),
+              child: const Text('Pogledaj Ă˘â‚¬Ĺź', style: TextStyle(fontSize: 10)),
             ),
           ),
         ],
@@ -345,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = <Map<String, dynamic>>[];
     final today = DateTime.now();
 
-    // Tražimo termine za narednih 7 dana.
+    // TraÄąÄľimo termine za narednih 7 dana.
     for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
       final date = DateTime(
         today.year,
@@ -363,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen> {
             )
             .toList();
 
-        // Provjeri svakog zaposlenika koji pruža tu uslugu.
+        // Provjeri svakog zaposlenika koji pruÄąÄľa tu uslugu.
         for (final employee in employees) {
           try {
             final slots = await _apiService.getAvailableSlots(
@@ -484,7 +645,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: primaryColor,
                   ),
                 ),
-                const TextSpan(text: '👋', style: TextStyle(fontSize: 22)),
+                const TextSpan(text: 'Ä‘Ĺşâ€â€ą', style: TextStyle(fontSize: 22)),
               ],
             ),
           ),
@@ -492,7 +653,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 2),
 
           Text(
-            'Rezerviši svoj termin brzo i jednostavno',
+            'RezerviÄąË‡i svoj termin brzo i jednostavno',
             style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
           ),
 
@@ -518,7 +679,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 });
               },
               decoration: InputDecoration(
-                hintText: 'Pretraži salon ili uslugu...',
+                hintText: 'PretraÄąÄľi salon ili uslugu...',
                 hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                 prefixIcon: Icon(Icons.search, color: primaryColor, size: 19),
                 border: InputBorder.none,
@@ -549,7 +710,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 13),
 
           // RECOMMENDED SERVICES
-          _buildSectionTitle('Preporučene usluge'),
+          _buildSectionTitle('PreporuĂ„Ĺ¤ene usluge'),
 
           const SizedBox(height: 8),
 
@@ -566,7 +727,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final salonName = salon.isNotEmpty ? salon.first.name : '';
 
                   return _buildServiceChip(
-                    '${service.name} • $salonName',
+                    '${service.name} Ă˘â‚¬Ë $salonName',
                     onTap: () {
                       if (salon.isNotEmpty) {
                         Navigator.push(
@@ -698,7 +859,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
 
           // NEXT APPOINTMENT
-          _buildSectionTitle('Sljedeći termin'),
+          _buildSectionTitle('SljedeĂ„â€ˇi termin'),
 
           const SizedBox(height: 8),
 
@@ -730,7 +891,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(width: 7),
                               const Text(
-                                'Sljedeći termin',
+                                'SljedeĂ„â€ˇi termin',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -1006,7 +1167,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Pretraži',
+              'PretraÄąÄľi',
               style: TextStyle(
                 color: primaryColor,
                 fontSize: 24,
@@ -1030,7 +1191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   });
                 },
                 decoration: InputDecoration(
-                  hintText: 'Pretraži salon...',
+                  hintText: 'PretraÄąÄľi salon...',
                   hintStyle: TextStyle(
                     color: Colors.grey.shade500,
                     fontSize: 13,
@@ -1193,7 +1354,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  '${salon.name} • ${service.price.toStringAsFixed(0)} KM',
+                                  '${salon.name} Ă˘â‚¬Ë ${service.price.toStringAsFixed(0)} KM',
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Colors.grey,
@@ -1238,7 +1399,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final status = appointment['status']?.toString() ?? '';
         return status == 'Pending' || status == 'Confirmed';
       }).toList();
-    } else if (_appointmentFilter == 'Završeni') {
+    } else if (_appointmentFilter == 'ZavrÄąË‡eni') {
       filteredAppointments = _myAppointments.where((appointment) {
         return appointment['status']?.toString() == 'Completed';
       }).toList();
@@ -1273,7 +1434,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             children: [
               _buildAppointmentFilter('Aktivni'),
-              _buildAppointmentFilter('Završeni'),
+              _buildAppointmentFilter('ZavrÄąË‡eni'),
               _buildAppointmentFilter('Otkazani'),
             ],
           ),
@@ -1289,7 +1450,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Text(
-                      'Termini se trenutno ne mogu učitati.',
+                      'Termini se trenutno ne mogu uĂ„Ĺ¤itati.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.grey),
                     ),
@@ -1357,6 +1518,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final salonName = appointment['salonName']?.toString() ?? 'Salon';
 
     final status = appointment['status']?.toString() ?? '';
+    final isPaid = appointment['isPaid'] == true;
 
     final startTime = DateTime.tryParse(
       appointment['startTime']?.toString() ?? '',
@@ -1379,17 +1541,17 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (status) {
       case 'Confirmed':
         statusColor = Colors.green;
-        statusText = 'Potvrđeno';
+        statusText = 'PotvrĂ„â€eno';
         break;
 
       case 'Pending':
         statusColor = Colors.orange;
-        statusText = 'Na čekanju';
+        statusText = 'Na Ă„Ĺ¤ekanju';
         break;
 
       case 'Completed':
         statusColor = Colors.blueGrey;
-        statusText = 'Završeno';
+        statusText = 'ZavrÄąË‡eno';
         break;
 
       case 'Cancelled':
@@ -1417,62 +1579,137 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: lightPurple,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.calendar_month, color: primaryColor, size: 22),
-          ),
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: lightPurple,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.calendar_month, color: primaryColor, size: 22),
+              ),
 
-          const SizedBox(width: 10),
+              const SizedBox(width: 10),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$serviceName - $salonName',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontSize: 14,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$serviceName - $salonName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Text(
+                      dateText,
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  statusText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
-                const SizedBox(height: 4),
-
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isPaid ? Icons.check_circle : Icons.pending_outlined,
+                  size: 16,
+                  color: isPaid ? Colors.green : Colors.orange,
+                ),
+                const SizedBox(width: 5),
                 Text(
-                  dateText,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  isPaid ? 'PlaĂ„â€ˇeno' : 'Nije plaĂ„â€ˇeno',
+                  style: TextStyle(
+                    color: isPaid ? Colors.green : Colors.orange.shade800,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(width: 8),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-            decoration: BoxDecoration(
-              color: statusColor,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              statusText,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
+          if (status == 'Cancelled' &&
+              appointment['cancellationReason'] != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Razlog otkazivanja: ${appointment['cancellationReason']}',
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
             ),
-          ),
+          if (status == 'Pending' || status == 'Confirmed')
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(
+                spacing: 4,
+                children: [
+                  if (status == 'Pending' && !isPaid)
+                    FilledButton.tonalIcon(
+                      onPressed: _payingAppointmentIds.contains(appointment['id'])
+                          ? null
+                          : () => _payAppointment(appointment),
+                      icon: _payingAppointmentIds.contains(appointment['id'])
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.payment),
+                      label: const Text('Plati putem PayPal-a'),
+                    ),
+                  if ((status == 'Pending' || status == 'Confirmed') &&
+                      !isPaid)
+                    TextButton.icon(
+                      onPressed: () => _cancelAppointment(appointment),
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('OtkaÄąÄľi termin'),
+                    ),
+                  if (isPaid)
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Text('PlaÄ‡eni termin se ne moĹľe otkazati.'),
+                    ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -1603,9 +1840,9 @@ class _HomeScreenState extends State<HomeScreen> {
         BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
           activeIcon: Icon(Icons.home_rounded),
-          label: 'Početna',
+          label: 'PoĂ„Ĺ¤etna',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Pretraži'),
+        BottomNavigationBarItem(icon: Icon(Icons.search), label: 'PretraÄąÄľi'),
         BottomNavigationBarItem(
           icon: Icon(Icons.calendar_month_outlined),
           label: 'Termini',
@@ -1624,13 +1861,13 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Odjava'),
-          content: const Text('Da li ste sigurni da se želite odjaviti?'),
+          content: const Text('Da li ste sigurni da se ÄąÄľelite odjaviti?'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context, false);
               },
-              child: const Text('Otkaži'),
+              child: const Text('OtkaÄąÄľi'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1672,7 +1909,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       });
     } catch (e) {
-      // Ne prikazujemo grešku samo zbog provjere tačkice.
+      // Ne prikazujemo greÄąË‡ku samo zbog provjere taĂ„Ĺ¤kice.
     }
   }
 }

@@ -14,4 +14,13 @@
     public decimal Price { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
+
+    public int? CancelledByUserId { get; set; }
+
+    public string? CancellationReason { get; set; }
+
+    public ICollection<eTermin.Domain.Entities.AppointmentStatusHistory> StatusHistory { get; set; }
+        = new List<eTermin.Domain.Entities.AppointmentStatusHistory>();
 }

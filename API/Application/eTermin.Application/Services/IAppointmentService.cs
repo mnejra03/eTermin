@@ -9,11 +9,14 @@ public interface IAppointmentService
 
     Task<AppointmentDto?> GetByIdAsync(int id);
 
-    Task<AppointmentDto> CreateAsync(AppointmentDto appointmentDto);
+    Task<AppointmentDto> CreateAsync(AppointmentDto appointmentDto, int actorUserId);
 
-    Task<bool> UpdateAsync(int id, AppointmentDto appointmentDto);
+    Task<bool> UpdateAsync(int id, AppointmentDto appointmentDto, int actorUserId);
 
-    Task<bool> DeleteAsync(int id);
+    Task<bool> CancelAsync(int id, int actorUserId, string reason, bool isAdmin);
+
+    Task<List<AppointmentStatusHistoryDto>> GetStatusHistoryAsync(
+        int appointmentId);
 
     Task<List<AvailableSlotDto>> GetAvailableSlotsAsync(
     int salonId,

@@ -1,4 +1,5 @@
-﻿using eTermin.Domain.Entities;
+using eTermin.Domain.Entities;
+using eTermin.Domain.Constants;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -56,7 +57,7 @@ var userEmail =
             PasswordHash =
                BCrypt.Net.BCrypt.HashPassword(
     adminPassword),
-            Role = "Admin",
+            Role = UserRoles.Admin,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -68,7 +69,7 @@ var userEmail =
             PasswordHash =
                BCrypt.Net.BCrypt.HashPassword(
     userPassword),
-            Role = "User",
+            Role = UserRoles.User,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -80,7 +81,7 @@ var userEmail =
             PasswordHash =
                BCrypt.Net.BCrypt.HashPassword(
     userPassword),
-            Role = "User",
+            Role = UserRoles.User,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -91,6 +92,40 @@ var userEmail =
 
         await context.SaveChangesAsync();
 
+        var cities = new Dictionary<string, City>();
+        foreach (var cityName in new[] { "Mostar", "Sarajevo" })
+        {
+            var city = await context.Cities
+                .SingleOrDefaultAsync(x => x.Name == cityName);
+            if (city == null)
+            {
+                city = new City { Name = cityName };
+                context.Cities.Add(city);
+            }
+
+            cities[cityName] = city;
+        }
+
+        var categoryNames = new[]
+        {
+            "Kosa", "Nokti", "Njega lica", "Masaža",
+            "Šminkanje", "Trepavice", "Obrve", "Njega stopala", "Depilacija"
+        };
+        var categories = new Dictionary<string, ServiceCategory>();
+        foreach (var categoryName in categoryNames)
+        {
+            var category = await context.ServiceCategories
+                .SingleOrDefaultAsync(x => x.Name == categoryName);
+            if (category == null)
+            {
+                category = new ServiceCategory { Name = categoryName };
+                context.ServiceCategories.Add(category);
+            }
+
+            categories[categoryName] = category;
+        }
+
+        await context.SaveChangesAsync();
 
         // =========================================================
         // SALONS
@@ -102,10 +137,9 @@ var userEmail =
             Description =
                 "Moderan frizerski i beauty salon.",
             Address = "Ulica kralja Tomislava 12",
-            City = "Mostar",
+            CityId = cities["Mostar"].Id,
             PhoneNumber = "+387 36 123 456",
             Email = "info@belle-studio.ba",
-            ImageUrl = "",
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -116,10 +150,9 @@ var userEmail =
             Description =
                 "Salon posvećen njezi lica i tijela.",
             Address = "Kneza Mihajla 8",
-            City = "Mostar",
+            CityId = cities["Mostar"].Id,
             PhoneNumber = "+387 36 234 567",
             Email = "info@glow-beauty.ba",
-            ImageUrl = "",
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -130,10 +163,9 @@ var userEmail =
             Description =
                 "Beauty studio sa modernim uslugama.",
             Address = "Maršala Tita 25",
-            City = "Sarajevo",
+            CityId = cities["Sarajevo"].Id,
             PhoneNumber = "+387 33 345 678",
             Email = "info@beauty-studio.ba",
-            ImageUrl = "",
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -144,10 +176,9 @@ var userEmail =
             Description =
                 "Elegantni salon za ljepotu i njegu.",
             Address = "Zmaja od Bosne 15",
-            City = "Sarajevo",
+            CityId = cities["Sarajevo"].Id,
             PhoneNumber = "+387 33 456 789",
             Email = "info@elegance.ba",
-            ImageUrl = "",
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -172,6 +203,7 @@ var userEmail =
         var service1 = new Service
         {
             SalonId = salon1.Id,
+            ServiceCategoryId = categories["Kosa"].Id,
             Name = "Šišanje",
             Description =
                 "Žensko ili muško šišanje.",
@@ -183,6 +215,7 @@ var userEmail =
         var service2 = new Service
         {
             SalonId = salon1.Id,
+            ServiceCategoryId = categories["Kosa"].Id,
             Name = "Farbanje kose",
             Description =
                 "Profesionalno farbanje kose.",
@@ -194,6 +227,7 @@ var userEmail =
         var service3 = new Service
         {
             SalonId = salon1.Id,
+            ServiceCategoryId = categories["Nokti"].Id,
             Name = "Manikir",
             Description =
                 "Klasični manikir.",
@@ -210,6 +244,7 @@ var userEmail =
         var service4 = new Service
         {
             SalonId = salon2.Id,
+            ServiceCategoryId = categories["Njega lica"].Id,
             Name = "Tretman lica",
             Description =
                 "Osnovni tretman njege lica.",
@@ -221,6 +256,7 @@ var userEmail =
         var service5 = new Service
         {
             SalonId = salon2.Id,
+            ServiceCategoryId = categories["Masaža"].Id,
             Name = "Masaža",
             Description =
                 "Relax masaža cijelog tijela.",
@@ -232,6 +268,7 @@ var userEmail =
         var service6 = new Service
         {
             SalonId = salon2.Id,
+            ServiceCategoryId = categories["Kosa"].Id,
             Name = "Feniranje",
             Description =
                 "Profesionalno feniranje.",
@@ -248,6 +285,7 @@ var userEmail =
         var service7 = new Service
         {
             SalonId = salon3.Id,
+            ServiceCategoryId = categories["Šminkanje"].Id,
             Name = "Šminkanje",
             Description =
                 "Profesionalno dnevno ili večernje šminkanje.",
@@ -259,6 +297,7 @@ var userEmail =
         var service8 = new Service
         {
             SalonId = salon3.Id,
+            ServiceCategoryId = categories["Trepavice"].Id,
             Name = "Lash Lift",
             Description =
                 "Podizanje i oblikovanje prirodnih trepavica.",
@@ -270,6 +309,7 @@ var userEmail =
         var service9 = new Service
         {
             SalonId = salon3.Id,
+            ServiceCategoryId = categories["Obrve"].Id,
             Name = "Oblikovanje obrva",
             Description =
                 "Oblikovanje i uređivanje obrva.",
@@ -286,6 +326,7 @@ var userEmail =
         var service10 = new Service
         {
             SalonId = salon4.Id,
+            ServiceCategoryId = categories["Njega stopala"].Id,
             Name = "Pedikir",
             Description =
                 "Klasični pedikir i njega stopala.",
@@ -297,6 +338,7 @@ var userEmail =
         var service11 = new Service
         {
             SalonId = salon4.Id,
+            ServiceCategoryId = categories["Nokti"].Id,
             Name = "Gel nokti",
             Description =
                 "Izrada i oblikovanje gel noktiju.",
@@ -308,6 +350,7 @@ var userEmail =
         var service12 = new Service
         {
             SalonId = salon4.Id,
+            ServiceCategoryId = categories["Depilacija"].Id,
             Name = "Depilacija",
             Description =
                 "Profesionalna depilacija.",
@@ -350,7 +393,7 @@ var userEmail =
             Email = "amra@belle-studio.ba",
             PhoneNumber = "+387 61 111 111",
             Position = "Frizer",
-            WorkingHours = "08:00-16:00",
+            WorkingSchedule = BuildWeeklySchedule("08:00-16:00"),
             IsActive = true
         };
 
@@ -362,7 +405,7 @@ var userEmail =
             Email = "lejla@belle-studio.ba",
             PhoneNumber = "+387 61 222 222",
             Position = "Nail technician",
-            WorkingHours = "10:00-18:00",
+            WorkingSchedule = BuildWeeklySchedule("10:00-18:00"),
             IsActive = true
         };
 
@@ -379,7 +422,7 @@ var userEmail =
             Email = "sara@glow-beauty.ba",
             PhoneNumber = "+387 61 333 333",
             Position = "Beauty terapeut",
-            WorkingHours = "08:00-16:00",
+            WorkingSchedule = BuildWeeklySchedule("08:00-16:00"),
             IsActive = true
         };
 
@@ -391,7 +434,7 @@ var userEmail =
             Email = "amina@glow-beauty.ba",
             PhoneNumber = "+387 61 444 444",
             Position = "Maser",
-            WorkingHours = "09:00-17:00",
+            WorkingSchedule = BuildWeeklySchedule("09:00-17:00"),
             IsActive = true
         };
 
@@ -408,7 +451,7 @@ var userEmail =
             Email = "hana@beauty-studio.ba",
             PhoneNumber = "+387 61 555 555",
             Position = "Make-up artist",
-            WorkingHours = "09:00-17:00",
+            WorkingSchedule = BuildWeeklySchedule("09:00-17:00"),
             IsActive = true
         };
 
@@ -420,7 +463,7 @@ var userEmail =
             Email = "emina@beauty-studio.ba",
             PhoneNumber = "+387 61 666 666",
             Position = "Beauty terapeut",
-            WorkingHours = "10:00-18:00",
+            WorkingSchedule = BuildWeeklySchedule("10:00-18:00"),
             IsActive = true
         };
 
@@ -437,7 +480,7 @@ var userEmail =
             Email = "mia@elegance.ba",
             PhoneNumber = "+387 61 777 777",
             Position = "Nail technician",
-            WorkingHours = "08:00-16:00",
+            WorkingSchedule = BuildWeeklySchedule("08:00-16:00"),
             IsActive = true
         };
 
@@ -449,7 +492,7 @@ var userEmail =
             Email = "aida@elegance.ba",
             PhoneNumber = "+387 61 888 888",
             Position = "Beauty terapeut",
-            WorkingHours = "09:00-17:00",
+            WorkingSchedule = BuildWeeklySchedule("09:00-17:00"),
             IsActive = true
         };
 
@@ -618,7 +661,7 @@ var userEmail =
             ServiceId = service1.Id,
             StartTime = today.AddDays(-2).AddHours(10),
             EndTime = today.AddDays(-2).AddHours(11),
-            Status = "Completed",
+            Status = AppointmentStatuses.Completed,
             Price = service1.Price,
             CreatedAt = DateTime.UtcNow.AddDays(-5)
         };
@@ -631,7 +674,7 @@ var userEmail =
             ServiceId = service3.Id,
             StartTime = today.AddDays(2).AddHours(11),
             EndTime = today.AddDays(2).AddHours(11).AddMinutes(45),
-            Status = "Confirmed",
+            Status = AppointmentStatuses.Confirmed,
             Price = service3.Price,
             CreatedAt = DateTime.UtcNow.AddDays(-1)
         };
@@ -649,7 +692,7 @@ var userEmail =
             ServiceId = service4.Id,
             StartTime = today.AddDays(-1).AddHours(9),
             EndTime = today.AddDays(-1).AddHours(10),
-            Status = "Completed",
+            Status = AppointmentStatuses.Completed,
             Price = service4.Price,
             CreatedAt = DateTime.UtcNow.AddDays(-3)
         };
@@ -662,7 +705,7 @@ var userEmail =
             ServiceId = service5.Id,
             StartTime = today.AddDays(3).AddHours(14),
             EndTime = today.AddDays(3).AddHours(15),
-            Status = "Pending",
+            Status = AppointmentStatuses.Pending,
             Price = service5.Price,
             CreatedAt = DateTime.UtcNow
         };
@@ -680,7 +723,7 @@ var userEmail =
             ServiceId = service7.Id,
             StartTime = today.AddDays(-3).AddHours(13),
             EndTime = today.AddDays(-3).AddHours(14),
-            Status = "Completed",
+            Status = AppointmentStatuses.Completed,
             Price = service7.Price,
             CreatedAt = DateTime.UtcNow.AddDays(-7)
         };
@@ -693,7 +736,7 @@ var userEmail =
             ServiceId = service8.Id,
             StartTime = today.AddDays(4).AddHours(10),
             EndTime = today.AddDays(4).AddHours(11),
-            Status = "Confirmed",
+            Status = AppointmentStatuses.Confirmed,
             Price = service8.Price,
             CreatedAt = DateTime.UtcNow.AddDays(-1)
         };
@@ -711,7 +754,7 @@ var userEmail =
             ServiceId = service10.Id,
             StartTime = today.AddDays(-4).AddHours(12),
             EndTime = today.AddDays(-4).AddHours(13),
-            Status = "Completed",
+            Status = AppointmentStatuses.Completed,
             Price = service10.Price,
             CreatedAt = DateTime.UtcNow.AddDays(-8)
         };
@@ -724,7 +767,7 @@ var userEmail =
             ServiceId = service12.Id,
             StartTime = today.AddDays(5).AddHours(15),
             EndTime = today.AddDays(5).AddHours(15).AddMinutes(45),
-            Status = "Pending",
+            Status = AppointmentStatuses.Pending,
             Price = service12.Price,
             CreatedAt = DateTime.UtcNow
         };
@@ -740,7 +783,39 @@ var userEmail =
             appointment7,
             appointment8);
 
+        context.AppointmentStatusHistories.AddRange(
+            new[] {
+                appointment1, appointment2, appointment3, appointment4,
+                appointment5, appointment6, appointment7, appointment8
+            }.Select(appointment => new AppointmentStatusHistory
+            {
+                Appointment = appointment,
+                NewStatus = appointment.Status,
+                ChangedByUserId = appointment.UserId,
+                ChangedAt = appointment.CreatedAt
+            }));
+
         await context.SaveChangesAsync();
 
+    }
+
+    private static List<EmployeeWorkingHour> BuildWeeklySchedule(string value)
+    {
+        var parts = value.Split('-');
+        if (parts.Length != 2 ||
+            !TimeSpan.TryParse(parts[0], out var start) ||
+            !TimeSpan.TryParse(parts[1], out var end))
+            throw new InvalidOperationException(
+                $"Neispravno radno vrijeme u početnim podacima: {value}.");
+
+        return Enum.GetValues<DayOfWeek>()
+            .Where(day => day != DayOfWeek.Sunday)
+            .Select(day => new EmployeeWorkingHour
+            {
+                DayOfWeek = day,
+                StartTime = start,
+                EndTime = end
+            })
+            .ToList();
     }
 }

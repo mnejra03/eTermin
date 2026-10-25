@@ -1,4 +1,5 @@
-﻿using eTermin.Domain.Entities;
+using eTermin.Domain.Entities;
+using eTermin.Domain.Constants;
 using eTermin.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ namespace eTermin.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = UserRoles.Admin)]
 public class DemoDataController : ControllerBase
 {
     private readonly eTerminDbContext _context;
@@ -26,7 +27,7 @@ public class DemoDataController : ControllerBase
         // ----------------------------------------------------
 
         var user = await _context.Users
-            .FirstOrDefaultAsync(x => x.Role == "User");
+            .FirstOrDefaultAsync(x => x.Role == UserRoles.User);
 
         if (user == null)
         {
@@ -40,6 +41,15 @@ public class DemoDataController : ControllerBase
         // 2. SALONI
         // ----------------------------------------------------
 
+        var city = await _context.Cities
+            .SingleOrDefaultAsync(x => x.Name == "Sarajevo");
+        if (city == null)
+        {
+            city = new City { Name = "Sarajevo" };
+            _context.Cities.Add(city);
+            await _context.SaveChangesAsync();
+        }
+
         var salons = new List<Salon>();
 
         var salon1 = await _context.Salons
@@ -52,10 +62,9 @@ public class DemoDataController : ControllerBase
                 Name = "Belle Studio",
                 Description = "Salon za njegu i uljepšavanje.",
                 Address = "Maršala Tita 12",
-                City = "Sarajevo",
+                CityId = city.Id,
                 PhoneNumber = "033/111-222",
                 Email = "info@belle-studio.ba",
-                ImageUrl = "",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -75,10 +84,9 @@ public class DemoDataController : ControllerBase
                 Name = "Glow Beauty",
                 Description = "Studio posvećen njezi lica, tijela i kose.",
                 Address = "Zmaja od Bosne 25",
-                City = "Sarajevo",
+                CityId = city.Id,
                 PhoneNumber = "033/333-444",
                 Email = "info@glowbeauty.ba",
-                ImageUrl = "",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -230,9 +238,29 @@ public class DemoDataController : ControllerBase
             Email = email,
             PhoneNumber = phone,
             Position = position,
-            WorkingHours = workingHours,
+            WorkingSchedule = BuildWeeklySchedule(workingHours),
             IsActive = true
         });
+    }
+
+    private static List<EmployeeWorkingHour> BuildWeeklySchedule(string value)
+    {
+        var parts = value.Split('-');
+        if (parts.Length != 2 ||
+            !TimeSpan.TryParse(parts[0], out var start) ||
+            !TimeSpan.TryParse(parts[1], out var end))
+            throw new InvalidOperationException(
+                $"Neispravno radno vrijeme demo zaposlenika: {value}.");
+
+        return Enum.GetValues<DayOfWeek>()
+            .Where(day => day != DayOfWeek.Sunday)
+            .Select(day => new EmployeeWorkingHour
+            {
+                DayOfWeek = day,
+                StartTime = start,
+                EndTime = end
+            })
+            .ToList();
     }
 
     // ========================================================
@@ -254,9 +282,20 @@ public class DemoDataController : ControllerBase
         if (exists)
             return;
 
+        const string categoryName = "Ostalo";
+        var category = await _context.ServiceCategories
+            .SingleOrDefaultAsync(x => x.Name == categoryName);
+        if (category == null)
+        {
+            category = new ServiceCategory { Name = categoryName };
+            _context.ServiceCategories.Add(category);
+            await _context.SaveChangesAsync();
+        }
+
         _context.Services.Add(new Service
         {
             SalonId = salonId,
+            ServiceCategoryId = category.Id,
             Name = name,
             Description = description,
             DurationInMinutes = duration,
@@ -305,7 +344,7 @@ public class DemoDataController : ControllerBase
             employees[0].Id,
             services[0].Id,
             today.AddHours(12),
-            "Confirmed");
+            AppointmentStatuses.Confirmed);
 
         // ----------------------------------------------------
         // Termin 2 - danas
@@ -319,7 +358,7 @@ public class DemoDataController : ControllerBase
                 employees[1].Id,
                 services[1].Id,
                 today.AddHours(14),
-                "Pending");
+                AppointmentStatuses.Pending);
         }
 
         // ----------------------------------------------------
@@ -332,7 +371,7 @@ public class DemoDataController : ControllerBase
             employees[0].Id,
             services[2 % services.Count].Id,
             today.AddDays(1).AddHours(10),
-            "Confirmed");
+            AppointmentStatuses.Confirmed);
 
         // ----------------------------------------------------
         // Termin 4 - za dva dana
@@ -346,7 +385,7 @@ public class DemoDataController : ControllerBase
                 employees[1].Id,
                 services[0].Id,
                 today.AddDays(2).AddHours(11),
-                "Cancelled");
+                AppointmentStatuses.Cancelled);
         }
 
         await _context.SaveChangesAsync();
@@ -378,7 +417,7 @@ public class DemoDataController : ControllerBase
         if (exists)
             return;
 
-        _context.Appointments.Add(new Appointment
+        var appointment = new Appointment
         {
             UserId = userId,
             SalonId = salonId,
@@ -389,6 +428,15 @@ public class DemoDataController : ControllerBase
             Status = status,
             Price = service.Price,
             CreatedAt = DateTime.UtcNow
-        });
+        };
+        _context.Appointments.Add(appointment);
+        _context.AppointmentStatusHistories.Add(
+            new AppointmentStatusHistory
+            {
+                Appointment = appointment,
+                NewStatus = appointment.Status,
+                ChangedByUserId = userId,
+                ChangedAt = appointment.CreatedAt
+            });
     }
 }

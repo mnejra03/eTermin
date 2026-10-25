@@ -1,4 +1,5 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
+using eTermin.Domain.Constants;
 using FluentValidation;
 
 namespace eTermin.Application.Validators;
@@ -35,12 +36,12 @@ public class AppointmentValidator : AbstractValidator<AppointmentDto>
             .NotEmpty()
             .WithMessage("Status termina je obavezan.")
             .Must(status =>
-                status == "Pending" ||
-                status == "Confirmed" ||
-                status == "Cancelled" ||
-                status == "Completed")
+                status == AppointmentStatuses.Pending ||
+                status == AppointmentStatuses.Confirmed ||
+                status == AppointmentStatuses.Cancelled ||
+                status == AppointmentStatuses.Completed)
             .WithMessage(
-                "Status mora biti Pending, Confirmed, Cancelled ili Completed.");
+                $"Status mora biti {AppointmentStatuses.Pending}, {AppointmentStatuses.Confirmed}, {AppointmentStatuses.Cancelled} ili {AppointmentStatuses.Completed}.");
 
         RuleFor(x => x.Price)
             .GreaterThanOrEqualTo(0)

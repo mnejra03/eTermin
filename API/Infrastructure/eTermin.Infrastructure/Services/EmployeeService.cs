@@ -1,5 +1,6 @@
 ﻿using eTermin.Application.DTOs;
 using eTermin.Application.Services;
+using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,14 @@ public class EmployeeService : IEmployeeService
                 Email = e.Email,
                 PhoneNumber = e.PhoneNumber,
                 Position = e.Position,
-                WorkingHours = e.WorkingHours,
+                WorkingSchedule = e.WorkingSchedule
+                    .Select(hours => new EmployeeWorkingHourDto
+                    {
+                        DayOfWeek = hours.DayOfWeek,
+                        StartTime = hours.StartTime,
+                        EndTime = hours.EndTime
+                    })
+                    .ToList(),
                 IsActive = e.IsActive,
 
                 ServiceIds = e.EmployeeServices
@@ -51,7 +59,14 @@ public class EmployeeService : IEmployeeService
                 Email = e.Email,
                 PhoneNumber = e.PhoneNumber,
                 Position = e.Position,
-                WorkingHours = e.WorkingHours,
+                WorkingSchedule = e.WorkingSchedule
+                    .Select(hours => new EmployeeWorkingHourDto
+                    {
+                        DayOfWeek = hours.DayOfWeek,
+                        StartTime = hours.StartTime,
+                        EndTime = hours.EndTime
+                    })
+                    .ToList(),
                 IsActive = e.IsActive,
 
                 ServiceIds = e.EmployeeServices
@@ -63,6 +78,11 @@ public class EmployeeService : IEmployeeService
 
     public async Task<EmployeeDto> CreateAsync(EmployeeDto employeeDto)
     {
+        ValidateWorkingSchedule(employeeDto.WorkingSchedule);
+        await ValidateServiceAssignmentsAsync(
+            employeeDto.SalonId,
+            employeeDto.ServiceIds);
+
         var employee = new Employee
         {
             SalonId = employeeDto.SalonId,
@@ -71,13 +91,23 @@ public class EmployeeService : IEmployeeService
             Email = employeeDto.Email,
             PhoneNumber = employeeDto.PhoneNumber,
             Position = employeeDto.Position,
-            WorkingHours = employeeDto.WorkingHours,
             IsActive = true
         };
 
         _context.Employees.Add(employee);
 
         await _context.SaveChangesAsync();
+
+        var workingSchedule = employeeDto.WorkingSchedule
+            .Select(hours => new EmployeeWorkingHour
+            {
+                EmployeeId = employee.Id,
+                DayOfWeek = hours.DayOfWeek,
+                StartTime = hours.StartTime,
+                EndTime = hours.EndTime
+            })
+            .ToList();
+        _context.EmployeeWorkingHours.AddRange(workingSchedule);
 
         if (employeeDto.ServiceIds != null &&
             employeeDto.ServiceIds.Count > 0)
@@ -94,8 +124,9 @@ public class EmployeeService : IEmployeeService
 
             _context.EmployeeServices.AddRange(employeeServices);
 
-            await _context.SaveChangesAsync();
         }
+
+        await _context.SaveChangesAsync();
 
         return new EmployeeDto
         {
@@ -106,7 +137,7 @@ public class EmployeeService : IEmployeeService
             Email = employee.Email,
             PhoneNumber = employee.PhoneNumber,
             Position = employee.Position,
-            WorkingHours = employee.WorkingHours,
+            WorkingSchedule = employeeDto.WorkingSchedule,
             IsActive = employee.IsActive,
             ServiceIds = employeeDto.ServiceIds ?? new List<int>()
         };
@@ -125,14 +156,65 @@ public class EmployeeService : IEmployeeService
             return false;
         }
 
+        ValidateWorkingSchedule(employeeDto.WorkingSchedule);
+
+        if (employee.SalonId != employeeDto.SalonId)
+        {
+            var hasFutureAppointments = await _context.Appointments
+                .AnyAsync(appointment =>
+                    appointment.EmployeeId == id &&
+                    appointment.StartTime > DateTime.Now &&
+                    (appointment.Status == AppointmentStatuses.Pending ||
+                     appointment.Status == AppointmentStatuses.Confirmed));
+
+            if (hasFutureAppointments)
+                throw new InvalidOperationException(
+                    "Zaposleniku se ne može promijeniti salon dok ima buduće aktivne termine.");
+        }
+
+        await ValidateServiceAssignmentsAsync(
+            employeeDto.SalonId,
+            employeeDto.ServiceIds);
+
         employee.SalonId = employeeDto.SalonId;
         employee.FirstName = employeeDto.FirstName;
         employee.LastName = employeeDto.LastName;
         employee.Email = employeeDto.Email;
         employee.PhoneNumber = employeeDto.PhoneNumber;
         employee.Position = employeeDto.Position;
-        employee.WorkingHours = employeeDto.WorkingHours;
         employee.IsActive = employeeDto.IsActive;
+
+        var existingSchedule = await _context.EmployeeWorkingHours
+            .Where(hours => hours.EmployeeId == id)
+            .ToListAsync();
+
+        var submittedSchedule = employeeDto.WorkingSchedule
+            .ToDictionary(hours => hours.DayOfWeek);
+        foreach (var existingHours in existingSchedule)
+        {
+            if (submittedSchedule.Remove(
+                    existingHours.DayOfWeek,
+                    out var updatedHours))
+            {
+                existingHours.StartTime = updatedHours.StartTime;
+                existingHours.EndTime = updatedHours.EndTime;
+            }
+            else
+            {
+                _context.EmployeeWorkingHours.Remove(existingHours);
+            }
+        }
+
+        var newWorkingHours = submittedSchedule.Values
+            .Select(hours => new EmployeeWorkingHour
+            {
+                EmployeeId = id,
+                DayOfWeek = hours.DayOfWeek,
+                StartTime = hours.StartTime,
+                EndTime = hours.EndTime
+            })
+            .ToList();
+        _context.EmployeeWorkingHours.AddRange(newWorkingHours);
 
         // Ukloni stare veze prema uslugama
         var existingServices =
@@ -180,5 +262,45 @@ public class EmployeeService : IEmployeeService
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    private async Task ValidateServiceAssignmentsAsync(
+        int salonId,
+        IReadOnlyCollection<int>? serviceIds)
+    {
+        var distinctServiceIds = serviceIds?.Distinct().ToArray() ?? [];
+        if (distinctServiceIds.Length == 0)
+            return;
+
+        var services = await _context.Services
+            .Where(service => distinctServiceIds.Contains(service.Id))
+            .Select(service => new { service.Id, service.SalonId })
+            .ToListAsync();
+
+        if (services.Count != distinctServiceIds.Length ||
+            services.Any(service => service.SalonId != salonId))
+        {
+            throw new InvalidOperationException(
+                "Sve odabrane usluge moraju postojati i pripadati istom salonu kao zaposlenik.");
+        }
+    }
+
+    private static void ValidateWorkingSchedule(
+        IReadOnlyCollection<EmployeeWorkingHourDto>? schedule)
+    {
+        if (schedule == null)
+            throw new InvalidOperationException(
+                "Raspored radnog vremena je obavezan (može biti prazan za neradne dane).");
+
+        if (schedule.Any(x => !Enum.IsDefined(x.DayOfWeek)) ||
+            schedule.Select(x => x.DayOfWeek).Distinct().Count() != schedule.Count)
+            throw new InvalidOperationException(
+                "Raspored može sadržavati najviše jedan zapis za svaki dan u sedmici.");
+
+        if (schedule.Any(x => x.StartTime < TimeSpan.Zero ||
+                              x.EndTime > TimeSpan.FromDays(1) ||
+                              x.EndTime <= x.StartTime))
+            throw new InvalidOperationException(
+                "Vrijeme završetka mora biti nakon početka unutar istog dana.");
     }
 }

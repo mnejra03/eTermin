@@ -1,8 +1,10 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+using eTermin.Domain.Constants;
 
 namespace eTermin.Api.Controllers;
 
@@ -58,7 +60,7 @@ public class NotificationsController : ControllerBase
             return NotFound();
 
         if (notification.UserId != userId &&
-            !User.IsInRole("Admin"))
+            !User.IsInRole(UserRoles.Admin))
         {
             return Forbid();
         }
@@ -67,7 +69,7 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<NotificationDto>>
         CreateNotification(NotificationDto notificationDto)
     {

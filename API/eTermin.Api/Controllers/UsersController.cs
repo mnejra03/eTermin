@@ -1,10 +1,12 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using eTermin.Domain.Constants;
+
 namespace eTermin.Api.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = UserRoles.Admin)]
 [Route("api/[controller]")]
 [ApiController]
 public class UsersController : ControllerBase

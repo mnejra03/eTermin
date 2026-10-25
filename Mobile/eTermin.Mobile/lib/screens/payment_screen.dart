@@ -17,7 +17,6 @@ class PaymentScreen extends StatefulWidget {
 
   final int appointmentId;
   final int paymentId;
-  final String orderId;
   final String approvalUrl;
 
   const PaymentScreen({
@@ -28,7 +27,6 @@ class PaymentScreen extends StatefulWidget {
     required this.selectedTime,
     required this.appointmentId,
     required this.paymentId,
-    required this.orderId,
     required this.approvalUrl,
   });
 
@@ -36,8 +34,7 @@ class PaymentScreen extends StatefulWidget {
   State<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _PaymentScreenState extends State<PaymentScreen>
-    with WidgetsBindingObserver {
+class _PaymentScreenState extends State<PaymentScreen> {
   final ApiService _apiService = ApiService();
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
@@ -50,11 +47,11 @@ class _PaymentScreenState extends State<PaymentScreen>
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addObserver(this);
-
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
       if (uri.scheme == 'etermin' && uri.host == 'paypal-return') {
         _capturePayment();
+      } else if (uri.scheme == 'etermin' && uri.host == 'paypal-cancel') {
+        _handlePayPalCancel();
       }
     });
   }
@@ -62,15 +59,17 @@ class _PaymentScreenState extends State<PaymentScreen>
   @override
   void dispose() {
     _linkSubscription?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _paymentStarted) {
-      _capturePayment();
-    }
+  void _handlePayPalCancel() {
+    if (!_paymentStarted || _isCapturing) return;
+
+    setState(() {
+      _isPaying = false;
+      _paymentStarted = false;
+    });
+    Navigator.of(context).pop(false);
   }
 
   Future<void> _startPayPalPayment() async {
@@ -110,7 +109,6 @@ class _PaymentScreenState extends State<PaymentScreen>
 
     try {
       await _apiService.capturePayPalOrder(
-        orderId: widget.orderId,
         paymentId: widget.paymentId,
       );
 

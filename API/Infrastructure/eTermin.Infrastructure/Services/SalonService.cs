@@ -24,10 +24,26 @@ public class SalonService : ISalonService
                 Name = s.Name,
                 Description = s.Description,
                 Address = s.Address,
-                City = s.City,
+                CityId = s.CityId,
+                CityName = _context.Cities
+                    .Where(city => city.Id == s.CityId)
+                    .Select(city => city.Name)
+                    .FirstOrDefault() ?? string.Empty,
                 PhoneNumber = s.PhoneNumber,
                 Email = s.Email,
-                ImageUrl = s.ImageUrl,
+                ImageUrl = s.Images
+                    .OrderBy(image => image.SortOrder)
+                    .Select(image => image.ImageUrl)
+                    .FirstOrDefault() ?? string.Empty,
+                Images = s.Images
+                    .OrderBy(image => image.SortOrder)
+                    .Select(image => new SalonImageDto
+                    {
+                        Id = image.Id,
+                        ImageUrl = image.ImageUrl,
+                        SortOrder = image.SortOrder
+                    })
+                    .ToList(),
                 IsActive = s.IsActive
             })
             .ToListAsync();
@@ -43,10 +59,26 @@ public class SalonService : ISalonService
                 Name = s.Name,
                 Description = s.Description,
                 Address = s.Address,
-                City = s.City,
+                CityId = s.CityId,
+                CityName = _context.Cities
+                    .Where(city => city.Id == s.CityId)
+                    .Select(city => city.Name)
+                    .FirstOrDefault() ?? string.Empty,
                 PhoneNumber = s.PhoneNumber,
                 Email = s.Email,
-                ImageUrl = s.ImageUrl,
+                ImageUrl = s.Images
+                    .OrderBy(image => image.SortOrder)
+                    .Select(image => image.ImageUrl)
+                    .FirstOrDefault() ?? string.Empty,
+                Images = s.Images
+                    .OrderBy(image => image.SortOrder)
+                    .Select(image => new SalonImageDto
+                    {
+                        Id = image.Id,
+                        ImageUrl = image.ImageUrl,
+                        SortOrder = image.SortOrder
+                    })
+                    .ToList(),
                 IsActive = s.IsActive
             })
             .FirstOrDefaultAsync();
@@ -54,15 +86,17 @@ public class SalonService : ISalonService
 
     public async Task<SalonDto> CreateAsync(SalonDto salonDto)
     {
+        if (!await _context.Cities.AnyAsync(city => city.Id == salonDto.CityId))
+            throw new InvalidOperationException("Odabrani grad ne postoji.");
+
         var salon = new Salon
         {
             Name = salonDto.Name,
             Description = salonDto.Description,
             Address = salonDto.Address,
-            City = salonDto.City,
+            CityId = salonDto.CityId,
             PhoneNumber = salonDto.PhoneNumber,
             Email = salonDto.Email,
-            ImageUrl = salonDto.ImageUrl,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -71,41 +105,63 @@ public class SalonService : ISalonService
 
         await _context.SaveChangesAsync();
 
-        return new SalonDto
-        {
-            Id = salon.Id,
-            Name = salon.Name,
-            Description = salon.Description,
-            Address = salon.Address,
-            City = salon.City,
-            PhoneNumber = salon.PhoneNumber,
-            Email = salon.Email,
-            ImageUrl = salon.ImageUrl,
-            IsActive = salon.IsActive
-        };
+        ReplaceImages(salon, salonDto);
+        await _context.SaveChangesAsync();
+        return (await GetByIdAsync(salon.Id))!;
     }
 
     public async Task<bool> UpdateAsync(int id, SalonDto salonDto)
     {
-        var salon = await _context.Salons.FindAsync(id);
+        var salon = await _context.Salons
+            .Include(existing => existing.Images)
+            .FirstOrDefaultAsync(existing => existing.Id == id);
 
         if (salon == null)
         {
             return false;
         }
 
+        if (!await _context.Cities.AnyAsync(city => city.Id == salonDto.CityId))
+            throw new InvalidOperationException("Odabrani grad ne postoji.");
+
         salon.Name = salonDto.Name;
         salon.Description = salonDto.Description;
         salon.Address = salonDto.Address;
-        salon.City = salonDto.City;
+        salon.CityId = salonDto.CityId;
         salon.PhoneNumber = salonDto.PhoneNumber;
         salon.Email = salonDto.Email;
-        salon.ImageUrl = salonDto.ImageUrl;
         salon.IsActive = salonDto.IsActive;
+        ReplaceImages(salon, salonDto);
 
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    private void ReplaceImages(Salon salon, SalonDto salonDto)
+    {
+        _context.SalonImages.RemoveRange(salon.Images);
+        salon.Images.Clear();
+
+        var images = salonDto.Images ??
+            (string.IsNullOrWhiteSpace(salonDto.ImageUrl)
+                ? new List<SalonImageDto>()
+                : new List<SalonImageDto>
+                {
+                    new() { ImageUrl = salonDto.ImageUrl }
+                });
+
+        foreach (var image in images.Where(
+                     item => !string.IsNullOrWhiteSpace(item.ImageUrl)))
+        {
+            salon.Images.Add(new SalonImage
+            {
+                SalonId = salon.Id,
+                ImageUrl = image.ImageUrl.Trim(),
+                SortOrder = image.SortOrder,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
     }
 
     public async Task<bool> DeleteAsync(int id)

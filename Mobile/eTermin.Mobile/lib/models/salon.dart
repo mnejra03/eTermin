@@ -27,7 +27,7 @@ class Salon {
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       address: json['address'] ?? '',
-      city: json['city'] ?? '',
+      city: json['cityName'] ?? json['city'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       email: json['email'] ?? '',
       imageUrl: json['imageUrl'] ?? '',

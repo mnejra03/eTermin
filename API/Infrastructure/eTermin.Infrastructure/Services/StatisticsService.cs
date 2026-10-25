@@ -1,5 +1,6 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
+using eTermin.Domain.Constants;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -54,7 +55,7 @@ public class StatisticsService : IStatisticsService
                     x.SalonId == salonId.Value);
         }
 
-       
+
 
         // ==========================================
         // SVI TERMINI ZA GRAF STATUSA
@@ -84,7 +85,7 @@ public class StatisticsService : IStatisticsService
         {
             appointments =
                 appointments
-                    .Where(x => x.Status == "Completed")
+                    .Where(x => x.Status == AppointmentStatuses.Completed)
                     .ToList();
         }
 
@@ -102,7 +103,7 @@ public class StatisticsService : IStatisticsService
         // ==========================================
 
         var totalRevenue = allAppointments
-    .Where(x => x.Status == "Completed")
+    .Where(x => x.Status == AppointmentStatuses.Completed)
     .Sum(x => x.Price);
 
 
@@ -342,6 +343,6 @@ public class StatisticsService : IStatisticsService
          ReservationsByService =
     reservationsByService
         };
-    } 
+    }
 }
-    
+

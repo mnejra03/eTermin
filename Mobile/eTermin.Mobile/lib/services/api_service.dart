@@ -206,6 +206,36 @@ class ApiService {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> getPaymentsForAppointment(
+    int appointmentId,
+  ) async {
+    if (_token == null || _token!.isEmpty) {
+      throw Exception('JWT TOKEN NIJE POSTAVLJEN.');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/Payments/appointment/$appointmentId'),
+      headers: {'Authorization': 'Bearer $_token'},
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception(
+        'API je vratio prazan odgovor. Status: ${response.statusCode}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return (data as List)
+          .map<Map<String, dynamic>>(
+            (item) => Map<String, dynamic>.from(item as Map),
+          )
+          .toList();
+    }
+
+    throw Exception(data['message'] ?? 'Uplate se ne mogu učitati.');
+  }
+
   Future<int> createAppointment({
     required int salonId,
     required int employeeId,
@@ -248,6 +278,30 @@ class ApiService {
       'Status: ${response.statusCode}\n'
       'Odgovor API-ja: ${response.body}',
     );
+  }
+
+  Future<void> cancelAppointment(int appointmentId, String reason) async {
+    if (_token == null || _token!.isEmpty) {
+      throw Exception('JWT TOKEN NIJE POSTAVLJEN.');
+    }
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/Appointments/$appointmentId/cancel'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'reason': reason}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return;
+    }
+
+    final message = response.body.isEmpty
+        ? 'Termin se ne može otkazati. Status: ${response.statusCode}'
+        : response.body;
+    throw Exception(message);
   }
 
   Future<void> changePassword({
@@ -398,9 +452,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> createPayPalOrder({
-    required double amount,
-    required String currency,
-    required String description,
+    required int paymentId,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Payments/paypal/create-order'),
@@ -408,11 +460,7 @@ class ApiService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $_token',
       },
-      body: jsonEncode({
-        'amount': amount,
-        'currency': currency,
-        'description': description,
-      }),
+      body: jsonEncode({'paymentId': paymentId}),
     );
 
     if (response.body.isEmpty) {
@@ -434,7 +482,6 @@ class ApiService {
   }
 
   Future<String> capturePayPalOrder({
-    required String orderId,
     required int paymentId,
   }) async {
     final response = await http.post(
@@ -443,7 +490,7 @@ class ApiService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $_token',
       },
-      body: jsonEncode({'orderId': orderId, 'paymentId': paymentId}),
+      body: jsonEncode({'paymentId': paymentId}),
     );
 
     if (response.body.isEmpty) {

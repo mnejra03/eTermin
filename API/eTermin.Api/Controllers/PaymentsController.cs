@@ -1,8 +1,10 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
+using eTermin.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using System.Security.Claims;
 
 namespace eTermin.Api.Controllers;
 
@@ -25,7 +27,10 @@ public class PaymentsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<PaymentDto>> GetPayment(int id)
     {
-        var payment = await _paymentService.GetByIdAsync(id);
+        if (!TryGetUserScope(out var userId))
+            return Unauthorized();
+
+        var payment = await _paymentService.GetByIdAsync(id, userId);
 
         if (payment == null)
             return NotFound();
@@ -37,9 +42,16 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<List<PaymentDto>>>
         GetByAppointment(int appointmentId)
     {
+        if (!TryGetUserScope(out var userId))
+            return Unauthorized();
+
         var payments =
             await _paymentService.GetByAppointmentIdAsync(
-                appointmentId);
+                appointmentId,
+                userId);
+
+        if (payments == null)
+            return NotFound();
 
         return Ok(payments);
     }
@@ -48,10 +60,16 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<PaymentDto>>
         CreatePayment(PaymentDto paymentDto)
     {
+        if (!TryGetUserScope(out var userId))
+            return Unauthorized();
+
         try
         {
             var payment =
-                await _paymentService.CreateAsync(paymentDto);
+                await _paymentService.CreateAsync(paymentDto, userId);
+
+            if (payment == null)
+                return NotFound(new { message = "Termin nije pronađen." });
 
             return Ok(payment);
         }
@@ -65,11 +83,20 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> UpdateStatus(
         int id,
         [FromBody] string status)
     {
+        // Only a successful PayPal capture may complete a payment.
+        if (string.Equals(
+                status,
+                PaymentStatuses.Completed,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         var updated =
             await _paymentService.UpdateStatusAsync(
                 id,
@@ -85,17 +112,20 @@ public class PaymentsController : ControllerBase
     public async Task<IActionResult> CreatePayPalOrder(
     [FromBody] CreatePayPalOrderRequest request)
     {
+        if (!TryGetUserScope(out var userId))
+            return Unauthorized();
+
         try
         {
-            var order =
-    await _payPalService.CreateOrderAsync(
-        request.Amount,
-        request.Currency,
-        request.Description);
+            var order = await _paymentService.CreatePayPalOrderAsync(
+                request.PaymentId,
+                userId);
+
+            if (order == null)
+                return NotFound(new { message = "Uplata nije pronađena." });
 
             return Ok(new
             {
-                orderId = order.OrderId,
                 approvalUrl = order.ApprovalUrl
             });
         }
@@ -112,23 +142,20 @@ public class PaymentsController : ControllerBase
     public async Task<IActionResult> CapturePayPalOrder(
     [FromBody] CapturePayPalOrderRequest request)
     {
+        if (!TryGetUserScope(out var userId))
+            return Unauthorized();
+
         try
         {
-            var captureId =
-    await _payPalService.CaptureOrderAsync(
-        request.OrderId);
+            var captureId = await _paymentService.CapturePayPalOrderAsync(
+                request.PaymentId,
+                userId);
 
-            var updated =
-                await _paymentService.UpdateStatusAsync(
-                    request.PaymentId,
-                    "Completed",
-                    captureId);
-
-            if (!updated)
+            if (captureId == null)
             {
                 return NotFound(new
                 {
-                    message = "Payment zapis nije pronađen."
+                    message = "Uplata nije pronađena."
                 });
             }
 
@@ -209,23 +236,35 @@ public class PaymentsController : ControllerBase
             });
         }
     }
+
+    private bool TryGetUserScope(out int? userId)
+    {
+        if (User.IsInRole(UserRoles.Admin))
+        {
+            userId = null;
+            return true;
+        }
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim != null &&
+            int.TryParse(userIdClaim.Value, out var parsedUserId))
+        {
+            userId = parsedUserId;
+            return true;
+        }
+
+        userId = null;
+        return false;
+    }
 }
 
 public class CreatePayPalOrderRequest
 {
-    public decimal Amount { get; set; }
-
-    public string Currency { get; set; } = "BAM";
-
-    public string Description { get; set; } =
-        string.Empty;
+    public int PaymentId { get; set; }
 }
 
 public class CapturePayPalOrderRequest
 {
-    public string OrderId { get; set; } =
-        string.Empty;
-
     public int PaymentId { get; set; }
 }
 

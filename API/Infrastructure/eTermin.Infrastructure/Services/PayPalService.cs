@@ -129,7 +129,7 @@ public class PayPalService : IPayPalService
                         return_url =
     "etermin://paypal-return",
                         cancel_url =
-    "etermin://paypal-return"
+    "etermin://paypal-cancel"
                     }
                 }
             }

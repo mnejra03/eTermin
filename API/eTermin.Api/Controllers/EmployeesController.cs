@@ -1,7 +1,9 @@
-﻿using eTermin.Application.DTOs;
+using eTermin.Application.DTOs;
 using eTermin.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+
+using eTermin.Domain.Constants;
 
 namespace eTermin.Api.Controllers;
 
@@ -39,25 +41,40 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<EmployeeDto>> CreateEmployee(
         EmployeeDto employeeDto)
     {
-        var employee = await _employeeService.CreateAsync(employeeDto);
+        try
+        {
+            var employee = await _employeeService.CreateAsync(employeeDto);
 
-        return CreatedAtAction(
-            nameof(GetEmployee),
-            new { id = employee.Id },
-            employee);
+            return CreatedAtAction(
+                nameof(GetEmployee),
+                new { id = employee.Id },
+                employee);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> UpdateEmployee(
         int id,
         EmployeeDto employeeDto)
     {
-        var updated = await _employeeService.UpdateAsync(id, employeeDto);
+        bool updated;
+        try
+        {
+            updated = await _employeeService.UpdateAsync(id, employeeDto);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
 
         if (!updated)
         {
@@ -68,7 +85,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<IActionResult> DeleteEmployee(int id)
     {
         var deleted = await _employeeService.DeleteAsync(id);

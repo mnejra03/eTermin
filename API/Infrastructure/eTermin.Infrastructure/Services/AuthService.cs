@@ -1,6 +1,7 @@
-﻿using eTermin.Api.DTOs;
+using eTermin.Api.DTOs;
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
+using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +38,7 @@ public class AuthService : IAuthService
             LastName = registerDto.LastName,
             Email = registerDto.Email,
             PasswordHash = passwordHash,
-            Role = "User",
+            Role = UserRoles.User,
             CreatedAt = DateTime.UtcNow
         };
 
