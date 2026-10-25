@@ -545,6 +545,22 @@ public class AppointmentService : IAppointmentService
             }
         }
 
+        if (scheduleChanged)
+        {
+            _context.Notifications.Add(new Notification
+            {
+                UserId = appointment.UserId,
+                AppointmentId = appointment.Id,
+                Type = "AppointmentUpdated",
+                Title = "Termin izmijenjen",
+                Message =
+                    $"Termin je izmijenjen. Novi termin je " +
+                    $"{appointment.StartTime:dd.MM.yyyy. HH:mm}.",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         await _context.SaveChangesAsync();
 
         return true;

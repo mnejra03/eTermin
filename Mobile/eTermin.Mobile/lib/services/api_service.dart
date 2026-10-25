@@ -39,15 +39,11 @@ class ApiService {
       body: jsonEncode({'email': email, 'password': password}),
     );
 
-    if (response.body.isEmpty) {
-      throw Exception(
-        'API je vratio prazan odgovor. Status: ${response.statusCode}',
-      );
-    }
-
-    final data = jsonDecode(response.body);
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.isEmpty) {
+        throw Exception('Prijava nije uspjela. Pokušajte ponovo.');
+      }
+      final data = jsonDecode(response.body);
       _token = data['token'];
 
       if (_token == null || _token!.isEmpty) {
@@ -57,7 +53,9 @@ class ApiService {
       return data;
     }
 
-    throw Exception(data['message'] ?? 'Prijava nije uspjela.');
+    throw Exception(
+      _errorMessage(response.body, fallback: 'Prijava nije uspjela.'),
+    );
   }
 
   Future<List<Salon>> getSalons() async {
@@ -67,28 +65,48 @@ class ApiService {
     );
 
     if (response.body.isEmpty) {
-      throw Exception(
-        'Saloni API je vratio prazan odgovor. '
-        'Status: ${response.statusCode}',
-      );
+      throw Exception('Saloni trenutno nisu dostupni.');
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'Saloni API greška. '
-        'Status: ${response.statusCode}\n'
-        'Body: ${response.body}',
+        _errorMessage(response.body, fallback: 'Saloni se ne mogu učitati.'),
       );
     }
 
     final data = jsonDecode(response.body);
 
     if (data is! List) {
+      throw Exception('API je vratio neočekivan odgovor za salone.');
+    }
+
+    return data
+        .map((json) => Salon.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<Salon>> getPopularSalons() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/Salons/popular'),
+      headers: _authHeaders,
+    );
+
+    if (response.body.isEmpty) {
+      throw Exception('Popularni saloni trenutno nisu dostupni.');
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'Neočekivan odgovor za salone.\n'
-        'Tip: ${data.runtimeType}\n'
-        'Body: ${response.body}',
+        _errorMessage(
+          response.body,
+          fallback: 'Popularni saloni trenutno nisu dostupni.',
+        ),
       );
+    }
+
+    final data = jsonDecode(response.body);
+    if (data is! List) {
+      throw Exception('API je vratio neočekivan odgovor za popularne salone.');
     }
 
     return data
@@ -102,17 +120,18 @@ class ApiService {
       headers: _authHeaders,
     );
 
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _errorMessage(response.body, fallback: 'Usluge se ne mogu učitati.'),
+      );
+    }
+
     if (response.body.isEmpty) {
-      throw Exception('API je vratio prazan odgovor.');
+      throw Exception('Usluge se ne mogu učitati.');
     }
 
     final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return (data as List).map((json) => Service.fromJson(json)).toList();
-    }
-
-    throw Exception('Usluge se ne mogu učitati.');
+    return (data as List).map((json) => Service.fromJson(json)).toList();
   }
 
   Future<List<Employee>> getEmployees() async {
@@ -121,17 +140,21 @@ class ApiService {
       headers: _authHeaders,
     );
 
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        _errorMessage(
+          response.body,
+          fallback: 'Zaposlenici se ne mogu učitati.',
+        ),
+      );
+    }
+
     if (response.body.isEmpty) {
-      throw Exception('API je vratio prazan odgovor.');
+      throw Exception('Zaposlenici se ne mogu učitati.');
     }
 
     final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return (data as List).map((json) => Employee.fromJson(json)).toList();
-    }
-
-    throw Exception('Zaposlenici se ne mogu učitati.');
+    return (data as List).map((json) => Employee.fromJson(json)).toList();
   }
 
   Future<List<Map<String, dynamic>>> getAvailableSlots({
@@ -162,20 +185,21 @@ class ApiService {
       headers: {'Authorization': 'Bearer $_token'},
     );
 
-    if (response.body.isEmpty) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'API je vratio prazan odgovor. '
-        'Status: ${response.statusCode}',
+        _errorMessage(
+          response.body,
+          fallback: 'Slobodni termini se ne mogu učitati.',
+        ),
       );
     }
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return List<Map<String, dynamic>>.from(data);
+    if (response.body.isEmpty) {
+      throw Exception('Slobodni termini se ne mogu učitati.');
     }
 
-    throw Exception('Slobodni termini se ne mogu učitati.');
+    final data = jsonDecode(response.body);
+    return List<Map<String, dynamic>>.from(data);
   }
 
   Future<List<Map<String, dynamic>>> getMyAppointments() async {
@@ -188,19 +212,14 @@ class ApiService {
       headers: {'Authorization': 'Bearer $_token'},
     );
 
-    if (response.body.isEmpty) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'API je vratio prazan odgovor. '
-        'Status: ${response.statusCode}',
+        _errorMessage(response.body, fallback: 'Termini se ne mogu učitati.'),
       );
     }
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        'Moji termini API greška.\n'
-        'Status: ${response.statusCode}\n'
-        'Body: ${response.body}',
-      );
+    if (response.body.isEmpty) {
+      throw Exception('Termini se ne mogu učitati.');
     }
 
     final decoded = jsonDecode(response.body);
@@ -231,22 +250,21 @@ class ApiService {
       headers: {'Authorization': 'Bearer $_token'},
     );
 
-    if (response.body.isEmpty) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'API je vratio prazan odgovor. Status: ${response.statusCode}',
+        _errorMessage(response.body, fallback: 'Uplate se ne mogu učitati.'),
       );
     }
 
-    final data = jsonDecode(response.body);
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return (data as List)
-          .map<Map<String, dynamic>>(
-            (item) => Map<String, dynamic>.from(item as Map),
-          )
-          .toList();
+    if (response.body.isEmpty) {
+      throw Exception('Uplate se ne mogu učitati.');
     }
-
-    throw Exception(data['message'] ?? 'Uplate se ne mogu učitati.');
+    final data = jsonDecode(response.body);
+    return (data as List)
+        .map<Map<String, dynamic>>(
+          (item) => Map<String, dynamic>.from(item as Map),
+        )
+        .toList();
   }
 
   Future<int> createAppointment({
@@ -274,23 +292,18 @@ class ApiService {
       }),
     );
 
-    if (response.body.isEmpty) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'API je vratio prazan odgovor. '
-        'Status: ${response.statusCode}',
+        _errorMessage(response.body, fallback: 'Termin nije moguće kreirati.'),
       );
     }
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return data['id'] as int;
+    if (response.body.isEmpty) {
+      throw Exception('Termin nije moguće kreirati.');
     }
 
-    throw Exception(
-      'Status: ${response.statusCode}\n'
-      'Odgovor API-ja: ${response.body}',
-    );
+    final data = jsonDecode(response.body);
+    return data['id'] as int;
   }
 
   Future<void> cancelAppointment(int appointmentId, String reason) async {
@@ -312,12 +325,15 @@ class ApiService {
     }
 
     final message = response.body.isEmpty
-        ? 'Termin se ne može otkazati. Status: ${response.statusCode}'
-        : _errorMessage(response.body);
+        ? 'Termin se ne može otkazati.'
+        : _errorMessage(response.body, fallback: 'Termin se ne može otkazati.');
     throw Exception(message);
   }
 
-  String _errorMessage(String body) {
+  String _errorMessage(
+    String body, {
+    String fallback = 'Došlo je do greške. Pokušajte ponovo.',
+  }) {
     try {
       final decoded = jsonDecode(body);
       if (decoded is Map<String, dynamic> &&
@@ -326,9 +342,9 @@ class ApiService {
         return decoded['message'] as String;
       }
     } on FormatException {
-      return body;
+      return fallback;
     }
-    return body;
+    return fallback;
   }
 
   Future<void> changePassword({
@@ -347,19 +363,13 @@ class ApiService {
       }),
     );
 
-    if (response.body.isEmpty) {
-      throw Exception(
-        'API je vratio prazan odgovor. Status: ${response.statusCode}',
-      );
-    }
-
-    final data = jsonDecode(response.body);
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return;
     }
 
-    throw Exception(data['message'] ?? 'Promjena lozinke nije uspjela.');
+    throw Exception(
+      _errorMessage(response.body, fallback: 'Promjena lozinke nije uspjela.'),
+    );
   }
 
   Future<void> updateProfile({
@@ -379,8 +389,11 @@ class ApiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         response.body.isEmpty
-            ? 'Profil nije moguće izmijeniti (HTTP ${response.statusCode}).'
-            : _errorMessage(response.body),
+            ? 'Profil nije moguće izmijeniti.'
+            : _errorMessage(
+                response.body,
+                fallback: 'Profil nije moguće izmijeniti.',
+              ),
       );
     }
   }
@@ -394,8 +407,11 @@ class ApiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         response.body.isEmpty
-            ? 'Kod nije moguće poslati (HTTP ${response.statusCode}).'
-            : _errorMessage(response.body),
+            ? 'Kod nije moguće poslati.'
+            : _errorMessage(
+                response.body,
+                fallback: 'Kod nije moguće poslati.',
+              ),
       );
     }
   }
@@ -417,8 +433,11 @@ class ApiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         response.body.isEmpty
-            ? 'Lozinku nije moguće resetovati (HTTP ${response.statusCode}).'
-            : _errorMessage(response.body),
+            ? 'Lozinku nije moguće resetovati.'
+            : _errorMessage(
+                response.body,
+                fallback: 'Lozinku nije moguće resetovati.',
+              ),
       );
     }
   }
@@ -429,22 +448,23 @@ class ApiService {
       headers: _authHeaders,
     );
 
-    if (response.body.isEmpty) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'API je vratio prazan odgovor. '
-        'Status: ${response.statusCode}',
+        _errorMessage(
+          response.body,
+          fallback: 'Obavijesti se ne mogu učitati.',
+        ),
       );
     }
 
+    if (response.body.isEmpty) {
+      throw Exception('Obavijesti se ne mogu učitati.');
+    }
     final data = jsonDecode(response.body);
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return (data as List)
-          .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
-          .toList();
-    }
-
-    throw Exception('Obavijesti se ne mogu učitati.');
+    return (data as List)
+        .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> markNotificationAsRead(int id) async {
@@ -457,7 +477,14 @@ class ApiService {
       return;
     }
 
-    throw Exception('Obavijest se ne može označiti kao pročitana.');
+    throw Exception(
+      response.body.isEmpty
+          ? 'Obavijest se ne može označiti kao pročitana.'
+          : _errorMessage(
+              response.body,
+              fallback: 'Obavijest se ne može označiti kao pročitana.',
+            ),
+    );
   }
 
   Future<void> deleteNotification(int id) async {
@@ -467,7 +494,14 @@ class ApiService {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Brisanje obavijesti nije uspjelo.');
+      throw Exception(
+        response.body.isEmpty
+            ? 'Brisanje obavijesti nije uspjelo.'
+            : _errorMessage(
+                response.body,
+                fallback: 'Brisanje obavijesti nije uspjelo.',
+              ),
+      );
     }
   }
 
@@ -488,20 +522,17 @@ class ApiService {
       }),
     );
 
-    if (response.body.isEmpty) {
-      throw Exception(
-        'API je vratio prazan odgovor. '
-        'Status: ${response.statusCode}',
-      );
-    }
-
-    final data = jsonDecode(response.body);
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.isEmpty) {
+        throw Exception('Registracija nije uspjela. Pokušajte ponovo.');
+      }
+      final data = jsonDecode(response.body);
       return data;
     }
 
-    throw Exception(data['message'] ?? 'Registracija nije uspjela.');
+    throw Exception(
+      _errorMessage(response.body, fallback: 'Registracija nije uspjela.'),
+    );
   }
 
   Future<int> createPayment({
@@ -524,19 +555,20 @@ class ApiService {
       }),
     );
 
-    if (response.body.isEmpty) {
-      throw Exception(
-        'API je vratio prazan odgovor. Status: ${response.statusCode}',
-      );
-    }
-
-    final data = jsonDecode(response.body);
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.isEmpty) {
+        throw Exception('Kreiranje plaćanja nije uspjelo.');
+      }
+      final data = jsonDecode(response.body);
       return data['id'] as int;
     }
 
-    throw Exception(data['message'] ?? 'Kreiranje plaćanja nije uspjelo.');
+    throw Exception(
+      _errorMessage(
+        response.body,
+        fallback: 'Kreiranje plaćanja nije uspjelo.',
+      ),
+    );
   }
 
   Future<Map<String, dynamic>> createPayPalOrder({
@@ -551,22 +583,22 @@ class ApiService {
       body: jsonEncode({'paymentId': paymentId}),
     );
 
-    if (response.body.isEmpty) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'PayPal API je vratio prazan odgovor. '
-        'Status: ${response.statusCode}',
+        _errorMessage(
+          response.body,
+          fallback: 'Kreiranje PayPal narudžbe nije uspjelo.',
+        ),
       );
     }
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return Map<String, dynamic>.from(data);
+    if (response.body.isEmpty) {
+      throw Exception('PayPal API nije vratio podatke.');
     }
 
-    throw Exception(
-      data['message'] ?? 'Kreiranje PayPal narudžbe nije uspjelo.',
-    );
+    {
+      final data = jsonDecode(response.body);
+      return Map<String, dynamic>.from(data);
+    }
   }
 
   Future<String> capturePayPalOrder({required int paymentId}) async {
@@ -579,19 +611,16 @@ class ApiService {
       body: jsonEncode({'paymentId': paymentId}),
     );
 
-    if (response.body.isEmpty) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'PayPal capture API je vratio prazan odgovor. '
-        'Status: ${response.statusCode}',
+        _errorMessage(response.body, fallback: 'PayPal plaćanje nije uspjelo.'),
       );
     }
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return data['captureId'] as String;
+    if (response.body.isEmpty) {
+      throw Exception('PayPal plaćanje nije uspjelo.');
     }
-
-    throw Exception(data['message'] ?? 'PayPal plaćanje nije uspjelo.');
+    final data = jsonDecode(response.body);
+    return data['captureId'] as String;
   }
 }

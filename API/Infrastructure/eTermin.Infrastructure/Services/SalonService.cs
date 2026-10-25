@@ -1,5 +1,6 @@
 using eTermin.Application.DTOs;
 using eTermin.Application.Services;
+using eTermin.Domain.Constants;
 using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -48,6 +49,49 @@ public class SalonService : ISalonService
                     .ToList(),
                 IsActive = s.IsActive
             })
+            .ToListAsync();
+    }
+
+    public async Task<List<SalonDto>> GetPopularAsync()
+    {
+        return await _context.Salons
+            .Where(salon => salon.IsActive)
+            .Select(salon => new SalonDto
+            {
+                Id = salon.Id,
+                Name = salon.Name,
+                Description = salon.Description,
+                Address = salon.Address,
+                CityId = salon.CityId,
+                CityName = _context.Cities
+                    .Where(city => city.Id == salon.CityId)
+                    .Select(city => city.Name)
+                    .FirstOrDefault() ?? string.Empty,
+                PhoneNumber = salon.PhoneNumber,
+                Email = salon.Email,
+                EmployeeCount = _context.Employees.Count(
+                    employee => employee.SalonId == salon.Id),
+                ReservationCount = _context.Appointments.Count(
+                    appointment =>
+                        appointment.SalonId == salon.Id &&
+                        appointment.Status != AppointmentStatuses.Cancelled),
+                ImageUrl = salon.Images
+                    .OrderBy(image => image.SortOrder)
+                    .Select(image => image.ImageUrl)
+                    .FirstOrDefault() ?? string.Empty,
+                Images = salon.Images
+                    .OrderBy(image => image.SortOrder)
+                    .Select(image => new SalonImageDto
+                    {
+                        Id = image.Id,
+                        ImageUrl = image.ImageUrl,
+                        SortOrder = image.SortOrder
+                    })
+                    .ToList(),
+                IsActive = salon.IsActive
+            })
+            .OrderByDescending(salon => salon.ReservationCount)
+            .ThenBy(salon => salon.Name)
             .ToListAsync();
     }
 

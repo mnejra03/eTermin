@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/admin_api_client.dart';
@@ -15,18 +17,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   String? _error;
+  Timer? _refreshTimer;
+  bool _refreshing = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (_refreshing) return;
+    _refreshing = true;
+    if (mounted) {
+      setState(() {
+        _loading = _items.isEmpty;
+        _error = null;
+      });
+    }
     try {
       final items = await widget.api.getList('Notifications/my');
       if (mounted) setState(() => _items = items);
@@ -34,6 +49,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
+      _refreshing = false;
     }
   }
 

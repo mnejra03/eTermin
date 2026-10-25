@@ -6,6 +6,8 @@ public interface ISalonService
 {
     Task<List<SalonDto>> GetAllAsync();
 
+    Task<List<SalonDto>> GetPopularAsync();
+
     Task<SalonDto?> GetByIdAsync(int id);
 
     Task<SalonDto> CreateAsync(SalonDto salonDto);

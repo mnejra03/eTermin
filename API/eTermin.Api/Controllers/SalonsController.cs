@@ -33,6 +33,14 @@ public class SalonsController : ControllerBase
         return Ok(salons);
     }
 
+    [HttpGet("popular")]
+    public async Task<ActionResult<List<SalonDto>>> GetPopularSalons()
+    {
+        var salons = await _salonService.GetPopularAsync();
+
+        return Ok(salons);
+    }
+
     [HttpPost]
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<SalonDto>> CreateSalon(SalonDto salonDto)

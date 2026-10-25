@@ -9,6 +9,7 @@ using eTermin.Infrastructure.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -96,6 +97,21 @@ namespace eTemin.Api
     PayPalService>();
 
             builder.Services.AddControllers();
+
+            builder.Services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.InvalidModelStateResponseFactory = context =>
+                {
+                    var message = context.ModelState.Values
+                        .SelectMany(value => value.Errors)
+                        .Select(error => error.ErrorMessage)
+                        .FirstOrDefault(error =>
+                            !string.IsNullOrWhiteSpace(error))
+                        ?? "Podaci nisu ispravni.";
+
+                    return new BadRequestObjectResult(new { message });
+                };
+            });
 
             builder.Services.AddFluentValidationAutoValidation();
             builder.Services.AddValidatorsFromAssemblyContaining<SalonValidator>();

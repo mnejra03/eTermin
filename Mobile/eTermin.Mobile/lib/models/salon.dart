@@ -6,6 +6,7 @@ class Salon {
   final String city;
   final String phoneNumber;
   final String email;
+  final int reservationCount;
   final String imageUrl;
   final bool isActive;
 
@@ -17,6 +18,7 @@ class Salon {
     required this.city,
     required this.phoneNumber,
     required this.email,
+    this.reservationCount = 0,
     required this.imageUrl,
     required this.isActive,
   });
@@ -30,6 +32,7 @@ class Salon {
       city: json['cityName'] ?? json['city'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       email: json['email'] ?? '',
+      reservationCount: (json['reservationCount'] as num?)?.toInt() ?? 0,
       imageUrl: json['imageUrl'] ?? '',
       isActive: json['isActive'] ?? false,
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/notification.dart';
@@ -19,14 +21,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   bool _isLoading = true;
   String? _error;
+  Timer? _refreshTimer;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _loadNotifications();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _loadNotifications(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadNotifications() async {
+    if (_isRefreshing) return;
+    _isRefreshing = true;
     try {
       final notifications = await _apiService.getMyNotifications();
 
@@ -35,6 +51,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         _notifications = notifications;
         _isLoading = false;
+        _error = null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -43,6 +60,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _error = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
+    } finally {
+      _isRefreshing = false;
     }
   }
 
