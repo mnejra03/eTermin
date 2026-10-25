@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/salon.dart';
 import '../models/service.dart';
 import '../services/api_service.dart';
+import '../services/app_route_observer.dart';
 
 import 'salon_details_screen.dart';
 import 'all_salons_screen.dart';
@@ -16,6 +17,7 @@ import 'new_appointment_screen.dart';
 import 'recommendations_screen.dart';
 
 import 'login_screen.dart';
+import 'appointment_details_screen.dart';
 
 import 'change_password_screen.dart';
 
@@ -40,7 +42,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   int _selectedIndex = 0;
 
   final ApiService _apiService = ApiService();
@@ -101,6 +103,27 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkUnreadNotifications();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    _loadMyAppointments();
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Map<String, dynamic>? _getNextAppointment() {
     final now = DateTime.now();
 
@@ -129,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadMyAppointments() async {
+    if (!mounted) return;
     setState(() {
       _isLoadingAppointments = true;
       _appointmentsError = null;
@@ -153,56 +177,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _cancelAppointment(Map<String, dynamic> appointment) async {
-    final appointmentId = appointment['id'];
-    if (appointmentId is! int) return;
-
-    final reasonController = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Otkazati termin?'),
-        content: TextField(
-          controller: reasonController,
-          autofocus: true,
-          maxLength: 500,
-          decoration: const InputDecoration(labelText: 'Razlog otkazivanja'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Ne'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(context, reasonController.text.trim().isNotEmpty),
-            child: const Text('Da, otkaĹľi'),
-          ),
-        ],
+  Future<void> _openAppointmentDetails(Map<String, dynamic> appointment) async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            AppointmentDetailsScreen(appointment: appointment),
       ),
     );
-
-    if (confirmed != true || !mounted) {
-      reasonController.dispose();
-      return;
-    }
-
-    try {
-      await _apiService.cancelAppointment(
-        appointmentId,
-        reasonController.text.trim(),
-      );
-      await _loadMyAppointments();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Termin je otkazan.')));
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Termin nije otkazan: $error')));
-    } finally {
-      reasonController.dispose();
-    }
   }
 
   Future<void> _payAppointment(Map<String, dynamic> appointment) async {
@@ -1533,157 +1515,163 @@ class _HomeScreenState extends State<HomeScreen> {
         statusText = status;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: lightPurple,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.calendar_month,
-                  color: primaryColor,
-                  size: 22,
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$serviceName - $salonName',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: primaryColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      dateText,
-                      style: const TextStyle(color: Colors.grey, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  statusText,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
+    return InkWell(
+      onTap: () => _openAppointmentDetails(appointment),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: lightPurple,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.calendar_month,
+                    color: primaryColor,
+                    size: 22,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isPaid ? Icons.check_circle : Icons.pending_outlined,
-                  size: 16,
-                  color: isPaid ? Colors.green : Colors.orange,
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$serviceName - $salonName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: primaryColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        dateText,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 5),
-                Text(
-                  isPaid ? 'PlaĂ„â€ˇeno' : 'Nije plaĂ„â€ˇeno',
-                  style: TextStyle(
-                    color: isPaid ? Colors.green : Colors.orange.shade800,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+
+                const SizedBox(width: 8),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          if (status == 'Cancelled' &&
-              appointment['cancellationReason'] != null)
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  'Razlog otkazivanja: ${appointment['cancellationReason']}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ),
-          if (status == 'Pending' || status == 'Confirmed')
-            Align(
-              alignment: Alignment.centerRight,
-              child: Wrap(
-                spacing: 4,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (status == 'Pending' && !isPaid)
-                    FilledButton.tonalIcon(
-                      onPressed:
-                          _payingAppointmentIds.contains(appointment['id'])
-                          ? null
-                          : () => _payAppointment(appointment),
-                      icon: _payingAppointmentIds.contains(appointment['id'])
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.payment),
-                      label: const Text('Plati putem PayPal-a'),
+                  Icon(
+                    isPaid ? Icons.check_circle : Icons.pending_outlined,
+                    size: 16,
+                    color: isPaid ? Colors.green : Colors.orange,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    isPaid ? 'PlaĂ„â€ˇeno' : 'Nije plaĂ„â€ˇeno',
+                    style: TextStyle(
+                      color: isPaid ? Colors.green : Colors.orange.shade800,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
-                  if ((status == 'Pending' || status == 'Confirmed') && !isPaid)
-                    TextButton.icon(
-                      onPressed: () => _cancelAppointment(appointment),
-                      icon: const Icon(Icons.cancel_outlined),
-                      label: const Text('OtkaÄąÄľi termin'),
-                    ),
-                  if (isPaid)
-                    const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Text('PlaÄ‡eni termin se ne moĹľe otkazati.'),
-                    ),
+                  ),
                 ],
               ),
             ),
-        ],
+            if (status == 'Cancelled' &&
+                appointment['cancellationReason'] != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    'Razlog otkazivanja: ${appointment['cancellationReason']}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+            if (status == 'Pending' || status == 'Confirmed')
+              Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(
+                  spacing: 4,
+                  children: [
+                    if (status == 'Pending' && !isPaid)
+                      FilledButton.tonalIcon(
+                        onPressed:
+                            _payingAppointmentIds.contains(appointment['id'])
+                            ? null
+                            : () => _payAppointment(appointment),
+                        icon: _payingAppointmentIds.contains(appointment['id'])
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.payment),
+                        label: const Text('Plati putem PayPal-a'),
+                      ),
+                    if (isPaid)
+                      const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Text('PlaÄ‡eni termin se ne moĹľe otkazati.'),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1803,6 +1791,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _selectedIndex = index;
         });
+        if (index == 2) _loadMyAppointments();
       },
       type: BottomNavigationBarType.fixed,
       selectedItemColor: primaryColor,
