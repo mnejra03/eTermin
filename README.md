@@ -15,7 +15,7 @@ Sistem omogućava korisnicima pregled salona, zaposlenika i usluga, rezervaciju 
 Sistem se sastoji od:
 
 - REST API backend aplikacije
-- WPF desktop aplikacije za administraciju
+- Flutter Windows desktop aplikacije za administraciju (legacy WPF kod je u `Desktop/eTermin.Desktop/`)
 - Flutter mobilne aplikacije za korisnike
 
 Backend predstavlja centralni dio sistema i koristi SQL Server bazu podataka.
@@ -26,28 +26,19 @@ Backend predstavlja centralni dio sistema i koristi SQL Server bazu podataka.
 
 ```text
 eTermin/
-│
-├── API/
-│   └── eTermin.Api/
-│
-├── Application/
-│   └── eTermin.Application/
-│
-├── Domain/
-│   └── eTermin.Domain/
-│
-├── Infrastructure/
-│   └── eTermin.Infrastructure/
-│
-├── Desktop/
-│   └── eTermin.Desktop/
-│
-├── Mobile/
-│   └── eTermin.Mobile/
-│
-└── eTermin.sln
+|-- API/eTermin.Api/
+|-- Application/eTermin.Application/
+|-- Domain/eTermin.Domain/
+|-- Infrastructure/eTermin.Infrastructure/
+|-- Worker/eTermin.Worker/
+|-- Desktop/eTermin.Admin/       # Flutter Windows admin
+|-- Desktop/eTermin.Desktop/     # legacy WPF client
+|-- Mobile/eTermin.Mobile/       # Flutter mobile app
+|-- docker-compose.yml
+|-- Dockerfile.api
+|-- Dockerfile.worker
+`-- eTermin.sln
 ```
-
 ### API
 
 ASP.NET Core Web API aplikacija koja predstavlja backend sistema.
@@ -66,7 +57,7 @@ Sadrži pristup bazi podataka, Entity Framework Core konfiguraciju i implementac
 
 ### Desktop
 
-WPF desktop aplikacija namijenjena administratoru sistema.
+Flutter Windows desktop aplikacija namijenjena administratoru nalazi se u `Desktop/eTermin.Admin/`; `Desktop/eTermin.Desktop/` je stari WPF klijent.
 
 ### Mobile
 
@@ -88,8 +79,9 @@ Flutter mobilna aplikacija namijenjena korisnicima sistema.
 
 ### Desktop
 
-- WPF
-- .NET 9
+- Flutter
+- Dart
+- Windows desktop
 
 ### Mobile
 
@@ -161,22 +153,42 @@ Ako projekat sadrži `.env.example`, potrebno je napraviti lokalni `.env` fajl n
 
 **Važno:** `.env.example` je predložak, a `.env` je lokalni konfiguracijski fajl. Nemojte javno objavljivati niti slati lozinke, API ključeve, tokene ili druge tajne vrijednosti. Nemojte uklanjati postojeće nazive varijabli. Ako `.env.example` nije prisutan u ZIP-u, nemojte izmišljati njegov sadržaj — provjerite u projektnom kodu koja konfiguracija se očekuje.
 
-Napomena: u trenutnoj dokumentaciji nije potvrđeno da svi dijelovi eTermin sistema čitaju konfiguraciju iz `.env` fajla. API connection string je opisan zasebno u `API/eTermin.Api/appsettings.json`, a Mobile API adresa je navedena u `lib/services/api_service.dart`. Prilagoditi konfiguraciju na mjestu koje konkretni dio aplikacije zaista koristi.
-
 # Podaci za prijavu
 
-Podaci za prijavu administratora i korisnika čuvaju se u lokalnom `.env` fajlu u glavnom folderu projekta.
+Za pregled rada koristite ove testne naloge. `DbSeeder` ih kreira pri prvom pokretanju Docker Compose sistema s praznom bazom `220043`.
 
-Nakon kloniranja repozitorija:
+| Kontekst | Korisničko ime | Lozinka |
+|---|---|---|
+| Desktop administrator | `admin@example.local` | `Local_Admin_Password_123!` |
+| Mobilni korisnik | `user@example.local` | `Local_User_Password_123!` |
 
-1. Kopirati `.env.example` u novi fajl `.env`.
-2. Popuniti konfiguracijske vrijednosti, uključujući email adrese i lozinke početnih korisnika i administratora.
-3. Pokrenuti API kako bi se izvršilo inicijalno seedovanje baze podataka.
-
-Za prijavu u Desktop aplikaciju koristiti administratorski račun, a za prijavu u mobilnu aplikaciju koristiti korisnički račun.
-
+Nalozi i lozinke su razvojni testni podaci. Vrijednosti Compose profila nalaze se u `.env.example` (`Docker__Seed__Admin...` i `Docker__Seed__User...`). PayPal i ostale tajne ostaju u lokalnom `.env` fajlu.
 
 # Pokretanje API aplikacije
+
+## Docker Compose: API, SQL Server, RabbitMQ i Worker
+
+Napravite lokalni `.env` kopiranjem `.env.example`, zatim iz glavnog foldera projekta pokrenite:
+
+```powershell
+docker compose up --build -d
+```
+
+Ova komanda pokreće API, SQL Server s bazom `220043`, RabbitMQ i zaseban Worker kontejner. API pri startu primjenjuje migracije i, na praznoj bazi, kreira testne naloge i demonstracione podatke. Swagger je na `http://localhost:5130/swagger`; RabbitMQ Management je na `http://localhost:15672`. Desktop Flutter koristi `http://localhost:5130/api/`, a Android emulator `http://10.0.2.2:5130/api/`. Worker prima poruke za termine preko RabbitMQ-a i zakazuje podsjetnike koji se korisniku prikazuju u aplikaciji u konfigurisanom roku.
+
+Za zaustavljanje servisa bez brisanja podataka koristite:
+
+```powershell
+docker compose down
+```
+
+Sve pristupne vrijednosti i servisi podešavaju se u `.env`; Compose više ne zahtijeva poseban profil.
+
+### Lokalno pokretanje bez Compose-a
+
+Za lokalni API i Flutter desktop koristite `Start-eTermin.vbs`; connection string u `.env` cilja SQL Server na `localhost,14330` i bazu `220043`. SQL Server i RabbitMQ i dalje moraju biti pokrenuti, npr. kroz Docker Compose.
+
+### API
 
 API projekat nalazi se u:
 
@@ -236,28 +248,20 @@ Ako se projekat pokreće prvi put, početni podaci će biti automatski kreirani.
 
 # Pokretanje Desktop aplikacije
 
-Desktop aplikacija nalazi se u:
+Aktivna desktop aplikacija je Flutter Windows klijent u `Desktop/eTermin.Admin/`. `Desktop/eTermin.Desktop/` je legacy WPF kod.
 
-```text
-Desktop/eTermin.Desktop/
+1. Pokrenite Docker Desktop.
+2. Iz glavnog foldera projekta pokrenite backend:
+
+```powershell
+docker compose up --build -d
 ```
 
-Desktop aplikacija je WPF aplikacija namijenjena administratoru.
+3. U VS Code otvorite **Run and Debug**, izaberite **Flutter Admin (Windows)** i pritisnite **F5**. API u Dockeru već sluša na `http://localhost:5130`; nemojte paralelno pokretati lokalni API.
 
-Prije pokretanja potrebno je osigurati da je API pokrenut.
-
-API adresa koju Desktop aplikacija koristi je:
-
-```text
-http://localhost:5130/api/
-```
-
-Desktop aplikaciju moguće je pokrenuti direktno iz Visual Studija.
-
-Nakon pokretanja administrator se prijavljuje administratorskim računom.
+Testni administratorski nalog za čistu bazu naveden je u tabeli **Podaci za prijavu**.
 
 ---
-
 # Pokretanje Mobile aplikacije
 
 Mobilna aplikacija nalazi se u:
@@ -743,48 +747,19 @@ Nakon toga `DbSeeder` ponovo kreira početne podatke.
 
 # Redoslijed pokretanja cijelog sistema
 
-Preporučeni redoslijed pokretanja:
+### 1. Backend servisi
 
-### 1. SQL Server
+Pokrenite Docker Desktop, otvorite terminal u glavnom folderu projekta i izvršite:
 
-Provjeriti da je SQL Server pokrenut.
-
-### 2. API
-
-Pokrenuti:
-
-```text
-API/eTermin.Api
+```powershell
+docker compose up --build -d
 ```
 
-Swagger:
+Ova komanda pokreće SQL Server, API, RabbitMQ i Worker. Swagger je dostupan na `http://localhost:5130/swagger`.
 
-```text
-http://localhost:5130/swagger
-```
+### 2. Flutter desktop aplikacija
 
-### 3. Desktop aplikacija
-
-Pokrenuti:
-
-```text
-Desktop/eTermin.Desktop
-```
-
-### 4. Android emulator
-
-Provjeriti dostupne emulatore:
-
-```bash
-flutter emulators
-```
-
-Pokrenuti emulator:
-
-```bash
-flutter emulators --launch Pixel_7
-```
-
+U VS Code-u otvorite **Run and Debug**, izaberite **Flutter Admin (Windows)** i pritisnite **F5**. Ne pokrećite lokalni API paralelno s Docker API-jem.
 ### 5. Mobile aplikacija
 
 Provjeriti uređaje:
@@ -811,7 +786,7 @@ Projekat objedinjuje:
 - SQL Server
 - Entity Framework Core
 - JWT autentifikaciju
-- WPF desktop aplikaciju
+- Flutter Windows desktop aplikaciju
 - Flutter mobilnu aplikaciju
 - PayPal Sandbox plaćanje
 - sistem notifikacija

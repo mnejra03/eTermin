@@ -2,6 +2,8 @@
 
 public class CreateAppointmentDto
 {
+    public int? UserId { get; set; }
+
     public int SalonId { get; set; }
 
     public int EmployeeId { get; set; }

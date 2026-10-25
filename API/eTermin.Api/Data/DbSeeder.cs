@@ -33,8 +33,6 @@ var userEmail =
         // PROVJERA
         // =========================================================
 
-        await context.Database.MigrateAsync();
-
         // Ako već postoji naš admin korisnik,
         // smatramo da je seed već izvršen.
         var seedAdminExists =

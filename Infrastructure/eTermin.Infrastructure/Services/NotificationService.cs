@@ -18,13 +18,15 @@ public class NotificationService : INotificationService
     public async Task<List<NotificationDto>> GetByUserIdAsync(int userId)
     {
         return await _context.Notifications
-            .Where(n => n.UserId == userId)
+            .Where(n => n.UserId == userId &&
+                (n.Type != "AppointmentReminder" || n.CreatedAt <= DateTime.UtcNow))
             .OrderByDescending(n => n.CreatedAt)
             .Select(n => new NotificationDto
             {
                 Id = n.Id,
                 UserId = n.UserId,
                 AppointmentId = n.AppointmentId,
+                Type = n.Type,
                 Title = n.Title,
                 Message = n.Message,
                 IsRead = n.IsRead,
@@ -42,6 +44,7 @@ public class NotificationService : INotificationService
                 Id = n.Id,
                 UserId = n.UserId,
                 AppointmentId = n.AppointmentId,
+                Type = n.Type,
                 Title = n.Title,
                 Message = n.Message,
                 IsRead = n.IsRead,
@@ -57,6 +60,7 @@ public class NotificationService : INotificationService
         {
             UserId = notificationDto.UserId,
             AppointmentId = notificationDto.AppointmentId,
+            Type = notificationDto.Type,
             Title = notificationDto.Title,
             Message = notificationDto.Message,
             IsRead = false,
@@ -72,6 +76,7 @@ public class NotificationService : INotificationService
             Id = notification.Id,
             UserId = notification.UserId,
             AppointmentId = notification.AppointmentId,
+            Type = notification.Type,
             Title = notification.Title,
             Message = notification.Message,
             IsRead = notification.IsRead,

@@ -1,4 +1,5 @@
-﻿namespace eTermin.Domain.Entities;
+﻿
+namespace eTermin.Domain.Entities;
 
 public class Notification
 {
@@ -7,6 +8,9 @@ public class Notification
     public int UserId { get; set; }
 
     public int? AppointmentId { get; set; }
+
+    // Dodano: vrsta notifikacije, npr. AppointmentReminder.
+    public string Type { get; set; } = "General";
 
     public string Title { get; set; } = string.Empty;
 

@@ -1,4 +1,4 @@
-﻿using eTermin.Domain.Entities;
+using eTermin.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace eTermin.Infrastructure.Data;
@@ -104,6 +104,15 @@ public class eTerminDbContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.AppointmentId)
             .OnDelete(DeleteBehavior.Cascade);
+
+
+        // Sprečava dupliranje podsjetnika za isti termin.
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => new { n.AppointmentId, n.Type })
+            .IsUnique()
+            .HasFilter(
+                "[AppointmentId] IS NOT NULL AND [Type] = N'AppointmentReminder'");
+
 
         // Notification -> User
         modelBuilder.Entity<Notification>()
