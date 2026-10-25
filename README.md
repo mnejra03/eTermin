@@ -182,10 +182,6 @@ docker compose down
 
 Sve pristupne vrijednosti i servisi podešavaju se u `.env`; Compose više ne zahtijeva poseban profil.
 
-### Lokalno pokretanje bez Compose-a
-
-Za lokalni API i Flutter desktop koristite `Start-eTermin.vbs`; connection string u `.env` cilja SQL Server na `localhost,14330` i bazu `220043`. SQL Server i RabbitMQ i dalje moraju biti pokrenuti, npr. kroz Docker Compose.
-
 ### API
 
 API projekat nalazi se u:
