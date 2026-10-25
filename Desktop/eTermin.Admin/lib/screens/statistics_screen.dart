@@ -58,15 +58,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     switch (_period) {
       case 'Sedmi\u010Dni':
         from = today.subtract(Duration(days: today.weekday - 1));
-        to = from.add(const Duration(days: 6));
+        to = from.add(const Duration(days: 7));
         break;
       case 'Mjese\u010Dni':
         from = DateTime(today.year, today.month);
-        to = DateTime(today.year, today.month + 1, 0);
+        to = DateTime(today.year, today.month + 1);
         break;
       default:
         from = today;
-        to = today;
+        to = today.add(const Duration(days: 1));
         break;
     }
     return <String, String>{
