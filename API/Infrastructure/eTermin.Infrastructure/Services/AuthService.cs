@@ -25,10 +25,14 @@ public class AuthService : IAuthService
         _emailSender = emailSender;
     }
 
+    private static string NormalizeEmail(string email) =>
+        email.Trim();
+
     public async Task<AuthDto> RegisterAsync(RegisterDto registerDto)
     {
+        var normalizedEmail = NormalizeEmail(registerDto.Email);
         var existingUser = await _context.Users
-            .FirstOrDefaultAsync(x => x.Email == registerDto.Email);
+            .FirstOrDefaultAsync(x => x.Email == normalizedEmail);
 
         if (existingUser != null)
             throw new BusinessException("Korisnik sa ovim emailom već postoji.");
@@ -40,7 +44,7 @@ public class AuthService : IAuthService
         {
             FirstName = registerDto.FirstName,
             LastName = registerDto.LastName,
-            Email = registerDto.Email,
+            Email = normalizedEmail,
             PasswordHash = passwordHash,
             Role = UserRoles.User,
             CreatedAt = DateTime.UtcNow
@@ -66,8 +70,10 @@ public class AuthService : IAuthService
 
     public async Task<AuthDto?> LoginAsync(LoginDto loginDto)
     {
+        var normalizedEmail = NormalizeEmail(loginDto.Email);
         var user = await _context.Users
-            .FirstOrDefaultAsync(x => x.Email == loginDto.Email);
+            .FirstOrDefaultAsync(x =>
+                EF.Functions.Collate(x.Email, "Latin1_General_CS_AS") == normalizedEmail);
 
         if (user == null)
             return null;
@@ -170,9 +176,10 @@ public class AuthService : IAuthService
                 "Email ne može biti prazan.");
         }
 
+        var normalizedEmail = NormalizeEmail(updateProfileDto.Email);
         var emailExists = await _context.Users
             .AnyAsync(x =>
-                x.Email == updateProfileDto.Email &&
+                x.Email == normalizedEmail &&
                 x.Id != userId);
 
         if (emailExists)
@@ -187,8 +194,7 @@ public class AuthService : IAuthService
         user.LastName =
             updateProfileDto.LastName.Trim();
 
-        user.Email =
-            updateProfileDto.Email.Trim();
+        user.Email = normalizedEmail;
 
         await _context.SaveChangesAsync();
     }
@@ -197,9 +203,10 @@ public class AuthService : IAuthService
     {
         _emailSender.EnsureConfigured();
 
-        var normalizedEmail = email.Trim();
+        var normalizedEmail = NormalizeEmail(email);
         var user = await _context.Users
-            .FirstOrDefaultAsync(x => x.Email == normalizedEmail);
+            .FirstOrDefaultAsync(x =>
+                EF.Functions.Collate(x.Email, "Latin1_General_CS_AS") == normalizedEmail);
         if (user == null)
             return;
 
@@ -248,9 +255,10 @@ public class AuthService : IAuthService
                 "Nova lozinka mora sadržavati najmanje 6 znakova.");
         }
 
-        var email = resetPasswordDto.Email.Trim();
+        var email = NormalizeEmail(resetPasswordDto.Email);
         var user = await _context.Users
-            .FirstOrDefaultAsync(x => x.Email == email);
+            .FirstOrDefaultAsync(x =>
+                EF.Functions.Collate(x.Email, "Latin1_General_CS_AS") == email);
         if (user == null)
             throw new BusinessException("Kod nije ispravan ili je istekao.");
 

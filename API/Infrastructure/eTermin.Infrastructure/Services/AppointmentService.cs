@@ -48,9 +48,37 @@ public class AppointmentService : IAppointmentService
 
     public async Task<PagedResult<AppointmentListDto>> GetAllForListAsync(
         int page,
-        int pageSize)
+        int pageSize,
+        DateTime? from = null,
+        DateTime? to = null,
+        int? salonId = null,
+        string? status = null,
+        string? search = null)
     {
-        return await _context.Appointments
+        var query = _context.Appointments.AsNoTracking();
+        if (from.HasValue)
+            query = query.Where(a => a.StartTime >= from.Value.Date);
+        if (to.HasValue)
+            query = query.Where(a => a.StartTime < to.Value.Date.AddDays(1));
+        if (salonId.HasValue)
+            query = query.Where(a => a.SalonId == salonId.Value);
+        if (!string.IsNullOrWhiteSpace(status) && status != "Svi")
+            query = query.Where(a => a.Status == status);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(a =>
+                _context.Users.Any(u => u.Id == a.UserId &&
+                    (u.FirstName.Contains(term) || u.LastName.Contains(term) ||
+                     (u.FirstName + " " + u.LastName).Contains(term))) ||
+                _context.Salons.Any(s => s.Id == a.SalonId && s.Name.Contains(term)) ||
+                _context.Services.Any(s => s.Id == a.ServiceId && s.Name.Contains(term)) ||
+                _context.Employees.Any(e => e.Id == a.EmployeeId &&
+                    (e.FirstName.Contains(term) || e.LastName.Contains(term) ||
+                     (e.FirstName + " " + e.LastName).Contains(term))));
+        }
+
+        return await query
             .Select(a => new AppointmentListDto
             {
                 Id = a.Id,
@@ -97,6 +125,10 @@ public class AppointmentService : IAppointmentService
                 CreatedAt = a.CreatedAt,
                 CancelledAt = a.CancelledAt,
                 CancelledByUserId = a.CancelledByUserId,
+                CancelledByName = _context.Users
+                    .Where(u => u.Id == a.CancelledByUserId)
+                    .Select(u => u.FirstName + " " + u.LastName)
+                    .FirstOrDefault(),
                 CancellationReason = a.CancellationReason
             })
             .OrderBy(a => a.StartTime)
@@ -493,7 +525,10 @@ public class AppointmentService : IAppointmentService
                 !AppointmentStateMachine.CanTransition(oldStatus, newStatus))
             {
                 throw new BusinessException(
-                    $"Nije dozvoljen prelaz statusa '{oldStatus}' u '{newStatus}'.");
+                    oldStatus == AppointmentStatuses.Pending && newStatus == AppointmentStatuses.Completed
+                        ? "Termin na čekanju ne može se označiti kao završen. Prvo mora biti potvrđen nakon uspješne uplate."
+                        : $"Status termina se ne može promijeniti iz „{AppointmentStatuses.DisplayName(oldStatus)}“ u „{AppointmentStatuses.DisplayName(newStatus)}“."
+                );
             }
 
             if (newStatus == AppointmentStatuses.Confirmed &&

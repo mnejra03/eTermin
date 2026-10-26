@@ -24,11 +24,13 @@ public static class DbSeeder
     Environment.GetEnvironmentVariable("Seed__AdminEmail")
     ?? throw new InvalidOperationException(
         "Seed__AdminEmail nije konfigurisan.");
+        adminEmail = adminEmail.Trim();
 
 var userEmail =
     Environment.GetEnvironmentVariable("Seed__UserEmail")
     ?? throw new InvalidOperationException(
         "Seed__UserEmail nije konfigurisan.");
+        userEmail = userEmail.Trim();
 
         // =========================================================
         // PROVJERA

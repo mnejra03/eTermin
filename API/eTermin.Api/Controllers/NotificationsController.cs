@@ -22,6 +22,16 @@ public class NotificationsController : ControllerBase
         _notificationService = notificationService;
     }
 
+    [HttpGet("admin")]
+    [Authorize(Roles = UserRoles.Admin)]
+    public async Task<ActionResult<PagedResult<NotificationDto>>> GetAllNotifications(
+        int page = 1,
+        int pageSize = PaginationOptions.DefaultPageSize)
+    {
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
+        return Ok(await _notificationService.GetAllAsync(page, pageSize));
+    }
+
     [HttpGet("my")]
     public async Task<ActionResult<PagedResult<NotificationDto>>>
         GetMyNotifications(
@@ -56,7 +66,9 @@ public class NotificationsController : ControllerBase
 
         var userId = int.Parse(userIdClaim.Value);
         var unreadCount =
-            await _notificationService.GetUnreadCountByUserIdAsync(userId);
+            await _notificationService.GetUnreadCountByUserIdAsync(
+                userId,
+                User.IsInRole(UserRoles.Admin));
 
         return Ok(new { unreadCount });
     }
@@ -114,7 +126,8 @@ public class NotificationsController : ControllerBase
         var updated =
             await _notificationService.MarkAsReadAsync(
                 id,
-                userId);
+                userId,
+                User.IsInRole(UserRoles.Admin));
 
         if (!updated)
             return NotFound();
@@ -136,7 +149,8 @@ public class NotificationsController : ControllerBase
         var deleted =
             await _notificationService.DeleteAsync(
                 id,
-                userId);
+                userId,
+                User.IsInRole(UserRoles.Admin));
 
         if (!deleted)
             return NotFound();

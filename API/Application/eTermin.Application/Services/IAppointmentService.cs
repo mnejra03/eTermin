@@ -30,7 +30,12 @@ public interface IAppointmentService
 
     Task<PagedResult<AppointmentListDto>> GetAllForListAsync(
         int page,
-        int pageSize);
+        int pageSize,
+        DateTime? from = null,
+        DateTime? to = null,
+        int? salonId = null,
+        string? status = null,
+        string? search = null);
 
     Task<PagedResult<AppointmentListDto>> GetMyForListAsync(
         int userId,

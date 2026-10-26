@@ -2,41 +2,64 @@ import 'package:flutter/material.dart';
 
 import '../services/admin_api_client.dart';
 
-class ReferenceDataScreen extends StatelessWidget {
+class ReferenceDataScreen extends StatefulWidget {
   const ReferenceDataScreen({required this.api, super.key});
 
   final AdminApiClient api;
 
   @override
+  State<ReferenceDataScreen> createState() => _ReferenceDataScreenState();
+}
+
+class _ReferenceDataScreenState extends State<ReferenceDataScreen> {
+  bool _showCategories = false;
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          const Material(
-            child: TabBar(
-              tabs: [
-                Tab(text: 'Gradovi'),
-                Tab(text: 'Kategorije usluga'),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  icon: Icon(Icons.location_city_outlined),
+                  label: Text('Gradovi'),
+                ),
+                ButtonSegment(
+                  value: true,
+                  icon: Icon(Icons.category_outlined),
+                  label: Text('Kategorije usluga'),
+                ),
               ],
+              selected: {_showCategories},
+              onSelectionChanged: (selection) =>
+                  setState(() => _showCategories = selection.first),
             ),
           ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _ReferenceList(api: api, isCategory: false),
-                _ReferenceList(api: api, isCategory: true),
-              ],
-            ),
+        ),
+        Expanded(
+          child: _ReferenceList(
+            key: ValueKey(_showCategories),
+            api: widget.api,
+            isCategory: _showCategories,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 class _ReferenceList extends StatefulWidget {
-  const _ReferenceList({required this.api, required this.isCategory});
+  const _ReferenceList({
+    required this.api,
+    required this.isCategory,
+    super.key,
+  });
 
   final AdminApiClient api;
   final bool isCategory;
@@ -49,6 +72,8 @@ class _ReferenceListState extends State<_ReferenceList> {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   String? _error;
+  int _page = 1;
+  int _totalPages = 1;
 
   String get _endpoint => widget.isCategory ? 'ServiceCategories' : 'Cities';
   String get _title => widget.isCategory ? 'kategoriju' : 'grad';
@@ -59,14 +84,24 @@ class _ReferenceListState extends State<_ReferenceList> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({int page = 1}) async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final items = await widget.api.getList(_endpoint);
-      if (mounted) setState(() => _items = items);
+      final result = await widget.api.getPagedList(
+        _endpoint,
+        page: page,
+        pageSize: 8,
+      );
+      if (mounted) {
+        setState(() {
+          _items = result.items;
+          _page = result.page;
+          _totalPages = result.totalPages;
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -116,9 +151,7 @@ class _ReferenceListState extends State<_ReferenceList> {
     );
     if (confirmed != true) return;
     try {
-      final result = await widget.api.tryDelete(
-        '$_endpoint/${item['id']}',
-      );
+      final result = await widget.api.tryDelete('$_endpoint/${item['id']}');
       if (!result.succeeded) {
         if (mounted) {
           _showMessage(result.message ?? 'Zapis nije moguće obrisati.');
@@ -161,6 +194,31 @@ class _ReferenceListState extends State<_ReferenceList> {
           ),
         ),
         Expanded(child: _buildBody()),
+        if (!_loading && _error == null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'Prethodna stranica',
+                  onPressed: _page <= 1 ? null : () => _load(page: _page - 1),
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Text('Stranica $_page od $_totalPages'),
+                ),
+                IconButton(
+                  tooltip: 'Sljedeća stranica',
+                  onPressed: _page >= _totalPages
+                      ? null
+                      : () => _load(page: _page + 1),
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -202,7 +260,7 @@ class _ReferenceListState extends State<_ReferenceList> {
             maxHeight: constraints.maxHeight,
           ),
           child: Card(
-            margin: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            margin: const EdgeInsets.fromLTRB(24, 8, 24, 16),
             clipBehavior: Clip.antiAlias,
             child: ListView.separated(
               shrinkWrap: true,

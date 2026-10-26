@@ -14,6 +14,7 @@ import 'reference_data_screen.dart';
 import 'salons_screen.dart';
 import 'settings_screen.dart';
 import 'statistics_screen.dart';
+import 'users_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({
@@ -72,6 +73,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     (title: 'Pregled', icon: Icons.dashboard_outlined),
     (title: 'Saloni', icon: Icons.storefront_outlined),
     (title: 'Zaposlenici', icon: Icons.people_outline),
+    (title: 'Korisnici', icon: Icons.manage_accounts_outlined),
     (title: 'Usluge', icon: Icons.spa_outlined),
     (title: 'Šifarnici', icon: Icons.list_alt_outlined),
     (title: 'Termini', icon: Icons.calendar_month_outlined),
@@ -140,7 +142,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void _navigateFromQuickAction(int sectionIndex) {
     setState(() {
       _selectedIndex = sectionIndex;
-      _pendingCreateForSection = const {1, 2, 3}.contains(sectionIndex)
+      _pendingCreateForSection = const {1, 2, 4}.contains(sectionIndex)
           ? sectionIndex
           : null;
     });
@@ -178,7 +180,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             destinations: [
               for (var index = 0; index < _sections.length; index++)
                 NavigationRailDestination(
-                  icon: index == 7 && _unreadNotificationCount > 0
+                  icon: index == 8 && _unreadNotificationCount > 0
                       ? Badge(
                           label: Text('$_unreadNotificationCount'),
                           child: Icon(_sections[index].icon),
@@ -248,17 +250,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       openCreateOnLoad: _pendingCreateForSection == 2,
                       onCreateRequestHandled: () => _consumeCreateRequest(2),
                     ),
-                    3 => CatalogScreen(
+                    3 => UsersScreen(api: widget.apiClient),
+                    4 => CatalogScreen(
                       api: widget.apiClient,
                       kind: CatalogKind.services,
-                      openCreateOnLoad: _pendingCreateForSection == 3,
-                      onCreateRequestHandled: () => _consumeCreateRequest(3),
+                      openCreateOnLoad: _pendingCreateForSection == 4,
+                      onCreateRequestHandled: () => _consumeCreateRequest(4),
                     ),
-                    4 => ReferenceDataScreen(api: widget.apiClient),
-                    5 => AppointmentsScreen(api: widget.apiClient),
-                    6 => StatisticsScreen(api: widget.apiClient),
-                    7 => NotificationsScreen(api: widget.apiClient),
-                    8 => SettingsScreen(
+                    5 => ReferenceDataScreen(api: widget.apiClient),
+                    6 => AppointmentsScreen(api: widget.apiClient),
+                    7 => StatisticsScreen(api: widget.apiClient),
+                    8 => NotificationsScreen(api: widget.apiClient),
+                    9 => SettingsScreen(
                       api: widget.apiClient,
                       session: _session,
                       onProfileUpdated: _onProfileUpdated,
@@ -340,7 +343,7 @@ class _WelcomePanel extends StatelessWidget {
             final weekStats = weekSnapshot.data!;
             return LayoutBuilder(
               builder: (context, constraints) {
-                final useRightSidebar = constraints.maxWidth >= 1100;
+                final sidebarWidth = constraints.maxWidth < 900 ? 210.0 : 258.0;
                 final dashboard = SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -426,21 +429,21 @@ class _WelcomePanel extends StatelessWidget {
                             value: '${todayStats.totalAppointments}',
                             icon: Icons.calendar_month_outlined,
                             accent: const Color(0xFF6750A4),
-                            width: useRightSidebar ? 174 : 220,
+                            width: 174,
                           ),
                           _StatisticCard(
                             title: 'Korisnici',
                             value: '${todayStats.totalUsers}',
                             icon: Icons.people_outline,
                             accent: const Color(0xFF258A78),
-                            width: useRightSidebar ? 174 : 220,
+                            width: 174,
                           ),
                           _StatisticCard(
                             title: 'Saloni',
                             value: '${todayStats.totalSalons}',
                             icon: Icons.storefront_outlined,
                             accent: const Color(0xFFB46B35),
-                            width: useRightSidebar ? 174 : 220,
+                            width: 174,
                           ),
                           _StatisticCard(
                             title: 'Prihod danas',
@@ -448,7 +451,7 @@ class _WelcomePanel extends StatelessWidget {
                                 '${todayStats.totalRevenue.toStringAsFixed(2)} KM',
                             icon: Icons.payments_outlined,
                             accent: const Color(0xFF3974B8),
-                            width: useRightSidebar ? 174 : 220,
+                            width: 174,
                           ),
                         ],
                       ),
@@ -508,7 +511,7 @@ class _WelcomePanel extends StatelessWidget {
                                 '${weekStats.mostPopularServiceCount} rezervacija ove sedmice',
                             icon: Icons.spa_outlined,
                             accent: const Color(0xFFB14978),
-                            width: useRightSidebar ? 230 : 260,
+                            width: 230,
                           ),
                           _StatisticCard(
                             title: 'Najaktivniji korisnik',
@@ -517,7 +520,7 @@ class _WelcomePanel extends StatelessWidget {
                                 '${weekStats.mostActiveUserCount} rezervacija ove sedmice',
                             icon: Icons.person_pin_circle_outlined,
                             accent: const Color(0xFF3974B8),
-                            width: useRightSidebar ? 230 : 260,
+                            width: 230,
                           ),
                           _StatisticCard(
                             title: 'Najaktivniji salon',
@@ -526,7 +529,7 @@ class _WelcomePanel extends StatelessWidget {
                                 '${weekStats.mostActiveSalonCount} rezervacija ove sedmice',
                             icon: Icons.store_mall_directory_outlined,
                             accent: const Color(0xFF66813F),
-                            width: useRightSidebar ? 230 : 260,
+                            width: 230,
                           ),
                         ],
                       ),
@@ -536,14 +539,13 @@ class _WelcomePanel extends StatelessWidget {
                   ),
                 );
 
-                if (!useRightSidebar) return dashboard;
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(child: dashboard),
                     const VerticalDivider(width: 1),
                     SizedBox(
-                      width: 258,
+                      width: sidebarWidth,
                       child: _DashboardQuickSidebar(
                         availableSlots: availableSlots,
                         onNavigate: onNavigate,
@@ -588,7 +590,7 @@ class _DashboardQuickSidebar extends StatelessWidget {
             children: [
               IconButton(
                 tooltip: 'Obavijesti',
-                onPressed: () => onNavigate(7),
+                onPressed: () => onNavigate(8),
                 icon: const Icon(
                   Icons.notifications_none,
                   color: Color(0xFF7468F7),
@@ -597,7 +599,7 @@ class _DashboardQuickSidebar extends StatelessWidget {
               const SizedBox(width: 8),
               IconButton(
                 tooltip: 'Postavke profila',
-                onPressed: () => onNavigate(8),
+                onPressed: () => onNavigate(9),
                 icon: const CircleAvatar(
                   radius: 19,
                   backgroundColor: Color(0xFFE0DCFF),
@@ -618,7 +620,7 @@ class _DashboardQuickSidebar extends StatelessWidget {
           _QuickActionButton(
             icon: Icons.add_circle_outline,
             label: 'Dodaj uslugu',
-            onPressed: () => onNavigate(3),
+            onPressed: () => onNavigate(4),
           ),
           const SizedBox(height: 10),
           _QuickActionButton(
@@ -630,7 +632,7 @@ class _DashboardQuickSidebar extends StatelessWidget {
           _QuickActionButton(
             icon: Icons.event_note_outlined,
             label: 'Pregled termina',
-            onPressed: () => onNavigate(5),
+            onPressed: () => onNavigate(6),
           ),
           const SizedBox(height: 10),
           _QuickActionButton(

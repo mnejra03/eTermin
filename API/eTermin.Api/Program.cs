@@ -146,6 +146,12 @@ namespace eTemin.Api
 
                 context.Database.Migrate();
 
+                // SQL Server reserves identity ranges by default. After a server
+                // restart this can make the next visible ID jump by 1000.
+                // Disabling the cache keeps new IDs increasing without that jump.
+                context.Database.ExecuteSqlRaw(
+                    "ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = OFF;");
+
                 var resetAdminPassword =
                     app.Environment.IsDevelopment() &&
                     string.Equals(

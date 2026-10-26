@@ -36,5 +36,7 @@ public class AppointmentListDto
 
     public int? CancelledByUserId { get; set; }
 
+    public string? CancelledByName { get; set; }
+
     public string? CancellationReason { get; set; }
 }

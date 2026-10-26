@@ -6,6 +6,8 @@ public class NotificationDto
 
     public int UserId { get; set; }
 
+    public string? UserName { get; set; }
+
     public int? AppointmentId { get; set; }
 
     public string Type { get; set; } = "General";
