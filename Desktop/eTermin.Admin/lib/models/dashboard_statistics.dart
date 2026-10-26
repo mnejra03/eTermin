@@ -8,6 +8,10 @@ class DashboardStatistics {
     required this.mostPopularServiceCount,
     required this.mostActiveSalon,
     required this.mostActiveSalonCount,
+    required this.mostActiveUser,
+    required this.mostActiveUserCount,
+    required this.reservationsByDay,
+    required this.reservationsByStatus,
   });
 
   final int totalAppointments;
@@ -18,6 +22,10 @@ class DashboardStatistics {
   final int mostPopularServiceCount;
   final String? mostActiveSalon;
   final int mostActiveSalonCount;
+  final String? mostActiveUser;
+  final int mostActiveUserCount;
+  final List<Map<String, dynamic>> reservationsByDay;
+  final List<Map<String, dynamic>> reservationsByStatus;
 
   factory DashboardStatistics.fromJson(Map<String, dynamic> json) {
     return DashboardStatistics(
@@ -31,6 +39,14 @@ class DashboardStatistics {
       mostActiveSalon: json['mostActiveSalon']?.toString(),
       mostActiveSalonCount:
           (json['mostActiveSalonCount'] as num?)?.toInt() ?? 0,
+      mostActiveUser: json['mostActiveUser']?.toString(),
+      mostActiveUserCount: (json['mostActiveUserCount'] as num?)?.toInt() ?? 0,
+      reservationsByDay: (json['reservationsByDay'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList(),
+      reservationsByStatus: (json['reservationsByStatus'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList(),
     );
   }
 }

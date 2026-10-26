@@ -42,13 +42,22 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     });
 
     try {
-      final session = await widget.authService.login(
-        email: _emailController.text.trim(),
+      final email = _emailController.text.trim();
+      _emailController.value = TextEditingValue(
+        text: email,
+        selection: TextSelection.collapsed(offset: email.length),
+      );
+      final result = await widget.authService.login(
+        email: email,
         password: _passwordController.text,
       );
-      if (mounted) widget.onAuthenticated(session);
-    } on AuthException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (!result.succeeded) {
+        if (mounted) {
+          setState(() => _error = result.message ?? 'Prijava nije uspjela.');
+        }
+        return;
+      }
+      if (mounted) widget.onAuthenticated(result.session!);
     } on SocketException {
       if (mounted) {
         setState(

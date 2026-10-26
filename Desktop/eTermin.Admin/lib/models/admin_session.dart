@@ -13,6 +13,18 @@ class AdminSession {
   final String email;
   final String token;
 
+  AdminSession copyWith({
+    String? firstName,
+    String? lastName,
+    String? email,
+  }) => AdminSession(
+    userId: userId,
+    firstName: firstName ?? this.firstName,
+    lastName: lastName ?? this.lastName,
+    email: email ?? this.email,
+    token: token,
+  );
+
   factory AdminSession.fromJson(Map<String, dynamic> json) {
     return AdminSession(
       userId: (json['userId'] as num?)?.toInt() ?? 0,

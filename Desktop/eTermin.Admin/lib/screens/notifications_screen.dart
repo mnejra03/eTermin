@@ -48,23 +48,49 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
     }
     try {
-      final result = await widget.api.getPagedList(
-        'Notifications/my',
-        page: page,
+      final response = await widget.api.tryGetMap(
+        'Notifications/admin?page=$page',
       );
+      if (!response.succeeded) {
+        if (mounted) {
+          setState(() => _error = _friendlyLoadError(
+            response.message ?? 'Obavijesti se ne mogu učitati.',
+          ));
+        }
+        return;
+      }
+      final body = response.data;
+      if (body == null || body['items'] is! List) {
+        if (mounted) {
+          setState(() => _error = 'API je vratio neispravan spisak obavijesti.');
+        }
+        return;
+      }
       if (mounted) {
         setState(() {
-          _items = result.items;
-          _page = result.page;
-          _totalPages = result.totalPages;
+          _items = (body['items'] as List)
+              .whereType<Map<String, dynamic>>()
+              .toList();
+          _page = (body['page'] as num?)?.toInt() ?? page;
+          _totalPages = (body['totalPages'] as num?)?.toInt() ?? 1;
         });
       }
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) setState(() => _error = _friendlyLoadError(error.toString()));
     } finally {
       if (mounted) setState(() => _loading = false);
       _refreshing = false;
     }
+  }
+
+  String _friendlyLoadError(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains("'admin'") ||
+        lower.contains('not a valid') ||
+        lower.contains('http 400')) {
+      return 'API servis još nema novu rutu za obavijesti administratora. Ponovo izgradite i pokrenite API servis, pa osvježite ovaj tab.';
+    }
+    return message.replaceFirst('ApiException: ', '');
   }
 
   Future<void> _markRead(Map<String, dynamic> item) async {
@@ -135,7 +161,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       );
     }
-    if (_items.isEmpty) return const Center(child: Text('Nema obavijesti.'));
+    if (_items.isEmpty) {
+      return Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.notifications_none, size: 44,
+                color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 10),
+              Text('Trenutno nema obavijesti.',
+                style: Theme.of(context).textTheme.titleMedium),
+            ]),
+          ),
+        ),
+      );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.all(24),
@@ -146,21 +187,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              OutlinedButton(
+              IconButton(
+                tooltip: 'Prethodna stranica',
                 onPressed: _refreshing || _page <= 1
                     ? null
                     : () => _load(page: _page - 1),
-                child: const Text('Prethodna'),
+                icon: const Icon(Icons.chevron_left),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text('Stranica $_page od $_totalPages'),
               ),
-              OutlinedButton(
+              IconButton(
+                tooltip: 'Sljedeća stranica',
                 onPressed: _refreshing || _page >= _totalPages
                     ? null
                     : () => _load(page: _page + 1),
-                child: const Text('Sljedeća'),
+                icon: const Icon(Icons.chevron_right),
               ),
             ],
           );
@@ -181,7 +224,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
             subtitle: Text(
-              '${item['message'] ?? ''}\n${_date(item['createdAt'])}',
+              '${item['message'] ?? ''}\nZa: ${item['userName'] ?? 'Korisnik'} · ${_date(item['createdAt'])}',
             ),
             isThreeLine: true,
             trailing: Wrap(

@@ -19,7 +19,7 @@ class ApiPage<T> {
 
 class AdminApiClient {
   AdminApiClient({required this.token, HttpClient? client})
-    : _client = client ?? HttpClient();
+    : _client = client ?? (HttpClient()..connectionTimeout = const Duration(seconds: 15));
 
   static const _configuredBaseUrl = String.fromEnvironment(
     'ET_API_BASE_URL',
@@ -29,6 +29,17 @@ class AdminApiClient {
   final String token;
   final HttpClient _client;
   final Uri _baseUri = Uri.parse(_configuredBaseUrl);
+
+  Uri resolveSalonImageUri(String imageUrl) {
+    final imageUri = Uri.tryParse(imageUrl);
+    if (imageUri == null) return _baseUri.replace(path: '/');
+    if (imageUri.hasScheme) return imageUri;
+    return _baseUri.replace(
+      path: imageUrl.startsWith('/') ? imageUrl : '/$imageUrl',
+      query: null,
+      fragment: null,
+    );
+  }
 
   Future<List<Map<String, dynamic>>> getList(String path) async {
     final uri = _baseUri
@@ -104,6 +115,44 @@ class AdminApiClient {
     await _send('DELETE', path);
   }
 
+  Future<ApiOperationResult> tryPost(
+    String path,
+    Map<String, dynamic> body,
+  ) =>
+      _trySend('POST', path, body: body);
+
+  Future<ApiOperationResult> tryGetMap(String path) => _trySend('GET', path);
+
+  Future<ApiOperationResult> tryPut(
+    String path,
+    Map<String, dynamic> body,
+  ) =>
+      _trySend('PUT', path, body: body);
+
+  Future<ApiOperationResult> tryDelete(String path) async {
+    return _trySend('DELETE', path);
+  }
+
+  Future<ApiOperationResult> _trySend(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    final response = await _sendResponse(method, path, body: body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return ApiOperationResult.succeeded(
+        data: response.body is Map<String, dynamic> ? response.body : null,
+      );
+    }
+
+    final message = response.body is Map<String, dynamic>
+        ? response.body['message']?.toString()
+        : null;
+    return ApiOperationResult.failed(
+      message ?? 'Zahtjev nije uspio (HTTP ${response.statusCode}).',
+    );
+  }
+
   Future<Map<String, dynamic>> uploadSalonImage({
     required int salonId,
     required List<int> bytes,
@@ -141,8 +190,11 @@ class AdminApiClient {
       ..write('$sortOrder\r\n')
       ..write('--$boundary--\r\n');
 
-    final response = await request.close();
-    final text = await utf8.decoder.bind(response).join();
+    final response = await request.close().timeout(const Duration(seconds: 30));
+    final text = await utf8.decoder
+        .bind(response)
+        .join()
+        .timeout(const Duration(seconds: 30));
     dynamic decoded;
     if (text.isNotEmpty) {
       try {
@@ -221,6 +273,23 @@ class AdminApiClient {
     String path, {
     Map<String, dynamic>? body,
   }) async {
+    final response = await _sendResponse(method, path, body: body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = response.body is Map<String, dynamic>
+          ? response.body['message']?.toString()
+          : null;
+      throw ApiException(
+        message ?? 'API greška (HTTP ${response.statusCode}).',
+      );
+    }
+    return response.body;
+  }
+
+  Future<_ApiResponse> _sendResponse(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
     final request = await _client.openUrl(method, _baseUri.resolve(path));
     request.headers
       ..set(HttpHeaders.acceptHeader, ContentType.json.mimeType)
@@ -241,15 +310,7 @@ class AdminApiClient {
       }
     }
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? decoded['message']?.toString()
-          : null;
-      throw ApiException(
-        message ?? 'API greška (HTTP ${response.statusCode}).',
-      );
-    }
-    return decoded;
+    return _ApiResponse(response.statusCode, decoded);
   }
 
   void dispose() => _client.close(force: true);
@@ -262,4 +323,25 @@ class ApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class ApiOperationResult {
+  const ApiOperationResult.succeeded({this.data})
+    : succeeded = true,
+      message = null;
+
+  const ApiOperationResult.failed(this.message)
+    : succeeded = false,
+      data = null;
+
+  final bool succeeded;
+  final String? message;
+  final Map<String, dynamic>? data;
+}
+
+class _ApiResponse {
+  const _ApiResponse(this.statusCode, this.body);
+
+  final int statusCode;
+  final dynamic body;
 }
