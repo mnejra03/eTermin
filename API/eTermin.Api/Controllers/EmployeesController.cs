@@ -23,10 +23,11 @@ public class EmployeesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResult<EmployeeDto>>> GetEmployees(
         int page = 1,
-        int pageSize = PaginationOptions.DefaultPageSize)
+        int pageSize = PaginationOptions.DefaultPageSize,
+        int? salonId = null)
     {
         (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
-        var employees = await _employeeService.GetAllAsync(page, pageSize);
+        var employees = await _employeeService.GetAllAsync(page, pageSize, salonId);
 
         return Ok(employees);
     }

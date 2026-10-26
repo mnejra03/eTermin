@@ -19,7 +19,9 @@ class ApiPage<T> {
 
 class AdminApiClient {
   AdminApiClient({required this.token, HttpClient? client})
-    : _client = client ?? (HttpClient()..connectionTimeout = const Duration(seconds: 15));
+    : _client =
+          client ??
+          (HttpClient()..connectionTimeout = const Duration(seconds: 15));
 
   static const _configuredBaseUrl = String.fromEnvironment(
     'ET_API_BASE_URL',
@@ -65,10 +67,14 @@ class AdminApiClient {
     String path, {
     int page = 1,
     int pageSize = 20,
+    Map<String, String> queryParameters = const {},
   }) async {
-    final uri = _baseUri
-        .resolve(path)
-        .replace(queryParameters: {'page': '$page', 'pageSize': '$pageSize'});
+    final query = <String, String>{
+      ...queryParameters,
+      'page': '$page',
+      'pageSize': '$pageSize',
+    };
+    final uri = _baseUri.resolve(path).replace(queryParameters: query);
     final result = await _send('GET', uri.toString());
     if (result is! Map<String, dynamic>) {
       throw const ApiException('API je vratio neočekivane podatke.');
@@ -115,18 +121,12 @@ class AdminApiClient {
     await _send('DELETE', path);
   }
 
-  Future<ApiOperationResult> tryPost(
-    String path,
-    Map<String, dynamic> body,
-  ) =>
+  Future<ApiOperationResult> tryPost(String path, Map<String, dynamic> body) =>
       _trySend('POST', path, body: body);
 
   Future<ApiOperationResult> tryGetMap(String path) => _trySend('GET', path);
 
-  Future<ApiOperationResult> tryPut(
-    String path,
-    Map<String, dynamic> body,
-  ) =>
+  Future<ApiOperationResult> tryPut(String path, Map<String, dynamic> body) =>
       _trySend('PUT', path, body: body);
 
   Future<ApiOperationResult> tryDelete(String path) async {

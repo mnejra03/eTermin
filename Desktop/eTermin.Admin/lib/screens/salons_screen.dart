@@ -29,6 +29,9 @@ class _SalonsScreenState extends State<SalonsScreen> {
   String _search = '';
   int _page = 1;
   int _totalPages = 1;
+  int _totalSalonCount = 0;
+  int _activeSalonCount = 0;
+  int _inactiveSalonCount = 0;
   bool _createRequestHandled = false;
 
   @override
@@ -46,14 +49,21 @@ class _SalonsScreenState extends State<SalonsScreen> {
       final results = await Future.wait([
         widget.api.getPagedList('Salons', page: page),
         widget.api.getList('Cities'),
+        widget.api.getList('Salons'),
       ]);
       if (mounted) {
         setState(() {
           final salonPage = results[0] as ApiPage<Map<String, dynamic>>;
+          final allSalons = results[2] as List<Map<String, dynamic>>;
           _salons = salonPage.items.map(Salon.fromJson).toList();
           _page = salonPage.page;
           _totalPages = salonPage.totalPages;
           _cities = results[1] as List<Map<String, dynamic>>;
+          _totalSalonCount = allSalons.length;
+          _activeSalonCount = allSalons
+              .where((salon) => salon['isActive'] == true)
+              .length;
+          _inactiveSalonCount = _totalSalonCount - _activeSalonCount;
         });
       }
     } catch (error) {
@@ -190,6 +200,39 @@ class _SalonsScreenState extends State<SalonsScreen> {
 
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: _SalonCountCard(
+                  title: 'Svi saloni',
+                  count: _totalSalonCount,
+                  icon: Icons.storefront_outlined,
+                  color: const Color(0xFF6750A4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SalonCountCard(
+                  title: 'Aktivni',
+                  count: _activeSalonCount,
+                  icon: Icons.check_circle_outline,
+                  color: const Color(0xFF258A78),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SalonCountCard(
+                  title: 'Neaktivni',
+                  count: _inactiveSalonCount,
+                  icon: Icons.pause_circle_outline,
+                  color: const Color(0xFFB46B35),
+                ),
+              ),
+            ],
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
           child: Row(
@@ -362,6 +405,50 @@ class _SalonsScreenState extends State<SalonsScreen> {
       ),
     );
   }
+}
+
+class _SalonCountCard extends StatelessWidget {
+  const _SalonCountCard({
+    required this.title,
+    required this.count,
+    required this.icon,
+    required this.color,
+  });
+
+  final String title;
+  final int count;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.09),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: color.withValues(alpha: 0.22)),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: color),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        Text(
+          '$count',
+          style: TextStyle(
+            color: color,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _SalonFormDialog extends StatefulWidget {

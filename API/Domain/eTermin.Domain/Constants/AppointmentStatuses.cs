@@ -9,6 +9,15 @@ public static class AppointmentStatuses
 
     public static bool IsKnown(string status) => status is
         Pending or Confirmed or Completed or Cancelled;
+
+    public static string DisplayName(string status) => status switch
+    {
+        Pending => "Na čekanju",
+        Confirmed => "Potvrđen",
+        Completed => "Završen",
+        Cancelled => "Otkazan",
+        _ => status
+    };
 }
 
 public static class PaymentStatuses

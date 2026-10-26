@@ -19,9 +19,14 @@ public class EmployeeService : IEmployeeService
 
     public async Task<PagedResult<EmployeeDto>> GetAllAsync(
         int page,
-        int pageSize)
+        int pageSize,
+        int? salonId = null)
     {
-        return await _context.Employees
+        var query = _context.Employees.AsNoTracking();
+        if (salonId.HasValue)
+            query = query.Where(employee => employee.SalonId == salonId.Value);
+
+        return await query
             .Select(e => new EmployeeDto
             {
                 Id = e.Id,
@@ -83,7 +88,9 @@ public class EmployeeService : IEmployeeService
 
     public async Task<EmployeeDto> CreateAsync(EmployeeDto employeeDto)
     {
-        ValidateWorkingSchedule(employeeDto.WorkingSchedule);
+        ValidateWorkingSchedule(
+            employeeDto.WorkingSchedule,
+            requireWorkingDay: true);
         await ValidateServiceAssignmentsAsync(
             employeeDto.SalonId,
             employeeDto.ServiceIds);
@@ -161,7 +168,9 @@ public class EmployeeService : IEmployeeService
             return false;
         }
 
-        ValidateWorkingSchedule(employeeDto.WorkingSchedule);
+        ValidateWorkingSchedule(
+            employeeDto.WorkingSchedule,
+            requireWorkingDay: employeeDto.IsActive);
 
         if (employee.SalonId != employeeDto.SalonId)
         {
@@ -299,11 +308,16 @@ public class EmployeeService : IEmployeeService
     }
 
     private static void ValidateWorkingSchedule(
-        IReadOnlyCollection<EmployeeWorkingHourDto>? schedule)
+        IReadOnlyCollection<EmployeeWorkingHourDto>? schedule,
+        bool requireWorkingDay)
     {
         if (schedule == null)
             throw new BusinessException(
                 "Raspored radnog vremena je obavezan (može biti prazan za neradne dane).");
+
+        if (requireWorkingDay && schedule.Count == 0)
+            throw new BusinessException(
+                "Aktivni zaposlenik mora imati barem jedan radni dan u rasporedu.");
 
         if (schedule.Any(x => !Enum.IsDefined(x.DayOfWeek)) ||
             schedule.Select(x => x.DayOfWeek).Distinct().Count() != schedule.Count)

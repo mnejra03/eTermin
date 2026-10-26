@@ -22,10 +22,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     'Cancelled',
   ];
   List<Map<String, dynamic>> _items = [];
+  List<Map<String, dynamic>> _salons = [];
   bool _loading = true;
+  bool _salonsLoaded = false;
   String? _error;
   String _search = '';
   String _status = 'Svi';
+  int _salonFilter = 0;
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  Timer? _searchDebounce;
+  final TextEditingController _searchController = TextEditingController();
   int _page = 1;
   int _totalPages = 1;
 
@@ -33,6 +40,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load({int page = 1}) async {
@@ -44,7 +58,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       final result = await widget.api.getPagedList(
         'Appointments/admin',
         page: page,
+        queryParameters: {
+          if (_fromDate != null) 'from': _dateQuery(_fromDate!),
+          if (_toDate != null) 'to': _dateQuery(_toDate!),
+          if (_salonFilter > 0) 'salonId': '$_salonFilter',
+          if (_status != 'Svi') 'status': _status,
+          if (_search.trim().isNotEmpty) 'search': _search.trim(),
+        },
       );
+      if (!_salonsLoaded) {
+        try {
+          _salons = await widget.api.getList('Salons');
+        } catch (_) {
+          // The appointment list remains usable if salon names fail to load.
+        }
+        _salonsLoaded = true;
+      }
       if (mounted) {
         setState(() {
           _items = result.items;
@@ -59,17 +88,63 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }
   }
 
+  String _dateQuery(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+
+  Future<void> _chooseDateRange() async {
+    final now = DateTime.now();
+    final initial = DateTimeRange(
+      start: _fromDate ?? DateTime(now.year, now.month, now.day),
+      end: _toDate ?? DateTime(now.year, now.month, now.day),
+    );
+    final range = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 5),
+      initialDateRange: initial,
+      helpText: 'Odaberite period termina',
+      saveText: 'Primijeni',
+    );
+    if (range == null) return;
+    setState(() {
+      _fromDate = range.start;
+      _toDate = range.end;
+    });
+    _load(page: 1);
+  }
+
+  String _displayDate(DateTime? date) => date == null
+      ? '—'
+      : '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
+
+  void _clearFilters() {
+    _searchDebounce?.cancel();
+    setState(() {
+      _search = '';
+      _status = 'Svi';
+      _salonFilter = 0;
+      _fromDate = null;
+      _toDate = null;
+    });
+    _searchController.clear();
+    _load(page: 1);
+  }
+
   Future<void> _changeStatus(Map<String, dynamic> item) async {
     final current = item['status']?.toString() ?? 'Pending';
     final end = DateTime.tryParse(item['endTime']?.toString() ?? '')?.toLocal();
     if (current != 'Confirmed') {
-      _message(current == 'Pending'
-          ? 'Termin se može označiti kao završen tek nakon potvrde uplate.'
-          : 'Ovaj termin više nema status koji se može promijeniti.');
+      _message(
+        current == 'Pending'
+            ? 'Termin se može označiti kao završen tek nakon potvrde uplate.'
+            : 'Ovaj termin više nema status koji se može promijeniti.',
+      );
       return;
     }
     if (end != null && end.isAfter(DateTime.now())) {
-      _message('Termin se može označiti kao završen nakon zakazanog završetka.');
+      _message(
+        'Termin se može označiti kao završen nakon zakazanog završetka.',
+      );
       return;
     }
     var status = current;
@@ -121,7 +196,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         'createdAt': item['createdAt'],
       });
       if (!result.succeeded) {
-        if (mounted) _message(_friendlyStatusError(result.message ?? 'Zahtjev nije uspio.'));
+        if (mounted)
+          _message(
+            _friendlyStatusError(result.message ?? 'Zahtjev nije uspio.'),
+          );
         return;
       }
       await _load();
@@ -139,7 +217,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     if (message.contains('Termin može potvrditi samo')) {
       return 'Termin se potvrđuje nakon uspješne uplate.';
     }
-    if (message.contains('Termin se ne može označiti kao završen prije njegovog završetka')) {
+    if (message.contains(
+      'Termin se ne može označiti kao završen prije njegovog završetka',
+    )) {
       return 'Termin se može označiti kao završen tek nakon zakazanog završetka.';
     }
     return message.replaceFirst('ApiException: ', '');
@@ -170,55 +250,105 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: scheme.primaryContainer,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
                   ),
-                  child: Row(children: [
-                    CircleAvatar(radius: 25, backgroundColor: scheme.surface,
-                      child: Icon(Icons.event_available, color: scheme.primary)),
-                    const SizedBox(width: 16),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Pregled termina', style: Theme.of(context).textTheme.titleLarge),
-                        const SizedBox(height: 4),
-                        Text('${item['serviceName'] ?? 'Usluga'} · ${item['salonName'] ?? 'Salon'}'),
-                      ])),
-                    _statusBadge(_statusLabel(item['status']?.toString() ?? '')),
-                  ]),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 25,
+                        backgroundColor: scheme.surface,
+                        child: Icon(
+                          Icons.event_available,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pregled termina',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${item['serviceName'] ?? 'Usluga'} · ${item['salonName'] ?? 'Salon'}',
+                            ),
+                          ],
+                        ),
+                      ),
+                      _statusBadge(
+                        _statusLabel(item['status']?.toString() ?? ''),
+                      ),
+                    ],
+                  ),
                 ),
-                Flexible(child: ListView(padding: const EdgeInsets.all(22), children: [
-                  _section('Učesnici', Icons.people_outline, [
-                    _detail('Korisnik', item['userName']),
-                    _detail('Salon', item['salonName']),
-                    _detail('Usluga', item['serviceName']),
-                    _detail('Zaposlenik', item['employeeName']),
-                  ]),
-                  const SizedBox(height: 14),
-                  _section('Vrijeme i cijena', Icons.schedule, [
-                    _detail('Početak', _date(item['startTime'])),
-                    _detail('Završetak', _date(item['endTime'])),
-                    _detail('Cijena', '${item['price'] ?? 0} KM'),
-                  ]),
-                  const SizedBox(height: 14),
-                  Card(color: paid ? Colors.green.shade50 : Colors.orange.shade50,
-                    child: ListTile(
-                      leading: Icon(paid ? Icons.check_circle : Icons.pending_actions,
-                        color: paid ? Colors.green.shade800 : Colors.orange.shade900),
-                      title: Text(paid ? 'Plaćeno' : 'Nije plaćeno',
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text(paid ? 'Uplata je evidentirana.' : 'Uplata još nije evidentirana.'),
-                    )),
-                  _detail('Kreirano', _date(item['createdAt'])),
-                  if (item['cancelledAt'] != null) ...[
-                    const SizedBox(height: 14),
-                    _cancellationDetails(item),
-                  ],
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(onPressed: () => _showStatusHistory(item),
-                    icon: const Icon(Icons.history), label: const Text('Historija statusa')),
-                ])),
-                Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Align(alignment: Alignment.centerRight,
-                    child: TextButton(onPressed: () => Navigator.pop(context), child: const Text('Zatvori')))),
+                Flexible(
+                  child: ListView(
+                    padding: const EdgeInsets.all(22),
+                    children: [
+                      _section('Učesnici', Icons.people_outline, [
+                        _detail('Korisnik', item['userName']),
+                        _detail('Salon', item['salonName']),
+                        _detail('Usluga', item['serviceName']),
+                        _detail('Zaposlenik', item['employeeName']),
+                      ]),
+                      const SizedBox(height: 14),
+                      _section('Vrijeme i cijena', Icons.schedule, [
+                        _detail('Početak', _date(item['startTime'])),
+                        _detail('Završetak', _date(item['endTime'])),
+                        _detail('Cijena', '${item['price'] ?? 0} KM'),
+                      ]),
+                      const SizedBox(height: 14),
+                      Card(
+                        color: paid
+                            ? Colors.green.shade50
+                            : Colors.orange.shade50,
+                        child: ListTile(
+                          leading: Icon(
+                            paid ? Icons.check_circle : Icons.pending_actions,
+                            color: paid
+                                ? Colors.green.shade800
+                                : Colors.orange.shade900,
+                          ),
+                          title: Text(
+                            paid ? 'Plaćeno' : 'Nije plaćeno',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(
+                            paid
+                                ? 'Uplata je evidentirana.'
+                                : 'Uplata još nije evidentirana.',
+                          ),
+                        ),
+                      ),
+                      _detail('Kreirano', _date(item['createdAt'])),
+                      if (item['cancelledAt'] != null) ...[
+                        const SizedBox(height: 14),
+                        _cancellationDetails(item),
+                      ],
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: () => _showStatusHistory(item),
+                        icon: const Icon(Icons.history),
+                        label: const Text('Historija statusa'),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Zatvori'),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -228,13 +358,23 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   Widget _section(String title, IconData icon, List<Widget> children) => Card(
-    child: Padding(padding: const EdgeInsets.all(16), child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [Icon(icon, size: 19), const SizedBox(width: 8), Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w700))]),
-        const SizedBox(height: 10), ...children,
-      ],
-    )),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 19),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...children,
+        ],
+      ),
+    ),
   );
 
   Widget _statusBadge(String status) {
@@ -246,11 +386,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: color.withValues(alpha: 0.52)),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(_statusIcon(status), size: 16, color: color),
-        const SizedBox(width: 7),
-        Text(status, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_statusIcon(status), size: 16, color: color),
+          const SizedBox(width: 7),
+          Text(
+            status,
+            style: TextStyle(color: color, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
     );
   }
 
@@ -278,21 +424,29 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     ),
     child: Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(Icons.event_busy, color: Colors.red.shade800),
-          const SizedBox(width: 9),
-          Text('Termin je otkazan', style: TextStyle(
-            color: Colors.red.shade900,
-            fontWeight: FontWeight.w800,
-            fontSize: 16,
-          )),
-        ]),
-        const SizedBox(height: 12),
-        _detail('Otkazao/la', _cancelledBy(item)),
-        _detail('Datum', _date(item['cancelledAt'])),
-        _detail('Razlog', item['cancellationReason'] ?? 'Nije naveden'),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.event_busy, color: Colors.red.shade800),
+              const SizedBox(width: 9),
+              Text(
+                'Termin je otkazan',
+                style: TextStyle(
+                  color: Colors.red.shade900,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _detail('Otkazao/la', _cancelledBy(item)),
+          _detail('Datum', _date(item['cancelledAt'])),
+          _detail('Razlog', item['cancellationReason'] ?? 'Nije naveden'),
+        ],
+      ),
     ),
   );
 
@@ -313,83 +467,149 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         builder: (context) => Dialog(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560, maxHeight: 680),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                ),
-                child: Row(children: [
-                  CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    child: Icon(Icons.history, color: Theme.of(context).colorScheme.primary),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Historija statusa', style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text('${item['serviceName'] ?? 'Termin'} · ${_date(item['startTime'])}'),
-                  ])),
-                ]),
-              ),
-              Flexible(
-                child: history.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.history, size: 42),
-                          SizedBox(height: 12),
-                          Text('Historija statusa još nije dostupna.'),
-                        ]),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.all(20),
-                        itemCount: history.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 9),
-                        itemBuilder: (context, index) {
-                          final change = history[index];
-                          final previous = change['previousStatus']?.toString();
-                          final label = _statusLabel(change['newStatus']?.toString() ?? '');
-                          final color = _statusColor(label);
-                          return Card(
-                            color: color.withValues(alpha: 0.13),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                CircleAvatar(
-                                  backgroundColor: color.withValues(alpha: 0.2),
-                                  child: Icon(_statusIcon(label), color: color),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 7, runSpacing: 6, children: [
-                                    if (previous != null) _statusBadge(_statusLabel(previous)),
-                                    if (previous != null) Icon(Icons.arrow_forward, size: 16, color: color),
-                                    _statusBadge(label),
-                                  ]),
-                                  const SizedBox(height: 9),
-                                  Text('Promijenio/la: ${change['changedByName'] ?? 'Nepoznata osoba'}',
-                                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                                  const SizedBox(height: 3),
-                                  Text(_date(change['changedAt']), style: Theme.of(context).textTheme.bodySmall),
-                                ])),
-                              ]),
-                            ),
-                          );
-                        },
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        child: Icon(
+                          Icons.history,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 20, 14),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(onPressed: () => Navigator.pop(context), child: const Text('Zatvori')),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Historija statusa',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${item['serviceName'] ?? 'Termin'} · ${_date(item['startTime'])}',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ]),
+                Flexible(
+                  child: history.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.history, size: 42),
+                              SizedBox(height: 12),
+                              Text('Historija statusa još nije dostupna.'),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.all(20),
+                          itemCount: history.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 9),
+                          itemBuilder: (context, index) {
+                            final change = history[index];
+                            final previous = change['previousStatus']
+                                ?.toString();
+                            final label = _statusLabel(
+                              change['newStatus']?.toString() ?? '',
+                            );
+                            final color = _statusColor(label);
+                            return Card(
+                              color: color.withValues(alpha: 0.13),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: color.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      child: Icon(
+                                        _statusIcon(label),
+                                        color: color,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Wrap(
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            spacing: 7,
+                                            runSpacing: 6,
+                                            children: [
+                                              if (previous != null)
+                                                _statusBadge(
+                                                  _statusLabel(previous),
+                                                ),
+                                              if (previous != null)
+                                                Icon(
+                                                  Icons.arrow_forward,
+                                                  size: 16,
+                                                  color: color,
+                                                ),
+                                              _statusBadge(label),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 9),
+                                          Text(
+                                            'Promijenio/la: ${change['changedByName'] ?? 'Nepoznata osoba'}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            _date(change['changedAt']),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 20, 14),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Zatvori'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -397,6 +617,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       if (mounted) _message(error.toString());
     }
   }
+
   Widget _detail(String label, dynamic value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: Row(
@@ -404,14 +625,21 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       children: [
         SizedBox(
           width: 125,
-          child: Text(label, style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          )),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
-        Expanded(child: Text(value?.toString() ?? '—',
-          style: const TextStyle(fontWeight: FontWeight.w600))),
+        Expanded(
+          child: Text(
+            value?.toString() ?? '—',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
       ],
     ),
   );
@@ -438,13 +666,18 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             try {
               final result = appointment == null
                   ? await widget.api.tryPost('Appointments', request)
-                  : await widget.api.tryPut('Appointments/${appointment['id']}', {
-                      ...request,
-                      'id': appointment['id'],
-                      'createdAt': appointment['createdAt'],
-                    });
+                  : await widget.api.tryPut(
+                      'Appointments/${appointment['id']}',
+                      {
+                        ...request,
+                        'id': appointment['id'],
+                        'createdAt': appointment['createdAt'],
+                      },
+                    );
               if (!result.succeeded) {
-                return _friendlyStatusError(result.message ?? 'Termin nije sačuvan.');
+                return _friendlyStatusError(
+                  result.message ?? 'Termin nije sačuvan.',
+                );
               }
               saved = true;
               return null;
@@ -460,12 +693,15 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       if (!saved) return;
       await _load();
       if (mounted) {
-        _message(appointment == null ? 'Termin je kreiran.' : 'Termin je izmijenjen.');
+        _message(
+          appointment == null ? 'Termin je kreiran.' : 'Termin je izmijenjen.',
+        );
       }
     } catch (error) {
       if (mounted) _message(error.toString());
     }
   }
+
   Future<void> _cancel(Map<String, dynamic> item) async {
     final reasonController = TextEditingController();
     final confirmed = await showDialog<bool>(
@@ -474,76 +710,119 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         builder: (context, setDialogState) => Dialog(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.red.shade100,
+                        child: Icon(
+                          Icons.event_busy,
+                          color: Colors.red.shade800,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Otkazivanje termina',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${item['serviceName'] ?? 'Termin'} · ${item['salonName'] ?? 'Salon'}',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.red.shade100,
-                    child: Icon(Icons.event_busy, color: Colors.red.shade800),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 20, 22, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.schedule_outlined),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _date(item['startTime']),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: reasonController,
+                        autofocus: true,
+                        maxLength: 500,
+                        maxLines: 3,
+                        onChanged: (_) => setDialogState(() {}),
+                        decoration: InputDecoration(
+                          labelText: 'Razlog otkazivanja *',
+                          hintText:
+                              'Ukratko objasnite zašto se termin otkazuje.',
+                          helperText: reasonController.text.trim().isEmpty
+                              ? 'Razlog je obavezan.'
+                              : 'Razlog je unesen.',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Otkazivanje termina', style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text('${item['serviceName'] ?? 'Termin'} · ${item['salonName'] ?? 'Salon'}'),
-                  ])),
-                ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(22, 20, 22, 8),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Container(
-                    padding: const EdgeInsets.all(13),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(children: [
-                      const Icon(Icons.schedule_outlined),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(_date(item['startTime']), style: const TextStyle(fontWeight: FontWeight.w600))),
-                    ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 20, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Nazad'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.red.shade700,
+                        ),
+                        onPressed: reasonController.text.trim().isEmpty
+                            ? null
+                            : () => Navigator.pop(context, true),
+                        icon: const Icon(Icons.event_busy),
+                        label: const Text('Potvrdi otkazivanje'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: reasonController,
-                    autofocus: true,
-                    maxLength: 500,
-                    maxLines: 3,
-                    onChanged: (_) => setDialogState(() {}),
-                    decoration: InputDecoration(
-                      labelText: 'Razlog otkazivanja *',
-                      hintText: 'Ukratko objasnite zašto se termin otkazuje.',
-                      helperText: reasonController.text.trim().isEmpty
-                          ? 'Razlog je obavezan.'
-                          : 'Razlog je unesen.',
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 20, 16),
-                child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Nazad')),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
-                    onPressed: reasonController.text.trim().isEmpty
-                        ? null
-                        : () => Navigator.pop(context, true),
-                    icon: const Icon(Icons.event_busy),
-                    label: const Text('Potvrdi otkazivanje'),
-                  ),
-                ]),
-              ),
-            ]),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -553,9 +832,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       return;
     }
     try {
-      final result = await widget.api.tryPut('Appointments/${item['id']}/cancel', {
-        'reason': reasonController.text.trim(),
-      });
+      final result = await widget.api.tryPut(
+        'Appointments/${item['id']}/cancel',
+        {'reason': reasonController.text.trim()},
+      );
       if (!result.succeeded) {
         if (mounted) _message(result.message ?? 'Termin nije otkazan.');
         return;
@@ -568,6 +848,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       reasonController.dispose();
     }
   }
+
   String _statusLabel(String value) => switch (value) {
     'Pending' => 'Na čekanju',
     'Confirmed' => 'Potvrđen',
@@ -582,6 +863,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(parsed.day)}.${two(parsed.month)}.${parsed.year} ${two(parsed.hour)}:${two(parsed.minute)}';
   }
+
   void _message(String value) =>
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(value)));
@@ -600,49 +882,123 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 10),
+          child: Column(
             children: [
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Pretraži termine',
-                    prefixIcon: Icon(Icons.search),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        labelText:
+                            'Pretraži korisnika, salon, uslugu ili zaposlenika',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (value) {
+                        setState(() => _search = value);
+                        _searchDebounce?.cancel();
+                        _searchDebounce = Timer(
+                          const Duration(milliseconds: 350),
+                          () => _load(page: 1),
+                        );
+                      },
+                    ),
                   ),
-                  onChanged: (value) => setState(() => _search = value),
-                ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: _createAppointment,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Dodaj termin'),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'Osvježi',
+                    onPressed: _loading ? null : _load,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 190,
-                child: DropdownButtonFormField<String>(
-                  initialValue: _status,
-                  decoration: const InputDecoration(labelText: 'Status'),
-                  items: _statuses
-                      .map(
-                        (value) => DropdownMenuItem(
-                          value: value,
-                          child: Text(
-                            value == 'Svi' ? value : _statusLabel(value),
-                          ),
+              const SizedBox(height: 9),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _chooseDateRange,
+                    icon: const Icon(Icons.date_range_outlined),
+                    label: Text(
+                      _fromDate == null && _toDate == null
+                          ? 'Odaberite period'
+                          : '${_displayDate(_fromDate)}  →  ${_displayDate(_toDate)}',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 220,
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _salonFilter,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Salon',
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) =>
-                      setState(() => _status = value ?? 'Svi'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: _createAppointment,
-                icon: const Icon(Icons.add),
-                label: const Text('Dodaj termin'),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: 'Osvježi',
-                onPressed: _loading ? null : _load,
-                icon: const Icon(Icons.refresh),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: 0,
+                          child: Text('Svi saloni'),
+                        ),
+                        for (final salon in _salons)
+                          DropdownMenuItem(
+                            value: (salon['id'] as num).toInt(),
+                            child: Text(salon['name']?.toString() ?? 'Salon'),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _salonFilter = value ?? 0);
+                        _load(page: 1);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 180,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _status,
+                      decoration: const InputDecoration(
+                        labelText: 'Status',
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
+                      ),
+                      items: _statuses
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(
+                                value == 'Svi'
+                                    ? 'Svi statusi'
+                                    : _statusLabel(value),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() => _status = value ?? 'Svi');
+                        _load(page: 1);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    tooltip: 'Poništi filtere',
+                    onPressed: _clearFilters,
+                    icon: const Icon(Icons.filter_alt_off_outlined),
+                  ),
+                ],
               ),
             ],
           ),
@@ -759,9 +1115,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                               : Colors.orange.shade200,
                         ),
                         label: Text(
-                          item['isPaid'] == true
-                              ? 'Plaćeno'
-                              : 'Nije plaćeno',
+                          item['isPaid'] == true ? 'Plaćeno' : 'Nije plaćeno',
                           maxLines: 1,
                           softWrap: false,
                         ),
@@ -934,8 +1288,7 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
                   _serviceId,
                   _servicesForSalon,
                   (id) => setState(() => _serviceId = id),
-                  (item) =>
-                      '${item['name'] ?? ''} · ${item['price'] ?? 0} KM',
+                  (item) => '${item['name'] ?? ''} · ${item['price'] ?? 0} KM',
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -1001,9 +1354,15 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
         FilledButton.icon(
           onPressed: _saving ? null : _submit,
           icon: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Icon(Icons.check),
-          label: Text(widget.appointment == null ? 'Kreiraj termin' : 'Sačuvaj izmjene'),
+          label: Text(
+            widget.appointment == null ? 'Kreiraj termin' : 'Sačuvaj izmjene',
+          ),
         ),
       ],
     );
@@ -1022,7 +1381,11 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          icon: Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800, size: 34),
+          icon: Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.orange.shade800,
+            size: 34,
+          ),
           title: const Text('Provjerite podatke'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1033,10 +1396,13 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
               for (final problem in problems)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('•  '),
-                    Expanded(child: Text(problem)),
-                  ]),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('•  '),
+                      Expanded(child: Text(problem)),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -1052,9 +1418,9 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
     }
 
     final service = _service!;
-    final end = _start.add(Duration(
-      minutes: (service['durationInMinutes'] as num?)?.toInt() ?? 60,
-    ));
+    final end = _start.add(
+      Duration(minutes: (service['durationInMinutes'] as num?)?.toInt() ?? 60),
+    );
     final request = <String, dynamic>{
       'userId': _userId,
       'salonId': _salonId,
@@ -1081,7 +1447,11 @@ class _NewAppointmentDialogState extends State<_NewAppointmentDialog> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          icon: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 34),
+          icon: Icon(
+            Icons.error_outline,
+            color: Theme.of(context).colorScheme.error,
+            size: 34,
+          ),
           title: const Text('Termin nije sačuvan'),
           content: Text(error!),
           actions: [

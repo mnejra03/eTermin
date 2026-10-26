@@ -18,9 +18,14 @@ public class ServiceService : IServiceService
 
     public async Task<PagedResult<ServiceDto>> GetAllAsync(
         int page,
-        int pageSize)
+        int pageSize,
+        int? salonId = null)
     {
-        return await _context.Services
+        var query = _context.Services.AsNoTracking();
+        if (salonId.HasValue)
+            query = query.Where(service => service.SalonId == salonId.Value);
+
+        return await query
             .Select(s => new ServiceDto
             {
                 Id = s.Id,

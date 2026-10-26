@@ -207,11 +207,17 @@ public class AppointmentsController : ControllerBase
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<PagedResult<AppointmentListDto>>> GetAllAppointmentsForAdmin(
         int page = 1,
-        int pageSize = PaginationOptions.DefaultPageSize)
+        int pageSize = PaginationOptions.DefaultPageSize,
+        DateTime? from = null,
+        DateTime? to = null,
+        int? salonId = null,
+        string? status = null,
+        string? search = null)
     {
         (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
         var appointments =
-            await _appointmentService.GetAllForListAsync(page, pageSize);
+            await _appointmentService.GetAllForListAsync(
+                page, pageSize, from, to, salonId, status, search);
 
         return Ok(appointments);
     }

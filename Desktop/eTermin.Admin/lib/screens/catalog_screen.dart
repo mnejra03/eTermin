@@ -31,6 +31,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
   String? _error;
   String? _dependencyWarning;
   String _search = '';
+  int _salonFilter = 0;
   int _page = 1;
   int _totalPages = 1;
   int _totalCount = 0;
@@ -53,7 +54,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
       _dependencyWarning = null;
     });
     try {
-      final itemPage = await widget.api.getPagedList(_endpoint, page: page);
+      final itemPage = await widget.api.getPagedList(
+        _endpoint,
+        page: page,
+        queryParameters: {if (_salonFilter > 0) 'salonId': '$_salonFilter'},
+      );
       var salons = <Map<String, dynamic>>[];
       var related = <Map<String, dynamic>>[];
       final dependencyErrors = <String>[];
@@ -91,9 +96,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
-      if (mounted &&
-          widget.openCreateOnLoad &&
-          !_createRequestHandled) {
+      if (mounted && widget.openCreateOnLoad && !_createRequestHandled) {
         _createRequestHandled = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -202,7 +205,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
       final text = _employees
           ? '${item['firstName']} ${item['lastName']} ${item['email']} ${item['position']}'
           : '${item['name']} ${item['description']}';
-      return query.isEmpty || text.toLowerCase().contains(query);
+      final itemSalonId = (item['salonId'] as num?)?.toInt();
+      return (_salonFilter == 0 || itemSalonId == _salonFilter) &&
+          (query.isEmpty || text.toLowerCase().contains(query));
     }).toList();
 
     return Column(
@@ -218,6 +223,36 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     prefixIcon: const Icon(Icons.search),
                   ),
                   onChanged: (value) => setState(() => _search = value),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 210,
+                child: DropdownButtonFormField<int>(
+                  initialValue: _salonFilter,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Salon',
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: 0, child: Text('Svi saloni')),
+                    for (final salon in _salons)
+                      DropdownMenuItem(
+                        value: (salon['id'] as num).toInt(),
+                        child: Text(
+                          salon['name']?.toString() ?? 'Salon',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _salonFilter = value ?? 0);
+                    _load(page: 1);
+                  },
                 ),
               ),
               const SizedBox(width: 12),
