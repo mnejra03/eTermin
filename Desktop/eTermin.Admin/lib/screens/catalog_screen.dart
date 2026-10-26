@@ -5,10 +5,18 @@ import '../services/admin_api_client.dart';
 enum CatalogKind { employees, services }
 
 class CatalogScreen extends StatefulWidget {
-  const CatalogScreen({required this.api, required this.kind, super.key});
+  const CatalogScreen({
+    required this.api,
+    required this.kind,
+    this.openCreateOnLoad = false,
+    this.onCreateRequestHandled,
+    super.key,
+  });
 
   final AdminApiClient api;
   final CatalogKind kind;
+  final bool openCreateOnLoad;
+  final VoidCallback? onCreateRequestHandled;
 
   @override
   State<CatalogScreen> createState() => _CatalogScreenState();
@@ -21,9 +29,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
   List<Map<String, dynamic>> _categories = [];
   bool _loading = true;
   String? _error;
+  String? _dependencyWarning;
   String _search = '';
   int _page = 1;
   int _totalPages = 1;
+  int _totalCount = 0;
+  bool _createRequestHandled = false;
 
   bool get _employees => widget.kind == CatalogKind.employees;
   String get _endpoint => _employees ? 'Employees' : 'Services';
@@ -39,32 +50,74 @@ class _CatalogScreenState extends State<CatalogScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _dependencyWarning = null;
     });
     try {
-      final results = await Future.wait([
-        widget.api.getPagedList(_endpoint, page: page),
-        widget.api.getList('Salons'),
-        if (_employees) widget.api.getList('Services'),
-        if (!_employees) widget.api.getList('ServiceCategories'),
-      ]);
+      final itemPage = await widget.api.getPagedList(_endpoint, page: page);
+      var salons = <Map<String, dynamic>>[];
+      var related = <Map<String, dynamic>>[];
+      final dependencyErrors = <String>[];
+      try {
+        salons = await widget.api.getList('Salons');
+      } catch (error) {
+        dependencyErrors.add('salone: $error');
+      }
+      try {
+        related = await widget.api.getList(
+          _employees ? 'Services' : 'ServiceCategories',
+        );
+      } catch (error) {
+        dependencyErrors.add(
+          _employees ? 'usluge: $error' : 'kategorije usluga: $error',
+        );
+      }
       if (!mounted) return;
       setState(() {
-        final itemPage = results[0] as ApiPage<Map<String, dynamic>>;
         _items = itemPage.items;
         _page = itemPage.page;
         _totalPages = itemPage.totalPages;
-        _salons = results[1] as List<Map<String, dynamic>>;
+        _totalCount = itemPage.totalCount;
+        _salons = salons;
         if (_employees) {
-          _services = results[2] as List<Map<String, dynamic>>;
+          _services = related;
         } else {
-          _categories = results[2] as List<Map<String, dynamic>>;
+          _categories = related;
         }
+        _dependencyWarning = dependencyErrors.isEmpty
+            ? null
+            : 'Pomoćni podaci nisu učitani (${dependencyErrors.join('; ')}). Lista ${_title.toLowerCase()} je učitana, ali dodavanje možda nije dostupno.';
       });
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
+      if (mounted &&
+          widget.openCreateOnLoad &&
+          !_createRequestHandled) {
+        _createRequestHandled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          widget.onCreateRequestHandled?.call();
+          if (_error == null) _openCreateFromQuickAction();
+        });
+      }
     }
+  }
+
+  void _openCreateFromQuickAction() {
+    if (_salons.isEmpty) {
+      _message(
+        'Prvo dodajte salon, pa zatim ${_employees ? 'zaposlenika' : 'uslugu'}.',
+      );
+      return;
+    }
+    if (!_employees && _categories.isEmpty) {
+      _message(
+        'Prvo dodajte kategoriju usluge u Šifarnici, pa se vratite ovdje.',
+      );
+      return;
+    }
+    _edit();
   }
 
   Future<void> _edit([Map<String, dynamic>? item]) async {
@@ -81,10 +134,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
     if (result == null) return;
     try {
       final id = item?['id'];
+      late final ApiOperationResult saveResult;
       if (id == null) {
-        await widget.api.post(_endpoint, result);
+        saveResult = await widget.api.tryPost(_endpoint, result);
       } else {
-        await widget.api.put('$_endpoint/$id', result);
+        saveResult = await widget.api.tryPut('$_endpoint/$id', result);
+      }
+      if (!saveResult.succeeded) {
+        if (mounted) {
+          _message(saveResult.message ?? 'Podaci nisu sačuvani.');
+        }
+        return;
       }
       await _load();
       if (mounted) {
@@ -131,6 +191,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canAdd = _salons.isNotEmpty && (_employees || _categories.isNotEmpty);
+    final addTooltip = _salons.isEmpty
+        ? 'Prvo dodajte salon.'
+        : (!_employees && _categories.isEmpty)
+        ? 'Prvo dodajte kategoriju u Šifarnici → Kategorije usluga.'
+        : 'Dodaj ${_employees ? 'zaposlenika' : 'uslugu'}';
     final query = _search.trim().toLowerCase();
     final visible = _items.where((item) {
       final text = _employees
@@ -161,17 +227,43 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 icon: const Icon(Icons.refresh),
               ),
               const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed:
-                    _salons.isEmpty || (!_employees && _categories.isEmpty)
-                    ? null
-                    : () => _edit(),
-                icon: const Icon(Icons.add),
-                label: Text('Dodaj ${_employees ? 'zaposlenika' : 'uslugu'}'),
+              Tooltip(
+                message: addTooltip,
+                child: FilledButton.icon(
+                  onPressed: canAdd ? () => _edit() : null,
+                  icon: const Icon(Icons.add),
+                  label: Text('Dodaj ${_employees ? 'zaposlenika' : 'uslugu'}'),
+                ),
               ),
             ],
           ),
         ),
+        if (!_employees && _salons.isNotEmpty && _categories.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Card(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: const ListTile(
+                leading: Icon(Icons.info_outline),
+                title: Text('Za uslugu su potrebni salon i kategorija.'),
+                subtitle: Text(
+                  'Dodaj kategoriju u Šifarnici → Kategorije usluga, pa se vrati ovdje. Tada će dugme „Dodaj uslugu“ biti dostupno.',
+                ),
+              ),
+            ),
+          ),
+        if (_dependencyWarning != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Card(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: ListTile(
+                leading: const Icon(Icons.warning_amber_outlined),
+                title: const Text('Neki povezani podaci nisu učitani.'),
+                subtitle: Text(_dependencyWarning!),
+              ),
+            ),
+          ),
         Expanded(child: _buildBody(visible)),
         _buildPager(),
       ],
@@ -183,21 +275,23 @@ class _CatalogScreenState extends State<CatalogScreen> {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        OutlinedButton(
+        IconButton(
+          tooltip: 'Prethodna stranica',
           onPressed: _loading || _page <= 1
               ? null
               : () => _load(page: _page - 1),
-          child: const Text('Prethodna'),
+          icon: const Icon(Icons.chevron_left),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text('Stranica $_page od $_totalPages'),
         ),
-        OutlinedButton(
+        IconButton(
+          tooltip: 'Sljedeća stranica',
           onPressed: _loading || _page >= _totalPages
               ? null
               : () => _load(page: _page + 1),
-          child: const Text('Sljedeća'),
+          icon: const Icon(Icons.chevron_right),
         ),
       ],
     ),
@@ -222,6 +316,41 @@ class _CatalogScreenState extends State<CatalogScreen> {
       );
     }
     if (visible.isEmpty) {
+      if (!_employees && _items.isEmpty) {
+        final missing = <String>[
+          if (_salons.isEmpty) 'Dodaj salon u tabu Saloni.',
+          if (_categories.isEmpty) 'Dodaj kategoriju u Šifarnici.',
+        ];
+        return Center(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.category_outlined,
+                    size: 42,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Trenutno nema usluga za prikaz.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'API je vratio $_totalCount usluga, ${_salons.length} salona i ${_categories.length} kategorija.'
+                    '${missing.isEmpty ? ' Možeš odmah dodati prvu uslugu.' : '\n${missing.join('\n')}'}',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
       return Center(
         child: Text(
           _items.isEmpty
@@ -277,12 +406,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                             ),
                           ),
                           DataCell(
-                            Chip(
-                              label: Text(
-                                item['isActive'] == true
-                                    ? 'Aktivan'
-                                    : 'Neaktivan',
-                              ),
+                            _statusChip(
+                              item['isActive'] == true,
+                              activeLabel: 'Aktivan',
+                              inactiveLabel: 'Neaktivan',
                             ),
                           ),
                           _actions(item),
@@ -298,12 +425,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           ),
                           DataCell(Text('${item['price'] ?? 0} KM')),
                           DataCell(
-                            Chip(
-                              label: Text(
-                                item['isActive'] == true
-                                    ? 'Aktivna'
-                                    : 'Neaktivna',
-                              ),
+                            _statusChip(
+                              item['isActive'] == true,
+                              activeLabel: 'Aktivna',
+                              inactiveLabel: 'Neaktivna',
                             ),
                           ),
                           _actions(item),
@@ -331,6 +456,27 @@ class _CatalogScreenState extends State<CatalogScreen> {
           icon: const Icon(Icons.delete_outline),
         ),
       ],
+    ),
+  );
+
+  Widget _statusChip(
+    bool isActive, {
+    required String activeLabel,
+    required String inactiveLabel,
+  }) => Chip(
+    avatar: Icon(
+      isActive ? Icons.check_circle_outline : Icons.pause_circle_outline,
+      size: 18,
+      color: isActive ? Colors.green.shade800 : Colors.orange.shade900,
+    ),
+    label: Text(isActive ? activeLabel : inactiveLabel),
+    backgroundColor: isActive ? Colors.green.shade50 : Colors.orange.shade50,
+    side: BorderSide(
+      color: isActive ? Colors.green.shade200 : Colors.orange.shade200,
+    ),
+    labelStyle: TextStyle(
+      color: isActive ? Colors.green.shade900 : Colors.orange.shade900,
+      fontWeight: FontWeight.w600,
     ),
   );
 }
@@ -418,7 +564,7 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
               children: [
                 DropdownButtonFormField<int>(
                   initialValue: _salonId,
-                  decoration: const InputDecoration(labelText: 'Salon'),
+                  decoration: const InputDecoration(labelText: 'Salon *'),
                   items: [
                     for (final salon in widget.salons)
                       DropdownMenuItem<int>(
@@ -432,11 +578,37 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
                 ),
                 const SizedBox(height: 12),
                 if (_employees) ...[
-                  _field('firstName', 'Ime', required: true),
-                  _field('lastName', 'Prezime', required: true),
-                  _field('email', 'Email', required: true),
-                  _field('phoneNumber', 'Telefon'),
-                  _field('position', 'Pozicija'),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Polja označena zvjezdicom su obavezna. Aktivni zaposlenik mora imati barem jedan radni dan.',
+                      ),
+                    ),
+                  ),
+                  _field('firstName', 'Ime', required: true, maxLength: 100),
+                  _field('lastName', 'Prezime', required: true, maxLength: 100),
+                  _field(
+                    'email',
+                    'Email',
+                    required: true,
+                    maxLength: 254,
+                    email: true,
+                  ),
+                  _field(
+                    'phoneNumber',
+                    'Telefon',
+                    required: true,
+                    maxLength: 30,
+                    phone: true,
+                  ),
+                  _field(
+                    'position',
+                    'Pozicija',
+                    required: true,
+                    maxLength: 100,
+                  ),
                   _workingScheduleEditor(),
                   if (widget.services.isNotEmpty)
                     ExpansionTile(
@@ -514,6 +686,13 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
         FilledButton(
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
+            if (_employees && _active && _workingSchedule.isEmpty) {
+              setState(
+                () => _scheduleError =
+                    'Odaberite barem jedan radni dan za aktivnog zaposlenika.',
+              );
+              return;
+            }
             final hasInvalidHours = _workingSchedule.values.any(
               (times) => _minutes(times[1]) <= _minutes(times[0]),
             );
@@ -668,19 +847,38 @@ class _CatalogEditorDialogState extends State<_CatalogEditorDialog> {
     bool numeric = false,
     bool decimal = false,
     int maxLines = 1,
+    int? maxLength,
+    bool email = false,
+    bool phone = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: _fields[key],
         maxLines: maxLines,
+        maxLength: maxLength,
         keyboardType: numeric
             ? TextInputType.numberWithOptions(decimal: decimal)
             : TextInputType.text,
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(labelText: required ? '$label *' : label),
         validator: (value) {
           if (required && (value == null || value.trim().isEmpty)) {
             return 'Ovo polje je obavezno.';
+          }
+          final text = value?.trim() ?? '';
+          if (maxLength != null && text.length > maxLength) {
+            return '$label može imati najviše $maxLength znakova.';
+          }
+          if (email &&
+              text.isNotEmpty &&
+              !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(text)) {
+            return 'Unesite email u obliku ime@domena.ba.';
+          }
+          if (phone && text.isNotEmpty) {
+            final normalized = text.replaceAll(RegExp(r'[\s()./-]'), '');
+            if (!RegExp(r'^(?:0\d{7,9}|\+387\d{7,9})$').hasMatch(normalized)) {
+              return 'Primjer ispravnog broja: 061 123 456.';
+            }
           }
           if (numeric && value != null) {
             final parsed = decimal

@@ -18,11 +18,27 @@ class DashboardService {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
+    return _fetchForPeriod(token, today, tomorrow);
+  }
+
+  Future<DashboardStatistics> fetchRecentWeek(String token) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return _fetchForPeriod(
+      token,
+      today.subtract(const Duration(days: 6)),
+      today.add(const Duration(days: 1)),
+    );
+  }
+
+  Future<DashboardStatistics> _fetchForPeriod(
+    String token,
+    DateTime from,
+    DateTime to,
+  ) async {
     final endpoint = _baseUri
         .resolve('Statistics/dashboard')
-        .replace(
-          queryParameters: {'from': _date(today), 'to': _date(tomorrow)},
-        );
+        .replace(queryParameters: {'from': _date(from), 'to': _date(to)});
 
     final request = await _client.getUrl(endpoint);
     request.headers

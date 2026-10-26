@@ -116,7 +116,15 @@ class _ReferenceListState extends State<_ReferenceList> {
     );
     if (confirmed != true) return;
     try {
-      await widget.api.delete('$_endpoint/${item['id']}');
+      final result = await widget.api.tryDelete(
+        '$_endpoint/${item['id']}',
+      );
+      if (!result.succeeded) {
+        if (mounted) {
+          _showMessage(result.message ?? 'Zapis nije moguće obrisati.');
+        }
+        return;
+      }
       await _load();
       if (mounted) _showMessage('Zapis je obrisan.');
     } catch (error) {
@@ -185,35 +193,48 @@ class _ReferenceListState extends State<_ReferenceList> {
       );
     }
 
-    return Card(
-      margin: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-      child: ListView.separated(
-        itemCount: _items.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final item = _items[index];
-          return ListTile(
-            title: Text(item['name']?.toString() ?? ''),
-            subtitle: widget.isCategory
-                ? Text(item['description']?.toString() ?? '')
-                : null,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'Uredi',
-                  onPressed: () => _edit(item),
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-                IconButton(
-                  tooltip: 'Obriši',
-                  onPressed: () => _delete(item),
-                  icon: const Icon(Icons.delete_outline),
-                ),
-              ],
+    return LayoutBuilder(
+      builder: (context, constraints) => Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 900,
+            maxHeight: constraints.maxHeight,
+          ),
+          child: Card(
+            margin: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            clipBehavior: Clip.antiAlias,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: _items.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final item = _items[index];
+                return ListTile(
+                  title: Text(item['name']?.toString() ?? ''),
+                  subtitle: widget.isCategory
+                      ? Text(item['description']?.toString() ?? '')
+                      : null,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Uredi',
+                        onPressed: () => _edit(item),
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                      IconButton(
+                        tooltip: 'Obriši',
+                        onPressed: () => _delete(item),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

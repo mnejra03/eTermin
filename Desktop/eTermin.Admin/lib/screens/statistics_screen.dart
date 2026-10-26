@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -342,20 +343,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               Expanded(
                 child: _ChartCard(
                   title: 'Statusi termina',
-                  child: byStatus.isEmpty
-                      ? const Text('Nema podataka.')
-                      : Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final item in byStatus)
-                              Chip(
-                                label: Text(
-                                  '${_statusLabel(item['status']?.toString() ?? '')}: ${item['count'] ?? 0}',
-                                ),
-                              ),
-                          ],
-                        ),
+                  child: _StatusPieChart(
+                    items: byStatus,
+                    labelFor: _statusLabel,
+                  ),
                 ),
               ),
             ],
@@ -380,6 +371,143 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   };
 }
 
+class _StatusSlice {
+  const _StatusSlice(this.label, this.count, this.color);
+
+  final String label;
+  final int count;
+  final Color color;
+}
+
+class _StatusPieChart extends StatelessWidget {
+  const _StatusPieChart({required this.items, required this.labelFor});
+
+  final List<Map<String, dynamic>> items;
+  final String Function(String) labelFor;
+
+  Color _colorFor(String status) => switch (status) {
+    'Pending' => const Color(0xFFE99A24),
+    'Confirmed' => const Color(0xFF3978C5),
+    'Completed' => const Color(0xFF32936F),
+    'Cancelled' => const Color(0xFFD65B5B),
+    _ => const Color(0xFF718096),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final slices = items.map((item) {
+      final status = item['status']?.toString() ?? '';
+      return _StatusSlice(
+        labelFor(status),
+        (item['count'] as num? ?? 0).toInt(),
+        _colorFor(status),
+      );
+    }).where((slice) => slice.count > 0).toList();
+    final total = slices.fold<int>(0, (sum, slice) => sum + slice.count);
+
+    if (total == 0) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Text('Nema podataka za odabrani period.'),
+      );
+    }
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 170,
+          height: 170,
+          child: CustomPaint(
+            painter: _StatusPiePainter(slices),
+            child: const SizedBox.expand(),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final slice in slices)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 11,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          color: slice.color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(slice.label, overflow: TextOverflow.ellipsis),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${slice.count} (${(slice.count * 100 / total).round()}%)',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+              const Divider(height: 16),
+              Text(
+                'Ukupno: $total',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusPiePainter extends CustomPainter {
+  const _StatusPiePainter(this.slices);
+
+  final List<_StatusSlice> slices;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = slices.fold<int>(0, (sum, slice) => sum + slice.count);
+    if (total == 0) return;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) * 0.46;
+    final bounds = Rect.fromCircle(center: center, radius: radius);
+    var startAngle = -math.pi / 2;
+
+    for (final slice in slices) {
+      final sweepAngle = (slice.count / total) * math.pi * 2;
+      final path = Path()
+        ..moveTo(center.dx, center.dy)
+        ..lineTo(
+          center.dx + math.cos(startAngle) * radius,
+          center.dy + math.sin(startAngle) * radius,
+        )
+        ..arcTo(bounds, startAngle, sweepAngle, false)
+        ..close();
+      canvas.drawPath(path, Paint()..color = slice.color);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = Colors.white,
+      );
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StatusPiePainter oldDelegate) =>
+      oldDelegate.slices != slices;
+}
+
 class _Metric extends StatelessWidget {
   const _Metric({required this.title, required this.value, required this.icon});
   final String title;
@@ -387,16 +515,28 @@ class _Metric extends StatelessWidget {
   final IconData icon;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
     width: 240,
     child: Card(
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Text(value, style: Theme.of(context).textTheme.titleLarge),
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          radius: 25,
+          backgroundColor: scheme.primaryContainer,
+          child: Icon(icon, color: scheme.primary),
+        ),
+        title: Text(title, style: Theme.of(context).textTheme.labelLarge),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+        ),
       ),
     ),
-  );
+    );
+  }
 }
 
 class _ChartCard extends StatelessWidget {
@@ -406,12 +546,16 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(20),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          Row(children: [
+            Icon(Icons.insights_outlined, color: Theme.of(context).colorScheme.primary, size: 20),
+            const SizedBox(width: 10),
+            Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          ]),
           const SizedBox(height: 16),
           child,
         ],
@@ -436,10 +580,24 @@ class _BarRow extends StatelessWidget {
           child: Text(label, overflow: TextOverflow.ellipsis),
         ),
         Expanded(
-          child: LinearProgressIndicator(value: value / max, minHeight: 10),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: (value / max).clamp(0.0, 1.0),
+              minHeight: 12,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+          ),
         ),
         const SizedBox(width: 10),
-        Text('$value'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text('$value', style: const TextStyle(fontWeight: FontWeight.w700)),
+        ),
       ],
     ),
   );

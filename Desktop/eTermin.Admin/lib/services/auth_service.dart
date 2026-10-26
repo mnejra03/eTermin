@@ -14,7 +14,7 @@ class AuthService {
   final HttpClient _client;
   final Uri _baseUri = Uri.parse(_configuredBaseUrl);
 
-  Future<AdminSession> login({
+  Future<AuthResult> login({
     required String email,
     required String password,
   }) async {
@@ -24,38 +24,53 @@ class AuthService {
 
     final response = await request.close();
     final responseBody = await utf8.decoder.bind(response).join();
-    final decoded = responseBody.isEmpty ? null : jsonDecode(responseBody);
+    Object? decoded;
+    if (responseBody.isNotEmpty) {
+      try {
+        decoded = jsonDecode(responseBody);
+      } on FormatException {
+        return const AuthResult.failure(
+          'Server je vratio neispravan odgovor za prijavu.',
+        );
+      }
+    }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final message = decoded is Map<String, dynamic>
           ? decoded['message']?.toString()
           : null;
-      throw AuthException(message ?? 'Prijava nije uspjela.');
+      return AuthResult.failure(message ?? 'Email ili lozinka nisu ispravni.');
     }
 
     if (decoded is! Map<String, dynamic>) {
-      throw AuthException('Server je vratio neočekivan odgovor.');
+      return const AuthResult.failure('Server je vratio neočekivan odgovor.');
     }
 
     if ((decoded['role']?.toString() ?? '').toLowerCase() != 'admin') {
-      throw AuthException('Ova aplikacija je namijenjena administratorima.');
+      return const AuthResult.failure(
+        'Ova aplikacija je namijenjena administratorskim računima.',
+      );
     }
 
     final session = AdminSession.fromJson(decoded);
     if (session.token.isEmpty) {
-      throw AuthException('Server nije vratio token za prijavu.');
+      return const AuthResult.failure('Server nije vratio token za prijavu.');
     }
-    return session;
+    return AuthResult.success(session);
   }
 
   void dispose() => _client.close(force: true);
 }
 
-class AuthException implements Exception {
-  const AuthException(this.message);
+class AuthResult {
+  const AuthResult.success(AdminSession session)
+    : session = session,
+      message = null;
 
-  final String message;
+  const AuthResult.failure(this.message) : session = null;
 
-  @override
-  String toString() => message;
+  final AdminSession? session;
+  final String? message;
+
+  bool get succeeded => session != null;
 }

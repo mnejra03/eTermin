@@ -3,11 +3,19 @@ import 'package:file_picker/file_picker.dart';
 
 import '../models/salon.dart';
 import '../services/admin_api_client.dart';
+import 'salon_details_dialog.dart';
 
 class SalonsScreen extends StatefulWidget {
-  const SalonsScreen({required this.api, super.key});
+  const SalonsScreen({
+    required this.api,
+    this.openCreateOnLoad = false,
+    this.onCreateRequestHandled,
+    super.key,
+  });
 
   final AdminApiClient api;
+  final bool openCreateOnLoad;
+  final VoidCallback? onCreateRequestHandled;
 
   @override
   State<SalonsScreen> createState() => _SalonsScreenState();
@@ -21,6 +29,7 @@ class _SalonsScreenState extends State<SalonsScreen> {
   String _search = '';
   int _page = 1;
   int _totalPages = 1;
+  bool _createRequestHandled = false;
 
   @override
   void initState() {
@@ -51,6 +60,18 @@ class _SalonsScreenState extends State<SalonsScreen> {
       if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
+      if (mounted && widget.openCreateOnLoad && !_createRequestHandled) {
+        _createRequestHandled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          widget.onCreateRequestHandled?.call();
+          if (_cities.isEmpty) {
+            _showMessage('Prvo dodajte grad u Šifarnici, pa zatim salon.');
+          } else {
+            _editSalon();
+          }
+        });
+      }
     }
   }
 
@@ -63,11 +84,31 @@ class _SalonsScreenState extends State<SalonsScreen> {
     try {
       late final int salonId;
       if (salon == null) {
-        final created = await widget.api.post('Salons', result.body);
-        salonId = (created['id'] as num).toInt();
+        final saveResult = await widget.api.tryPost('Salons', result.body);
+        if (!saveResult.succeeded) {
+          if (mounted) {
+            _showMessage(saveResult.message ?? 'Salon nije moguće sačuvati.');
+          }
+          return;
+        }
+        final createdId = saveResult.data?['id'];
+        if (createdId is! num) {
+          if (mounted) _showMessage('API nije vratio ID novog salona.');
+          return;
+        }
+        salonId = createdId.toInt();
       } else {
         salonId = salon.id;
-        await widget.api.put('Salons/$salonId', result.body);
+        final saveResult = await widget.api.tryPut(
+          'Salons/$salonId',
+          result.body,
+        );
+        if (!saveResult.succeeded) {
+          if (mounted) {
+            _showMessage(saveResult.message ?? 'Salon nije moguće sačuvati.');
+          }
+          return;
+        }
       }
       for (var index = 0; index < result.images.length; index++) {
         final image = result.images[index];
@@ -95,7 +136,7 @@ class _SalonsScreenState extends State<SalonsScreen> {
   Future<void> _showSalonDetails(Salon salon) async {
     await showDialog<void>(
       context: context,
-      builder: (_) => _SalonDetailsDialog(salon: salon, api: widget.api),
+      builder: (_) => SalonDetailsDialog(salon: salon, api: widget.api),
     );
   }
 
@@ -119,7 +160,13 @@ class _SalonsScreenState extends State<SalonsScreen> {
     );
     if (confirmed != true) return;
     try {
-      await widget.api.delete('Salons/${salon.id}');
+      final result = await widget.api.tryDelete('Salons/${salon.id}');
+      if (!result.succeeded) {
+        if (mounted) {
+          _showMessage(result.message ?? 'Salon nije moguće obrisati.');
+        }
+        return;
+      }
       await _load();
       if (mounted) _showMessage('Salon je obrisan.');
     } catch (error) {
@@ -182,21 +229,23 @@ class _SalonsScreenState extends State<SalonsScreen> {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        OutlinedButton(
+        IconButton(
+          tooltip: 'Prethodna stranica',
           onPressed: _isLoading || _page <= 1
               ? null
               : () => _load(page: _page - 1),
-          child: const Text('Prethodna'),
+          icon: const Icon(Icons.chevron_left),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text('Stranica $_page od $_totalPages'),
         ),
-        OutlinedButton(
+        IconButton(
+          tooltip: 'Sljedeća stranica',
           onPressed: _isLoading || _page >= _totalPages
               ? null
               : () => _load(page: _page + 1),
-          child: const Text('Sljedeća'),
+          icon: const Icon(Icons.chevron_right),
         ),
       ],
     ),
@@ -257,7 +306,30 @@ class _SalonsScreenState extends State<SalonsScreen> {
                     DataCell(Text('${salon.email}\n${salon.phoneNumber}')),
                     DataCell(
                       Chip(
+                        avatar: Icon(
+                          salon.isActive
+                              ? Icons.check_circle_outline
+                              : Icons.pause_circle_outline,
+                          size: 18,
+                          color: salon.isActive
+                              ? Colors.green.shade800
+                              : Colors.orange.shade900,
+                        ),
                         label: Text(salon.isActive ? 'Aktivan' : 'Neaktivan'),
+                        backgroundColor: salon.isActive
+                            ? Colors.green.shade50
+                            : Colors.orange.shade50,
+                        side: BorderSide(
+                          color: salon.isActive
+                              ? Colors.green.shade200
+                              : Colors.orange.shade200,
+                        ),
+                        labelStyle: TextStyle(
+                          color: salon.isActive
+                              ? Colors.green.shade900
+                              : Colors.orange.shade900,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     DataCell(
@@ -365,9 +437,15 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _field('name', 'Naziv', required: true),
-                _field('description', 'Opis', maxLines: 2),
-                _field('address', 'Adresa'),
+                _field('name', 'Naziv', required: true, maxLength: 100),
+                _field('description', 'Opis', maxLines: 2, maxLength: 500),
+                _field(
+                  'address',
+                  'Adresa',
+                  required: true,
+                  maxLength: 200,
+                  address: true,
+                ),
                 DropdownButtonFormField<int>(
                   initialValue: _cityId,
                   decoration: const InputDecoration(labelText: 'Grad'),
@@ -383,8 +461,20 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
                       value == null ? 'Odaberite grad.' : null,
                 ),
                 const SizedBox(height: 12),
-                _field('phoneNumber', 'Telefon'),
-                _field('email', 'Email'),
+                _field(
+                  'phoneNumber',
+                  'Telefon',
+                  required: true,
+                  maxLength: 30,
+                  phone: true,
+                ),
+                _field(
+                  'email',
+                  'Email',
+                  required: true,
+                  maxLength: 254,
+                  email: true,
+                ),
                 _imagesEditor(),
                 SwitchListTile(
                   title: const Text('Aktivan'),
@@ -505,18 +595,46 @@ class _SalonFormDialogState extends State<_SalonFormDialog> {
     String label, {
     bool required = false,
     int maxLines = 1,
+    int? maxLength,
+    bool email = false,
+    bool phone = false,
+    bool address = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: _fields[key],
         maxLines: maxLines,
+        maxLength: maxLength,
         decoration: InputDecoration(labelText: label),
-        validator: required
-            ? (value) => value == null || value.trim().isEmpty
-                  ? 'Ovo polje je obavezno.'
-                  : null
-            : null,
+        validator: (value) {
+          final text = value?.trim() ?? '';
+          if (required && text.isEmpty) {
+            return 'Polje "$label" je obavezno.';
+          }
+          if (maxLength != null && text.length > maxLength) {
+            return '$label može imati najviše $maxLength znakova.';
+          }
+          if (email &&
+              text.isNotEmpty &&
+              !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(text)) {
+            return 'Unesite ispravnu email adresu.';
+          }
+          if (phone && text.isNotEmpty) {
+            final normalized = text.replaceAll(RegExp(r'[\s()./-]'), '');
+            if (!RegExp(r'^(?:0\d{7,9}|\+387\d{7,9})$').hasMatch(normalized)) {
+              return 'Unesite broj kao 061 123 456 ili +387 61 123 456.';
+            }
+          }
+          if (address &&
+              text.isNotEmpty &&
+              (text.length < 5 ||
+                  !RegExp(r'[A-Za-zČĆŽŠĐčćžšđ]').hasMatch(text) ||
+                  !RegExp(r'\d').hasMatch(text))) {
+            return 'Unesite ulicu i broj, npr. Maršala Tita 25.';
+          }
+          return null;
+        },
       ),
     );
   }
@@ -527,108 +645,4 @@ class _SalonFormResult {
 
   final Map<String, dynamic> body;
   final List<PlatformFile> images;
-}
-
-class _SalonDetailsDialog extends StatefulWidget {
-  const _SalonDetailsDialog({required this.salon, required this.api});
-
-  final Salon salon;
-  final AdminApiClient api;
-
-  @override
-  State<_SalonDetailsDialog> createState() => _SalonDetailsDialogState();
-}
-
-class _SalonDetailsDialogState extends State<_SalonDetailsDialog> {
-  late final Future<Map<String, dynamic>> _statistics;
-
-  @override
-  void initState() {
-    super.initState();
-    final query = Uri(
-      queryParameters: {
-        'salonId': '${widget.salon.id}',
-        'status': 'All statuses',
-      },
-    ).query;
-    _statistics = widget.api.getMap('Statistics/dashboard?$query');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.salon.name),
-      content: SizedBox(
-        width: 540,
-        child: FutureBuilder<Map<String, dynamic>>(
-          future: _statistics,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Text('Statistika nije dostupna: ${snapshot.error}');
-            }
-            if (!snapshot.hasData) {
-              return const SizedBox(
-                height: 140,
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-
-            final data = snapshot.data!;
-            final services = (data['reservationsByService'] as List? ?? [])
-                .whereType<Map<String, dynamic>>()
-                .toList();
-            final popularUser = data['mostActiveUser']?.toString();
-            final appointmentCount =
-                (data['totalAppointments'] as num?)?.toInt() ?? 0;
-            final userCount = (data['totalUsers'] as num?)?.toInt() ?? 0;
-
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('${widget.salon.cityName} • ${widget.salon.address}'),
-                  Text(
-                    'Kontakt: ${widget.salon.phoneNumber} • ${widget.salon.email}',
-                  ),
-                  const SizedBox(height: 20),
-                  Text('Broj zaposlenika: ${widget.salon.employeeCount}'),
-                  Text('Ukupno rezervacija: $appointmentCount'),
-                  Text('Korisnici s rezervacijom: $userCount'),
-                  Text(
-                    'Najangažovaniji korisnik: '
-                    '${popularUser == null || popularUser.isEmpty ? 'Nema podataka' : '$popularUser (${data['mostActiveUserCount'] ?? 0} rezervacija)'}',
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Najpopularnije usluge',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  if (services.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Text('Još nema rezervacija za ovaj salon.'),
-                    )
-                  else
-                    for (final service in services.take(5))
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(service['serviceName']?.toString() ?? ''),
-                        trailing: Text('${service['count'] ?? 0} rezervacija'),
-                      ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Zatvori'),
-        ),
-      ],
-    );
-  }
 }
