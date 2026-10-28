@@ -108,9 +108,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _isCapturing = true;
 
     try {
-      await _apiService.capturePayPalOrder(
-        paymentId: widget.paymentId,
-      );
+      await _apiService.capturePayPalOrder(paymentId: widget.paymentId);
 
       if (!mounted) return;
 
@@ -246,7 +244,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: ElevatedButton(
                 onPressed: _isPaying ? null : _startPayPalPayment,
                 child: _isPaying
-                    ? const CircularProgressIndicator()
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 10),
+                          Text('Otvaram PayPal...'),
+                        ],
+                      )
                     : Text(
                         'Plati ${widget.service.price.toStringAsFixed(2)} KM',
                       ),
@@ -255,10 +264,33 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
             const SizedBox(height: 12),
 
-            const Center(
-              child: Text(
-                'Sigurno plaćanje putem PayPal-a',
-                style: TextStyle(color: Colors.grey),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F2FF),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.open_in_browser_rounded,
+                    size: 19,
+                    color: Color(0xFF7568F5),
+                  ),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Otvorit \u0107e se PayPal Sandbox u Chromeu. Prijavi se testnim PayPal kupcem, odobri uplatu i sa\u010dekaj povratak u eTermin.',
+                      style: TextStyle(
+                        color: Color(0xFF554C78),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

@@ -73,6 +73,7 @@ services:
       Seed__AdminPassword: ${Docker__Seed__AdminPassword:-Local_Admin_Password_123!}
       Seed__UserEmail: ${Docker__Seed__UserEmail:-user@example.local}
       Seed__UserPassword: ${Docker__Seed__UserPassword:-Local_User_Password_123!}
+      ET_USER_RESET_PASSWORD: ${ET_USER_RESET_PASSWORD:-false}
     ports:
       - "${API__HostPort:-5130}:8080"
     volumes:
