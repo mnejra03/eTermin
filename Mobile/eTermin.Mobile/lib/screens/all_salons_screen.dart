@@ -6,7 +6,9 @@ import 'salon_details_screen.dart';
 import '../widgets/salon_image.dart';
 
 class AllSalonsScreen extends StatefulWidget {
-  const AllSalonsScreen({super.key});
+  const AllSalonsScreen({super.key, required this.onNavigateToTab});
+
+  final ValueChanged<int> onNavigateToTab;
 
   @override
   State<AllSalonsScreen> createState() => _AllSalonsScreenState();
@@ -88,6 +90,21 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        onTap: widget.onNavigateToTab,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF7568F5),
+        unselectedItemColor: Colors.grey,
+        selectedFontSize: 9,
+        unselectedFontSize: 9,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Po\u010Detna'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Pretra\u017Ei'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined), label: 'Termini'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : GridView.builder(
@@ -118,7 +135,7 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              SalonDetailsScreen(salon: salon),
+                              SalonDetailsScreen(salon: salon, onNavigateToTab: widget.onNavigateToTab),
                         ),
                       );
                     },
@@ -167,7 +184,7 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        SalonDetailsScreen(salon: salon),
+                                        SalonDetailsScreen(salon: salon, onNavigateToTab: widget.onNavigateToTab),
                                   ),
                                 );
                               },

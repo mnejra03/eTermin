@@ -14,6 +14,7 @@ class BookingScreen extends StatefulWidget {
   final DateTime? initialDate;
 
   final int? initialEmployeeId;
+  final ValueChanged<int> onNavigateToTab;
 
   const BookingScreen({
     super.key,
@@ -21,6 +22,7 @@ class BookingScreen extends StatefulWidget {
     required this.service,
     this.initialDate,
     this.initialEmployeeId,
+    required this.onNavigateToTab,
   });
 
   @override
@@ -623,11 +625,7 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
       child: BottomNavigationBar(
         currentIndex: 0,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.popUntil(context, (route) => route.isFirst);
-          }
-        },
+        onTap: widget.onNavigateToTab,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
         selectedItemColor: primaryColor,

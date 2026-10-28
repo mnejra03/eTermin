@@ -28,6 +28,8 @@ import 'notifications_screen.dart';
 import '../widgets/salon_image.dart';
 
 class HomeScreen extends StatefulWidget {
+  static const routeName = '/home';
+
   final String firstName;
   final String email;
   final String token;
@@ -234,6 +236,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             AppointmentDetailsScreen(appointment: appointment),
       ),
     );
+  }
+
+  void _navigateToTab(int index) {
+    Navigator.of(context)
+        .popUntil((route) => route.settings.name == HomeScreen.routeName);
+    if (!mounted) return;
+    setState(() => _selectedIndex = index);
+    if (index == 2) _loadMyAppointments();
   }
 
   Future<void> _payAppointment(Map<String, dynamic> appointment) async {
@@ -693,7 +703,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AllSalonsScreen(),
+                  builder: (context) => AllSalonsScreen(onNavigateToTab: _navigateToTab),
                 ),
               );
             },
@@ -753,6 +763,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               initialDate: item['date'] as DateTime,
                               initialEmployeeId:
                                   (item['employee'] as Employee).id,
+                                  onNavigateToTab: _navigateToTab,
                             ),
                           ),
                         );
@@ -786,7 +797,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const NewAppointmentScreen(),
+                        builder: (context) => NewAppointmentScreen(onNavigateToTab: _navigateToTab),
                       ),
                     );
                   },
@@ -813,7 +824,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const RecommendationsScreen(),
+                        builder: (context) => RecommendationsScreen(onNavigateToTab: _navigateToTab),
                       ),
                     );
                   },
@@ -949,6 +960,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                             builder: (context) => BookingScreen(
                               salon: salon.first,
                               service: recommendation.toService(),
+                              onNavigateToTab: _navigateToTab,
                             ),
                           ),
                         );

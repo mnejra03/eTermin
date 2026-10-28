@@ -6,7 +6,9 @@ import '../services/api_service.dart';
 import 'booking_screen.dart';
 
 class NewAppointmentScreen extends StatefulWidget {
-  const NewAppointmentScreen({super.key});
+  const NewAppointmentScreen({required this.onNavigateToTab, super.key});
+
+  final ValueChanged<int> onNavigateToTab;
 
   @override
   State<NewAppointmentScreen> createState() => _NewAppointmentScreenState();
@@ -50,6 +52,21 @@ class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Novi termin'),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        onTap: widget.onNavigateToTab,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF7568F5),
+        unselectedItemColor: Colors.grey,
+        selectedFontSize: 9,
+        unselectedFontSize: 9,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Po\u010Detna'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Pretra\u017Ei'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined), label: 'Termini'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
+        ],
       ),
       body: _isLoading
           ? const Center(
@@ -121,6 +138,7 @@ class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
                                               BookingScreen(
                                             salon: salon,
                                             service: service,
+                                            onNavigateToTab: widget.onNavigateToTab,
                                           ),
                                         ),
                                       );

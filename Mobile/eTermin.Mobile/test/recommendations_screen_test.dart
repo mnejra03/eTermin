@@ -9,7 +9,7 @@ void main() {
   testWidgets('renders backend recommendation reasons', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: RecommendationsScreen(apiService: _RecommendationApi()),
+        home: RecommendationsScreen(apiService: _RecommendationApi(), onNavigateToTab: (_) {}),
       ),
     );
     await tester.pumpAndSettle();
