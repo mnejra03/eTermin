@@ -11,7 +11,11 @@ class SalonDetailsScreen extends StatefulWidget {
   final Salon salon;
   final ValueChanged<int> onNavigateToTab;
 
-  const SalonDetailsScreen({super.key, required this.salon, required this.onNavigateToTab});
+  const SalonDetailsScreen({
+    super.key,
+    required this.salon,
+    required this.onNavigateToTab,
+  });
 
   @override
   State<SalonDetailsScreen> createState() => _SalonDetailsScreenState();
@@ -75,6 +79,11 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final location = [
+      widget.salon.address.trim(),
+      widget.salon.city.trim(),
+    ].where((part) => part.isNotEmpty).join(', ');
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -140,40 +149,121 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
             const SizedBox(height: 2),
 
             // ==========================
-            // LOKACIJA
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F5FF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: primaryColor.withValues(alpha: 0.12)),
+              ),
+              child: Column(
+                children: [
+                  _salonInfoRow(
+                    Icons.location_on_outlined,
+                    'Adresa',
+                    location.isEmpty ? 'Adresa nije dostupna' : location,
+                  ),
+                  if (widget.salon.phoneNumber.trim().isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _salonInfoRow(
+                      Icons.phone_outlined,
+                      'Telefon',
+                      widget.salon.phoneNumber,
+                    ),
+                  ],
+                  if (widget.salon.email.trim().isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _salonInfoRow(
+                      Icons.email_outlined,
+                      'Email',
+                      widget.salon.email,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFEAE7F2)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFF5D9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.star_outline_rounded,
+                      color: Color(0xFFE5A100),
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Recenzije',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          'Jo\u0161 nema recenzija za ovaj salon.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+            // USLUGE
             // ==========================
             Row(
               children: [
-                const Text('📍', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 3),
-                Text(
-                  widget.salon.city,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                const Expanded(
+                  child: Text(
+                    'Usluge',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF292638),
+                    ),
+                  ),
                 ),
+                if (!_isLoading && _error == null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F1FF),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_services.length} dostupnih',
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
               ],
-            ),
-
-            const SizedBox(height: 2),
-
-            // Za sada prikazujemo fiksnu vrijednost
-            // dok backend nema rating podatak.
-            const Text(
-              '⭐ 4.8',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-
-            const SizedBox(height: 14),
-
-            // ==========================
-            // USLUGE
-            // ==========================
-            const Text(
-              'Usluge:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
             ),
 
             const SizedBox(height: 8),
@@ -187,6 +277,35 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
       // BOTTOM NAVIGATION
       // ==========================
       bottomNavigationBar: _buildBottomNavigation(),
+    );
+  }
+
+  Widget _salonInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: primaryColor, size: 19),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -240,105 +359,106 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
   Widget _buildServiceCard(Service service) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEAE7F2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+            color: primaryColor.withValues(alpha: 0.07),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // IKONA
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F1FF),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              _getServiceIcon(service.name),
-              color: primaryColor,
-              size: 25,
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
-          // NAZIV + TRAJANJE
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  service.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF7568F5),
-                  ),
-                ),
-
-                const SizedBox(height: 2),
-
-                Text(
-                  'Trajanje: ${_formatDuration(service.durationInMinutes)}',
-                  style: const TextStyle(fontSize: 9, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-
-          // CIJENA + REZERVIŠI
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text(
-                '${service.price.toStringAsFixed(0)} KM',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF7568F5),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F1FF),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  _getServiceIcon(service.name),
+                  color: primaryColor,
+                  size: 23,
                 ),
               ),
-
-              const SizedBox(height: 3),
-
-              SizedBox(
-                height: 23,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BookingScreen(
-                          salon: widget.salon,
-                          service: service,
-                          onNavigateToTab: widget.onNavigateToTab,
-                        ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Text(
+                  service.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF292638),
                   ),
-                  child: const Text('Rezerviši', style: TextStyle(fontSize: 9)),
                 ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${service.price.toStringAsFixed(2)} KM',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: primaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                Icons.schedule_rounded,
+                size: 16,
+                color: Colors.grey.shade600,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Trajanje: ${_formatDuration(service.durationInMinutes)}',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+              ),
+              const Spacer(),
+              FilledButton.icon(
+                onPressed: () async {
+                  final completed = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingScreen(
+                        salon: widget.salon,
+                        service: service,
+                        onNavigateToTab: widget.onNavigateToTab,
+                      ),
+                    ),
+                  );
+                  if (completed == true && mounted) {
+                    Navigator.pop(context, true);
+                  }
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+                icon: const Icon(Icons.calendar_month_rounded, size: 15),
+                label: const Text('Rezervi\u0161i'),
               ),
             ],
           ),
@@ -381,9 +501,7 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
       ),
       child: BottomNavigationBar(
         currentIndex: 0,
-        onTap: (index) {
-          widget.onNavigateToTab(index);
-        },
+        onTap: widget.onNavigateToTab,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
         selectedItemColor: const Color(0xFF7568F5),

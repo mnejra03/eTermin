@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   bool _obscurePassword = true;
+  String? _loginError;
 
   @override
   void dispose() {
@@ -38,12 +39,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() {
       _isLoading = true;
+      _loginError = null;
     });
 
     try {
       final response = await _apiService.login(email, password);
 
       if (!mounted) return;
+
+      if (response == null) {
+        setState(() {
+          _loginError = 'Email ili lozinka nisu ispravni. Provjerite podatke i pokušajte ponovo.';
+        });
+        return;
+      }
+      if (response['_loginError'] is String) {
+        setState(() {
+          _loginError = response['_loginError'] as String;
+        });
+        return;
+      }
 
       Navigator.pushReplacement(
         context,
@@ -60,9 +75,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
+      setState(() {
+        _loginError = e.toString().replaceFirst('Exception: ', '');
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -176,6 +191,35 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? 'Lozinka je obavezna.'
                       : null,
                 ),
+
+                if (_loginError != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEE),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE57373)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Color(0xFFC62828),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _loginError!,
+                            style: const TextStyle(color: Color(0xFF8E2020)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 30),
 

@@ -48,7 +48,14 @@ class ApiService {
     _token = null;
   }
 
-  Map<String, String> get _authHeaders => {'Authorization': 'Bearer $_token'};
+  Map<String, String> get _authHeaders {
+    final token = _token;
+    if (token == null || token.isEmpty) {
+      throw Exception('JWT TOKEN NIJE POSTAVLJEN.');
+    }
+
+    return {'Authorization': 'Bearer $token'};
+  }
 
   Future<ApiPage<Map<String, dynamic>>> _getPagedData(
     String path, {
@@ -66,13 +73,13 @@ class ApiService {
     final response = await http.get(uri, headers: _authHeaders);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        _errorMessage(response.body, fallback: 'Podaci se ne mogu učitati.'),
+        _errorMessage(response.body, fallback: 'Podaci se ne mogu uÄŤitati.'),
       );
     }
 
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic> || decoded['items'] is! List) {
-      throw Exception('API je vratio neočekivan odgovor za stranicu.');
+      throw Exception('API je vratio neoÄŤekivan odgovor za stranicu.');
     }
 
     final items = (decoded['items'] as List)
@@ -96,29 +103,51 @@ class ApiService {
     return items;
   }
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>?> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
 
+    if (response.statusCode == 401) {
+      // PogreĹˇni podaci su oÄŤekivan ishod prijave, ne neoÄŤekivani runtime izuzetak.
+      _token = null;
+      return null;
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) {
-        throw Exception('Prijava nije uspjela. Pokušajte ponovo.');
+        throw Exception('Prijava nije uspjela. PokuĹˇajte ponovo.');
       }
-      final data = jsonDecode(response.body);
-      _token = data['token'];
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        return {
+          '_loginError': 'Server je vratio neispravan odgovor za prijavu.',
+        };
+      }
+      final data = decoded;
+      final tokenEntry = data.entries.where(
+        (entry) => entry.key.toLowerCase() == 'token',
+      );
+      _token = tokenEntry.isEmpty ? null : tokenEntry.first.value as String?;
 
       if (_token == null || _token!.isEmpty) {
-        throw Exception('Login nije vratio JWT token.');
+        return {
+          '_loginError':
+              'Prijava nije dovrĹˇena jer server nije vratio sigurnosni token. '
+              'Provjerite da je pokrenut API iz ovog projekta.',
+        };
       }
 
       return data;
     }
 
     throw Exception(
-      _errorMessage(response.body, fallback: 'Prijava nije uspjela.'),
+      _errorMessage(
+        response.body,
+        fallback: 'Prijava trenutno nije dostupna. PokuĹˇajte ponovo.',
+      ),
     );
   }
 
@@ -164,17 +193,17 @@ class ApiService {
       throw Exception(
         _errorMessage(
           response.body,
-          fallback: 'Preporuke se trenutno ne mogu učitati.',
+          fallback: 'Preporuke se trenutno ne mogu uÄŤitati.',
         ),
       );
     }
     if (response.body.isEmpty) {
-      throw Exception('Preporuke se trenutno ne mogu učitati.');
+      throw Exception('Preporuke se trenutno ne mogu uÄŤitati.');
     }
 
     final data = jsonDecode(response.body);
     if (data is! List) {
-      throw Exception('API je vratio neočekivan odgovor za preporuke.');
+      throw Exception('API je vratio neoÄŤekivan odgovor za preporuke.');
     }
     return data
         .map((json) => Recommendation.fromJson(json as Map<String, dynamic>))
@@ -204,22 +233,19 @@ class ApiService {
       throw Exception('JWT TOKEN NIJE POSTAVLJEN.');
     }
 
-    final response = await http.get(
-      uri,
-      headers: {'Authorization': 'Bearer $_token'},
-    );
+    final response = await http.get(uri, headers: _authHeaders);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         _errorMessage(
           response.body,
-          fallback: 'Slobodni termini se ne mogu učitati.',
+          fallback: 'Slobodni termini se ne mogu uÄŤitati.',
         ),
       );
     }
 
     if (response.body.isEmpty) {
-      throw Exception('Slobodni termini se ne mogu učitati.');
+      throw Exception('Slobodni termini se ne mogu uÄŤitati.');
     }
 
     final data = jsonDecode(response.body);
@@ -253,17 +279,17 @@ class ApiService {
 
     final response = await http.get(
       Uri.parse('$baseUrl/Payments/appointment/$appointmentId'),
-      headers: {'Authorization': 'Bearer $_token'},
+      headers: _authHeaders,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        _errorMessage(response.body, fallback: 'Uplate se ne mogu učitati.'),
+        _errorMessage(response.body, fallback: 'Uplate se ne mogu uÄŤitati.'),
       );
     }
 
     if (response.body.isEmpty) {
-      throw Exception('Uplate se ne mogu učitati.');
+      throw Exception('Uplate se ne mogu uÄŤitati.');
     }
     final data = jsonDecode(response.body);
     return (data as List)
@@ -283,10 +309,7 @@ class ApiService {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Appointments'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Content-Type': 'application/json', ..._authHeaders},
       body: jsonEncode({
         'salonId': salonId,
         'employeeId': employeeId,
@@ -300,12 +323,12 @@ class ApiService {
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        _errorMessage(response.body, fallback: 'Termin nije moguće kreirati.'),
+        _errorMessage(response.body, fallback: 'Termin nije moguÄ‡e kreirati.'),
       );
     }
 
     if (response.body.isEmpty) {
-      throw Exception('Termin nije moguće kreirati.');
+      throw Exception('Termin nije moguÄ‡e kreirati.');
     }
 
     final data = jsonDecode(response.body);
@@ -319,10 +342,7 @@ class ApiService {
 
     final response = await http.put(
       Uri.parse('$baseUrl/Appointments/$appointmentId/cancel'),
-      headers: {
-        'Authorization': 'Bearer $_token',
-        'Content-Type': 'application/json',
-      },
+      headers: {..._authHeaders, 'Content-Type': 'application/json'},
       body: jsonEncode({'reason': reason}),
     );
 
@@ -331,14 +351,17 @@ class ApiService {
     }
 
     final message = response.body.isEmpty
-        ? 'Termin se ne može otkazati.'
-        : _errorMessage(response.body, fallback: 'Termin se ne može otkazati.');
+        ? 'Termin se ne moĹľe otkazati.'
+        : _errorMessage(
+            response.body,
+            fallback: 'Termin se ne moĹľe otkazati.',
+          );
     throw Exception(message);
   }
 
   String _errorMessage(
     String body, {
-    String fallback = 'Došlo je do greške. Pokušajte ponovo.',
+    String fallback = 'DoĹˇlo je do greĹˇke. PokuĹˇajte ponovo.',
   }) {
     try {
       final decoded = jsonDecode(body);
@@ -359,10 +382,7 @@ class ApiService {
   }) async {
     final response = await http.put(
       Uri.parse('$baseUrl/Auth/change-password'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Content-Type': 'application/json', ..._authHeaders},
       body: jsonEncode({
         'currentPassword': currentPassword,
         'newPassword': newPassword,
@@ -385,7 +405,7 @@ class ApiService {
   }) async {
     final response = await http.put(
       Uri.parse('$baseUrl/Auth/profile'),
-      headers: {'Content-Type': 'application/json', 'Authorization': '******'},
+      headers: {..._authHeaders, 'Content-Type': 'application/json'},
       body: jsonEncode({
         'firstName': firstName,
         'lastName': lastName,
@@ -395,10 +415,10 @@ class ApiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         response.body.isEmpty
-            ? 'Profil nije moguće izmijeniti.'
+            ? 'Profil nije moguÄ‡e izmijeniti.'
             : _errorMessage(
                 response.body,
-                fallback: 'Profil nije moguće izmijeniti.',
+                fallback: 'Profil nije moguÄ‡e izmijeniti.',
               ),
       );
     }
@@ -413,10 +433,10 @@ class ApiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         response.body.isEmpty
-            ? 'Kod nije moguće poslati.'
+            ? 'Kod nije moguÄ‡e poslati.'
             : _errorMessage(
                 response.body,
-                fallback: 'Kod nije moguće poslati.',
+                fallback: 'Kod nije moguÄ‡e poslati.',
               ),
       );
     }
@@ -439,10 +459,10 @@ class ApiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
         response.body.isEmpty
-            ? 'Lozinku nije moguće resetovati.'
+            ? 'Lozinku nije moguÄ‡e resetovati.'
             : _errorMessage(
                 response.body,
-                fallback: 'Lozinku nije moguće resetovati.',
+                fallback: 'Lozinku nije moguÄ‡e resetovati.',
               ),
       );
     }
@@ -478,13 +498,18 @@ class ApiService {
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        _errorMessage(response.body, fallback: 'Notifikacije se ne mogu učitati.'),
+        _errorMessage(
+          response.body,
+          fallback: 'Notifikacije se ne mogu uÄŤitati.',
+        ),
       );
     }
 
     final data = jsonDecode(response.body);
     if (data is! Map<String, dynamic> || data['unreadCount'] is! num) {
-      throw Exception('API je vratio neočekivan broj nepročitanih notifikacija.');
+      throw Exception(
+        'API je vratio neoÄŤekivan broj neproÄŤitanih notifikacija.',
+      );
     }
     return (data['unreadCount'] as num).toInt();
   }
@@ -501,10 +526,10 @@ class ApiService {
 
     throw Exception(
       response.body.isEmpty
-          ? 'Obavijest se ne može označiti kao pročitana.'
+          ? 'Obavijest se ne moĹľe oznaÄŤiti kao proÄŤitana.'
           : _errorMessage(
               response.body,
-              fallback: 'Obavijest se ne može označiti kao pročitana.',
+              fallback: 'Obavijest se ne moĹľe oznaÄŤiti kao proÄŤitana.',
             ),
     );
   }
@@ -512,7 +537,7 @@ class ApiService {
   Future<void> deleteNotification(int id) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/Notifications/$id'),
-      headers: {'Authorization': 'Bearer $_token'},
+      headers: _authHeaders,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -546,7 +571,7 @@ class ApiService {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) {
-        throw Exception('Registracija nije uspjela. Pokušajte ponovo.');
+        throw Exception('Registracija nije uspjela. PokuĹˇajte ponovo.');
       }
       final data = jsonDecode(response.body);
       return data;
@@ -564,10 +589,7 @@ class ApiService {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Payments'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Content-Type': 'application/json', ..._authHeaders},
       body: jsonEncode({
         'appointmentId': appointmentId,
         'amount': amount,
@@ -579,7 +601,7 @@ class ApiService {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) {
-        throw Exception('Kreiranje plaćanja nije uspjelo.');
+        throw Exception('Kreiranje plaÄ‡anja nije uspjelo.');
       }
       final data = jsonDecode(response.body);
       return data['id'] as int;
@@ -588,7 +610,7 @@ class ApiService {
     throw Exception(
       _errorMessage(
         response.body,
-        fallback: 'Kreiranje plaćanja nije uspjelo.',
+        fallback: 'Kreiranje plaÄ‡anja nije uspjelo.',
       ),
     );
   }
@@ -598,10 +620,7 @@ class ApiService {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Payments/paypal/create-order'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Content-Type': 'application/json', ..._authHeaders},
       body: jsonEncode({'paymentId': paymentId}),
     );
 
@@ -609,7 +628,7 @@ class ApiService {
       throw Exception(
         _errorMessage(
           response.body,
-          fallback: 'Kreiranje PayPal narudžbe nije uspjelo.',
+          fallback: 'Kreiranje PayPal narudĹľbe nije uspjelo.',
         ),
       );
     }
@@ -626,21 +645,21 @@ class ApiService {
   Future<String> capturePayPalOrder({required int paymentId}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Payments/paypal/capture-order'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
+      headers: {'Content-Type': 'application/json', ..._authHeaders},
       body: jsonEncode({'paymentId': paymentId}),
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        _errorMessage(response.body, fallback: 'PayPal plaćanje nije uspjelo.'),
+        _errorMessage(
+          response.body,
+          fallback: 'PayPal plaÄ‡anje nije uspjelo.',
+        ),
       );
     }
 
     if (response.body.isEmpty) {
-      throw Exception('PayPal plaćanje nije uspjelo.');
+      throw Exception('PayPal plaÄ‡anje nije uspjelo.');
     }
     final data = jsonDecode(response.body);
     return data['captureId'] as String;

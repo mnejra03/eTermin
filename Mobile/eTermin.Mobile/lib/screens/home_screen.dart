@@ -238,12 +238,52 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  void _showMyAppointmentsAfterPayment() {
+    if (!mounted) return;
+    setState(() => _selectedIndex = 2);
+    _loadMyAppointments();
+  }
+
   void _navigateToTab(int index) {
     Navigator.of(context)
         .popUntil((route) => route.settings.name == HomeScreen.routeName);
     if (!mounted) return;
     setState(() => _selectedIndex = index);
     if (index == 2) _loadMyAppointments();
+  }
+
+  Future<bool?> _openBooking({
+    required Salon salon,
+    required Service service,
+    DateTime? initialDate,
+    int? initialEmployeeId,
+  }) async {
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingScreen(
+          salon: salon,
+          service: service,
+          initialDate: initialDate,
+          initialEmployeeId: initialEmployeeId,
+          onNavigateToTab: _navigateToTab,
+        ),
+      ),
+    );
+    if (completed == true) _showMyAppointmentsAfterPayment();
+    return completed;
+  }
+
+  Future<bool?> _openSalonDetails(Salon salon) async {
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            SalonDetailsScreen(salon: salon, onNavigateToTab: _navigateToTab),
+      ),
+    );
+    if (completed == true) _showMyAppointmentsAfterPayment();
+    return completed;
   }
 
   Future<void> _payAppointment(Map<String, dynamic> appointment) async {
@@ -289,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       );
       if (payments.any((payment) => payment['status'] == 'Completed')) {
         await _loadMyAppointments();
-        if (mounted) _message('Ovaj termin je veĂ„â€ˇ plaĂ„â€ˇen.');
+        if (mounted) _message('Ovaj termin je već plaćen.');
         return;
       }
 
@@ -300,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ? await _apiService.createPayment(
               appointmentId: appointmentId,
               amount:
-                  (appointment['price'] as num?)?.toDouble() ?? service!.price,
+                  (appointment['price'] as num?)?.toDouble() ?? service.price,
               paymentMethod: 'PayPal',
             )
           : pendingPayment['id'] as int;
@@ -308,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       final order = await _apiService.createPayPalOrder(paymentId: paymentId);
       final approvalUrl = order['approvalUrl']?.toString();
       if (approvalUrl == null || approvalUrl.isEmpty) {
-        throw Exception('PayPal nije vratio link za plaĂ„â€ˇanje.');
+        throw Exception('PayPal nije vratio link za plaćanje.');
       }
 
       final timeText =
@@ -333,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       if (!mounted) return;
       await _loadMyAppointments();
     } catch (error) {
-      if (mounted) _message('PlaĂ„â€ˇanje nije pokrenuto: $error');
+      if (mounted) _message('Plaćanje nije pokrenuto: $error');
     } finally {
       if (mounted) setState(() => _payingAppointmentIds.remove(appointmentId));
     }
@@ -426,7 +466,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
 
           Text(
-            'Ä‘Ĺşâ€śĹ¤ ${salon.city}',
+            '\u{1F4CD} ${salon.city}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 10, color: Colors.grey),
@@ -438,14 +478,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             width: double.infinity,
             height: 28,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SalonDetailsScreen(salon: salon),
-                  ),
-                );
-              },
+              onPressed: () => _openSalonDetails(salon),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
@@ -454,9 +487,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   borderRadius: BorderRadius.circular(7),
                 ),
               ),
-              child: const Text(
-                'Pogledaj Ă˘â‚¬Ĺź',
-                style: TextStyle(fontSize: 10),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Pogledaj', style: TextStyle(fontSize: 10)),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_rounded, size: 12),
+                ],
               ),
             ),
           ),
@@ -515,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final result = <Map<String, dynamic>>[];
     final today = DateTime.now();
 
-    // TraÄąÄľimo termine za narednih 7 dana.
+    // Tražimo termine za narednih 7 dana.
     for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
       final date = DateTime(
         today.year,
@@ -533,7 +570,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             )
             .toList();
 
-        // Provjeri svakog zaposlenika koji pruÄąÄľa tu uslugu.
+        // Provjeri svakog zaposlenika koji pruža tu uslugu.
         for (final employee in employees) {
           try {
             final slots = await _apiService.getAvailableSlots(
@@ -647,10 +684,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     color: primaryColor,
                   ),
                 ),
-                const TextSpan(
-                  text: 'Ä‘Ĺşâ€â€ą',
-                  style: TextStyle(fontSize: 22),
-                ),
+                const TextSpan(text: '\u2728', style: TextStyle(fontSize: 22)),
               ],
             ),
           ),
@@ -658,7 +692,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           const SizedBox(height: 2),
 
           Text(
-            'RezerviÄąË‡i svoj termin brzo i jednostavno',
+            'Rezerviši svoj termin brzo i jednostavno',
             style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
           ),
 
@@ -684,12 +718,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 });
               },
               decoration: InputDecoration(
-                hintText: 'PretraÄąÄľi salon ili uslugu...',
+                hintText: 'Pretraži salon ili uslugu...',
                 hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                 prefixIcon: Icon(Icons.search, color: primaryColor, size: 19),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 42,
+                  minHeight: 40,
+                ),
+                isDense: true,
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                contentPadding: EdgeInsets.zero,
               ),
+              textAlignVertical: TextAlignVertical.center,
             ),
           ),
 
@@ -699,13 +739,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           _buildSectionHeader(
             'Popularni saloni',
             'Pogledaj sve',
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              final completed = await Navigator.push<bool>(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AllSalonsScreen(onNavigateToTab: _navigateToTab),
+                  builder: (context) =>
+                      AllSalonsScreen(onNavigateToTab: _navigateToTab),
                 ),
               );
+              if (completed == true) _showMyAppointmentsAfterPayment();
             },
           ),
           const SizedBox(height: 9),
@@ -715,7 +757,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           const SizedBox(height: 13),
 
           // RECOMMENDED SERVICES
-          _buildSectionTitle('PreporuĂ„Ĺ¤ene usluge'),
+          _buildSectionTitle('Preporučene usluge'),
 
           const SizedBox(height: 8),
 
@@ -753,21 +795,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         '${startTime.minute.toString().padLeft(2, '0')}';
 
                     return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BookingScreen(
-                              salon: salon,
-                              service: service,
-                              initialDate: item['date'] as DateTime,
-                              initialEmployeeId:
-                                  (item['employee'] as Employee).id,
-                                  onNavigateToTab: _navigateToTab,
-                            ),
-                          ),
-                        );
-                      },
+                      onTap: () => _openBooking(
+                        salon: salon,
+                        service: service,
+                        initialDate: item['date'] as DateTime,
+                        initialEmployeeId: (item['employee'] as Employee).id,
+                      ),
                       child: _buildAvailableSlot(
                         time,
                         service.name,
@@ -793,13 +826,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 child: _buildQuickAction(
                   Icons.calendar_today,
                   'Novi termin',
-                  onTap: () {
-                    Navigator.push(
+                  onTap: () async {
+                    final completed = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => NewAppointmentScreen(onNavigateToTab: _navigateToTab),
+                        builder: (context) => NewAppointmentScreen(
+                          onNavigateToTab: _navigateToTab,
+                        ),
                       ),
                     );
+                    if (completed == true) {
+                      _showMyAppointmentsAfterPayment();
+                    }
                   },
                 ),
               ),
@@ -820,13 +858,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 child: _buildQuickAction(
                   Icons.star_border_rounded,
                   'Preporuke',
-                  onTap: () {
-                    Navigator.push(
+                  onTap: () async {
+                    final completed = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => RecommendationsScreen(onNavigateToTab: _navigateToTab),
+                        builder: (context) => RecommendationsScreen(
+                          onNavigateToTab: _navigateToTab,
+                        ),
                       ),
                     );
+                    if (completed == true) {
+                      _showMyAppointmentsAfterPayment();
+                    }
                   },
                 ),
               ),
@@ -836,7 +879,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           const SizedBox(height: 16),
 
           // NEXT APPOINTMENT
-          _buildSectionTitle('SljedeĂ„â€ˇi termin'),
+          _buildSectionTitle('Sljedeći termin'),
 
           const SizedBox(height: 8),
 
@@ -868,7 +911,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               ),
                               const SizedBox(width: 7),
                               const Text(
-                                'SljedeĂ„â€ˇi termin',
+                                'Sljedeći termin',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -920,83 +963,195 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   Widget _buildRecommendedServices() {
     if (_isLoadingRecommendations) {
       return const SizedBox(
-        height: 92,
+        height: 176,
         child: Center(child: CircularProgressIndicator()),
       );
     }
     if (_recommendations.isEmpty) {
-      return const SizedBox(
-        height: 50,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text('Trenutno nema preporuka za vas.'),
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F5FF),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: primaryColor.withValues(alpha: 0.12)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.auto_awesome_outlined, color: primaryColor),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Preporuke za vas će se pojaviti čim pronađemo usluge koje vam odgovaraju.',
+                style: TextStyle(fontSize: 13, height: 1.35),
+              ),
+            ),
+          ],
         ),
       );
     }
 
     return SizedBox(
-      height: 112,
+      height: 184,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _recommendations.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        padding: const EdgeInsets.only(right: 4, bottom: 5),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final recommendation = _recommendations[index];
           final salon = _salons.where(
             (item) => item.id == recommendation.salonId,
           );
           return SizedBox(
-            width: 220,
-            child: Card(
-              margin: EdgeInsets.zero,
+            width: 278,
+            child: Material(
+              color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 onTap: salon.isEmpty
                     ? null
                     : () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BookingScreen(
-                              salon: salon.first,
-                              service: recommendation.toService(),
-                              onNavigateToTab: _navigateToTab,
-                            ),
-                          ),
+                        await _openBooking(
+                          salon: salon.first,
+                          service: recommendation.toService(),
                         );
                         if (mounted) _loadRecommendations();
                       },
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        recommendation.serviceName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '${recommendation.salonName} • '
-                        '${recommendation.price.toStringAsFixed(2)} KM',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      const SizedBox(height: 4),
-                      Expanded(
-                        child: Text(
-                          recommendation.reason,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFF8F6FF), Color(0xFFEDEAFF)],
+                    ),
+                    border: Border.all(
+                      color: primaryColor.withValues(alpha: 0.15),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryColor.withValues(alpha: 0.08),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
                       ),
                     ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.auto_awesome_rounded,
+                                    size: 14,
+                                    color: primaryColor,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    'ZA VAS',
+                                    style: TextStyle(
+                                      color: primaryColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${recommendation.price.toStringAsFixed(0)} KM',
+                              style: TextStyle(
+                                color: primaryColor,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 11),
+                        Text(
+                          recommendation.serviceName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: darkText,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.storefront_outlined,
+                              size: 15,
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                recommendation.salonName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.grey.shade700,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: Text(
+                            recommendation.reason,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 11,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              'Rezervi\u0161i termin',
+                              style: TextStyle(
+                                color: primaryColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 16,
+                              color: primaryColor,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1207,7 +1362,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'PretraÄąÄľi',
+              'Pretraži',
               style: TextStyle(
                 color: primaryColor,
                 fontSize: 24,
@@ -1231,7 +1386,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   });
                 },
                 decoration: InputDecoration(
-                  hintText: 'PretraÄąÄľi salon...',
+                  hintText: 'Pretraži salon...',
                   hintStyle: TextStyle(
                     color: Colors.grey.shade500,
                     fontSize: 13,
@@ -1255,17 +1410,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             ),
 
             const SizedBox(height: 20),
-
-            Text(
-              'Saloni',
-              style: TextStyle(
-                color: darkText,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 10),
 
             Expanded(
               child: (filteredSalons.isEmpty && filteredServices.isEmpty)
@@ -1331,22 +1475,15 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   size: 15,
                                   color: primaryColor,
                                 ),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          SalonDetailsScreen(salon: salon),
-                                    ),
-                                  );
-                                },
+                                onTap: () => _openSalonDetails(salon),
                               ),
                             );
                           }),
                         ],
 
                         if (filteredServices.isNotEmpty) ...[
-                          const SizedBox(height: 10),
+                          if (filteredSalons.isNotEmpty)
+                            const SizedBox(height: 10),
 
                           Text(
                             'Usluge',
@@ -1394,7 +1531,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  '${salon.name} Ă˘â‚¬Ë ${service.price.toStringAsFixed(0)} KM',
+                                  '${salon.name} • ${service.price.toStringAsFixed(0)} KM',
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Colors.grey,
@@ -1405,15 +1542,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   size: 15,
                                   color: primaryColor,
                                 ),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          SalonDetailsScreen(salon: salon),
-                                    ),
-                                  );
-                                },
+                                onTap: () => _openSalonDetails(salon),
                               ),
                             );
                           }),
@@ -1439,7 +1568,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         final status = appointment['status']?.toString() ?? '';
         return status == 'Pending' || status == 'Confirmed';
       }).toList();
-    } else if (_appointmentFilter == 'ZavrÄąË‡eni') {
+    } else if (_appointmentFilter == 'Završeni') {
       filteredAppointments = _myAppointments.where((appointment) {
         return appointment['status']?.toString() == 'Completed';
       }).toList();
@@ -1474,9 +1603,36 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           child: Row(
             children: [
               _buildAppointmentFilter('Aktivni'),
-              _buildAppointmentFilter('ZavrÄąË‡eni'),
+              _buildAppointmentFilter('Završeni'),
               _buildAppointmentFilter('Otkazani'),
             ],
+          ),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: lightPurple,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 17,
+                  color: Color(0xFF7568F5),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Termini na \u010dekanju nalaze se u kartici Aktivni. Nepla\u0107eni termin mo\u017ee\u0161 platiti odatle.',
+                    style: TextStyle(fontSize: 11, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
 
@@ -1490,7 +1646,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Text(
-                      'Termini se trenutno ne mogu uĂ„Ĺ¤itati.',
+                      'Termini se trenutno ne mogu učitati.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.grey),
                     ),
@@ -1584,6 +1740,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
     final status = appointment['status']?.toString() ?? '';
     final isPaid = appointment['isPaid'] == true;
+    final cancellationReason =
+        appointment['cancellationReason']?.toString().trim() ?? '';
 
     final startTime = DateTime.tryParse(
       appointment['startTime']?.toString() ?? '',
@@ -1606,17 +1764,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     switch (status) {
       case 'Confirmed':
         statusColor = Colors.green;
-        statusText = 'PotvrĂ„â€eno';
+        statusText = 'Potvrđeno';
         break;
 
       case 'Pending':
         statusColor = Colors.orange;
-        statusText = 'Na Ă„Ĺ¤ekanju';
+        statusText = 'Na čekanju';
         break;
 
       case 'Completed':
         statusColor = Colors.blueGrey;
-        statusText = 'ZavrÄąË‡eno';
+        statusText = 'Završeno';
         break;
 
       case 'Cancelled':
@@ -1731,7 +1889,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    isPaid ? 'PlaĂ„â€ˇeno' : 'Nije plaĂ„â€ˇeno',
+                    isPaid ? 'Plaćeno' : 'Nije plaćeno',
                     style: TextStyle(
                       color: isPaid ? Colors.green : Colors.orange.shade800,
                       fontSize: 12,
@@ -1741,16 +1899,50 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ],
               ),
             ),
-            if (status == 'Cancelled' &&
-                appointment['cancellationReason'] != null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    'Razlog otkazivanja: ${appointment['cancellationReason']}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
+            if (status == 'Cancelled' && cancellationReason.isNotEmpty)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF2F1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF4D2CF)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: Color(0xFFB5473C),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Razlog otkazivanja',
+                            style: TextStyle(
+                              color: Color(0xFF8E352D),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            cancellationReason,
+                            style: const TextStyle(
+                              color: Color(0xFF5F3835),
+                              fontSize: 12,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             if (status == 'Pending' || status == 'Confirmed')
@@ -1779,7 +1971,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                     if (isPaid)
                       const Padding(
                         padding: EdgeInsets.all(8),
-                        child: Text('PlaÄ‡eni termin se ne moĹľe otkazati.'),
+                        child: Text('Plaćeni termin se ne može otkazati.'),
                       ),
                   ],
                 ),
@@ -1948,9 +2140,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
           activeIcon: Icon(Icons.home_rounded),
-          label: 'PoĂ„Ĺ¤etna',
+          label: 'Početna',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.search), label: 'PretraÄąÄľi'),
+        BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Pretraži'),
         BottomNavigationBarItem(
           icon: Icon(Icons.calendar_month_outlined),
           label: 'Termini',
@@ -1969,13 +2161,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       builder: (context) {
         return AlertDialog(
           title: const Text('Odjava'),
-          content: const Text('Da li ste sigurni da se ÄąÄľelite odjaviti?'),
+          content: const Text('Da li ste sigurni da se želite odjaviti?'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context, false);
               },
-              child: const Text('OtkaÄąÄľi'),
+              child: const Text('Otkaži'),
             ),
             ElevatedButton(
               onPressed: () {

@@ -6,7 +6,11 @@ import '../services/api_service.dart';
 import 'booking_screen.dart';
 
 class RecommendationsScreen extends StatefulWidget {
-  const RecommendationsScreen({super.key, this.apiService, required this.onNavigateToTab});
+  const RecommendationsScreen({
+    super.key,
+    this.apiService,
+    required this.onNavigateToTab,
+  });
 
   final ApiService? apiService;
   final ValueChanged<int> onNavigateToTab;
@@ -58,7 +62,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     );
     if (matchingSalons.isEmpty) return;
 
-    await Navigator.push(
+    final completed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => BookingScreen(
@@ -68,7 +72,12 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
         ),
       ),
     );
-    if (mounted) await _loadRecommendations();
+    if (!mounted) return;
+    if (completed == true) {
+      Navigator.pop(context, true);
+      return;
+    }
+    await _loadRecommendations();
   }
 
   @override

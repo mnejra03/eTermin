@@ -171,29 +171,205 @@ class _BookingScreenState extends State<BookingScreen> {
 
     final startTime = DateTime.parse(selectedSlot['startTime'].toString());
     final endTime = DateTime.parse(selectedSlot['endTime'].toString());
+    final formattedDate =
+        '${selectedDate.day.toString().padLeft(2, '0')}.'
+        '${selectedDate.month.toString().padLeft(2, '0')}.'
+        '${selectedDate.year}.';
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Potvrdite termin'),
-        content: Text(
-          '${widget.salon.name}\n'
-          '${widget.service.name}\n'
-          '${selectedEmployee!.fullName}\n'
-          '${selectedDate.day.toString().padLeft(2, '0')}.'
-          '${selectedDate.month.toString().padLeft(2, '0')}.'
-          '${selectedDate.year}. u $selectedTime\n'
-          'Cijena: ${widget.service.price.toStringAsFixed(2)} KM',
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF7568F5), Color(0xFF9D70E8)],
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: const Icon(
+                        Icons.event_available_rounded,
+                        color: Colors.white,
+                        size: 25,
+                      ),
+                    ),
+                    const SizedBox(width: 13),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Pregled rezervacije',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Provjerite podatke prije nastavka',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _confirmationRow(
+                      Icons.storefront_outlined,
+                      'Salon',
+                      widget.salon.name,
+                    ),
+                    const SizedBox(height: 14),
+                    _confirmationRow(
+                      Icons.spa_outlined,
+                      'Usluga',
+                      widget.service.name,
+                    ),
+                    const SizedBox(height: 14),
+                    _confirmationRow(
+                      Icons.person_outline_rounded,
+                      'Zaposlenik',
+                      selectedEmployee!.fullName,
+                    ),
+                    const SizedBox(height: 14),
+                    _confirmationRow(
+                      Icons.calendar_month_outlined,
+                      'Datum i vrijeme',
+                      '$formattedDate u $selectedTime',
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F2FF),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Ukupna cijena',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            '${widget.service.price.toStringAsFixed(2)} KM',
+                            style: const TextStyle(
+                              color: Color(0xFF7568F5),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(11),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF8E8),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 18,
+                            color: Color(0xFF9A6A00),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Termin ostaje na čekanju dok se uplata ne potvrdi.',
+                              style: TextStyle(
+                                color: Color(0xFF755300),
+                                fontSize: 12,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, false),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF7568F5),
+                              minimumSize: const Size.fromHeight(46),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(13),
+                              ),
+                            ),
+                            child: const Text('Nazad'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton.icon(
+                            onPressed: () => Navigator.pop(dialogContext, true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size.fromHeight(46),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(13),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.lock_outline_rounded,
+                              size: 17,
+                            ),
+                            label: const Text('Nastavi na plaćanje'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Nazad'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Potvrdi'),
-          ),
-        ],
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -250,7 +426,8 @@ class _BookingScreenState extends State<BookingScreen> {
 
       if (!mounted) return;
       if (paymentCompleted == true) {
-        setState(() => selectedTime = null);
+        Navigator.of(context).pop(true);
+        return;
       }
       await _loadAvailableSlots();
     } catch (e) {
@@ -276,6 +453,30 @@ class _BookingScreenState extends State<BookingScreen> {
         });
       }
     }
+  }
+
+  Widget _confirmationRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: primaryColor, size: 19),
+        const SizedBox(width: 11),
+        SizedBox(
+          width: 92,
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
   }
 
   @override

@@ -99,10 +99,20 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
         selectedFontSize: 9,
         unselectedFontSize: 9,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Po\u010Detna'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Pretra\u017Ei'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined), label: 'Termini'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home_rounded),
+            label: 'Početna',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Pretraži'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month_outlined),
+            label: 'Termini',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profil',
+          ),
         ],
       ),
       body: _isLoading
@@ -130,14 +140,20 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
                   ),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final completed = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              SalonDetailsScreen(salon: salon, onNavigateToTab: widget.onNavigateToTab),
+                          builder: (context) => SalonDetailsScreen(
+                            salon: salon,
+                            onNavigateToTab: widget.onNavigateToTab,
+                          ),
                         ),
                       );
+                      if (!context.mounted) return;
+                      if (completed == true) {
+                        Navigator.pop(context, true);
+                      }
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(8),
@@ -179,14 +195,20 @@ class _AllSalonsScreenState extends State<AllSalonsScreen> {
                             width: double.infinity,
                             height: 30,
                             child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
+                              onPressed: () async {
+                                final completed = await Navigator.push<bool>(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        SalonDetailsScreen(salon: salon, onNavigateToTab: widget.onNavigateToTab),
+                                    builder: (context) => SalonDetailsScreen(
+                                      salon: salon,
+                                      onNavigateToTab: widget.onNavigateToTab,
+                                    ),
                                   ),
                                 );
+                                if (!context.mounted) return;
+                                if (completed == true) {
+                                  Navigator.pop(context, true);
+                                }
                               },
                               child: const Text(
                                 'Pogledaj',

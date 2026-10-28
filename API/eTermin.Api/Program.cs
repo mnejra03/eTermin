@@ -194,7 +194,46 @@ namespace eTemin.Api
                     return;
                 }
 
-                if (builder.Configuration.GetValue<bool>("Seed:Enabled"))
+                var resetSeedUserPassword =
+                    app.Environment.IsDevelopment() &&
+                    string.Equals(
+                        Environment.GetEnvironmentVariable("ET_USER_RESET_PASSWORD"),
+                        "true",
+                        StringComparison.OrdinalIgnoreCase);
+
+                if (resetSeedUserPassword)
+                {
+                    var userEmail = builder.Configuration["Docker:Seed:UserEmail"]
+                        ?? builder.Configuration["Seed:UserEmail"]
+                        ?? throw new InvalidOperationException(
+                            "Docker__Seed__UserEmail nije konfigurisan u .env fajlu.");
+                    var userPassword = builder.Configuration["Docker:Seed:UserPassword"]
+                        ?? builder.Configuration["Seed:UserPassword"]
+                        ?? throw new InvalidOperationException(
+                            "Docker__Seed__UserPassword nije konfigurisan u .env fajlu.");
+
+                    var user = context.Users
+                        .SingleOrDefault(candidate => candidate.Email == userEmail)
+                        ?? context.Users.SingleOrDefault(candidate =>
+                            candidate.Email == "user@example.local" &&
+                            candidate.Role == UserRoles.User);
+
+                    if (user == null)
+                    {
+                        throw new InvalidOperationException(
+                            "Postojeći testni korisnik nije pronađen; lozinka nije promijenjena.");
+                    }
+
+                    user.Email = userEmail;
+                    user.Role = UserRoles.User;
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(userPassword);
+                    context.SaveChanges();
+                    app.Logger.LogInformation(
+                        "Development seed user credentials synchronized from .env; related records were preserved.");
+                }
+
+                if (!resetSeedUserPassword &&
+                    builder.Configuration.GetValue<bool>("Seed:Enabled"))
                 {
                     DbSeeder.SeedAsync(context)
                         .GetAwaiter()

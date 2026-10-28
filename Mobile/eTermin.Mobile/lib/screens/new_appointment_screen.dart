@@ -50,9 +50,7 @@ class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Novi termin'),
-      ),
+      appBar: AppBar(title: const Text('Novi termin')),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         onTap: widget.onNavigateToTab,
@@ -62,97 +60,99 @@ class _NewAppointmentScreenState extends State<NewAppointmentScreen> {
         selectedFontSize: 9,
         unselectedFontSize: 9,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Po\u010Detna'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Pretra\u017Ei'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined), label: 'Termini'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home_rounded),
+            label: 'Početna',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Pretraži'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month_outlined),
+            label: 'Termini',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profil',
+          ),
         ],
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Text(_error!),
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    const Text(
-                      'Odaberite salon',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+          ? Center(child: Text(_error!))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                const Text(
+                  'Odaberite salon',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+
+                const SizedBox(height: 16),
+
+                ..._salons.map((salon) {
+                  final salonServices = _services
+                      .where((service) => service.salonId == salon.id)
+                      .toList();
+
+                  if (salonServices.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            salon.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          ...salonServices.map((service) {
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(service.name),
+                              subtitle: Text(
+                                '${service.durationInMinutes} min • '
+                                '${service.price.toStringAsFixed(2)} KM',
+                              ),
+                              trailing: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                              ),
+                              onTap: () async {
+                                final completed = await Navigator.push<bool>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BookingScreen(
+                                      salon: salon,
+                                      service: service,
+                                      onNavigateToTab: widget.onNavigateToTab,
+                                    ),
+                                  ),
+                                );
+                                if (!context.mounted) return;
+                                if (completed == true) {
+                                  Navigator.pop(context, true);
+                                }
+                              },
+                            );
+                          }),
+                        ],
                       ),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    ..._salons.map((salon) {
-                      final salonServices = _services
-                          .where(
-                            (service) => service.salonId == salon.id,
-                          )
-                          .toList();
-
-                      if (salonServices.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                salon.name,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              ...salonServices.map(
-                                (service) {
-                                  return ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    title: Text(service.name),
-                                    subtitle: Text(
-                                      '${service.durationInMinutes} min • '
-                                      '${service.price.toStringAsFixed(2)} KM',
-                                    ),
-                                    trailing: const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                    ),
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              BookingScreen(
-                                            salon: salon,
-                                            service: service,
-                                            onNavigateToTab: widget.onNavigateToTab,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
+                  );
+                }),
+              ],
+            ),
     );
   }
 }
