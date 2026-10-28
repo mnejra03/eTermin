@@ -9,8 +9,9 @@ import '../widgets/salon_image.dart';
 
 class SalonDetailsScreen extends StatefulWidget {
   final Salon salon;
+  final ValueChanged<int> onNavigateToTab;
 
-  const SalonDetailsScreen({super.key, required this.salon});
+  const SalonDetailsScreen({super.key, required this.salon, required this.onNavigateToTab});
 
   @override
   State<SalonDetailsScreen> createState() => _SalonDetailsScreenState();
@@ -323,6 +324,7 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
                         builder: (context) => BookingScreen(
                           salon: widget.salon,
                           service: service,
+                          onNavigateToTab: widget.onNavigateToTab,
                         ),
                       ),
                     );
@@ -380,9 +382,7 @@ class _SalonDetailsScreenState extends State<SalonDetailsScreen> {
       child: BottomNavigationBar(
         currentIndex: 0,
         onTap: (index) {
-          if (index == 0) {
-            Navigator.pop(context);
-          }
+          widget.onNavigateToTab(index);
         },
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,

@@ -6,9 +6,10 @@ import '../services/api_service.dart';
 import 'booking_screen.dart';
 
 class RecommendationsScreen extends StatefulWidget {
-  const RecommendationsScreen({super.key, this.apiService});
+  const RecommendationsScreen({super.key, this.apiService, required this.onNavigateToTab});
 
   final ApiService? apiService;
+  final ValueChanged<int> onNavigateToTab;
 
   @override
   State<RecommendationsScreen> createState() => _RecommendationsScreenState();
@@ -63,6 +64,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
         builder: (context) => BookingScreen(
           salon: matchingSalons.first,
           service: recommendation.toService(),
+          onNavigateToTab: widget.onNavigateToTab,
         ),
       ),
     );
