@@ -5,6 +5,10 @@
 
 # dotenv files
 .env
+.env.*
+!.env.example
+.env-tajne.zip
+.env-tajne.rar
 
 # User-specific files
 *.rsuser
