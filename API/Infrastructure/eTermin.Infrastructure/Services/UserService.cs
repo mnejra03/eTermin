@@ -16,9 +16,21 @@ public class UserService : IUserService
 
     public async Task<PagedResult<UserDto>> GetAllAsync(
         int page,
-        int pageSize)
+        int pageSize,
+        string? search = null)
     {
-        return await _context.Users
+        var users = _context.Users.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            users = users.Where(user =>
+                user.FirstName.Contains(term) ||
+                user.LastName.Contains(term) ||
+                user.Email.Contains(term) ||
+                user.Role.Contains(term));
+        }
+
+        return await users
             .Select(u => new UserDto
             {
                 Id = u.Id,

@@ -22,10 +22,11 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(
         int page = 1,
-        int pageSize = PaginationOptions.DefaultPageSize)
+        int pageSize = PaginationOptions.DefaultPageSize,
+        string? search = null)
     {
         (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
-        var users = await _userService.GetAllAsync(page, pageSize);
+        var users = await _userService.GetAllAsync(page, pageSize, search);
 
         return Ok(users);
     }

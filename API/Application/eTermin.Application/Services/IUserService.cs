@@ -4,7 +4,10 @@ namespace eTermin.Application.Services;
 
 public interface IUserService
 {
-    Task<PagedResult<UserDto>> GetAllAsync(int page, int pageSize);
+    Task<PagedResult<UserDto>> GetAllAsync(
+        int page,
+        int pageSize,
+        string? search = null);
 
     Task<UserDto?> GetByIdAsync(int id);
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/admin_api_client.dart';
@@ -14,10 +16,13 @@ class UsersScreen extends StatefulWidget {
 class _UsersScreenState extends State<UsersScreen> {
   static const _pageSize = 8;
   List<Map<String, dynamic>> _users = [];
+  int _totalCount = 0;
+  int _totalPages = 1;
   bool _loading = true;
   String? _error;
   String _search = '';
   int _page = 1;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -25,14 +30,34 @@ class _UsersScreenState extends State<UsersScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({int page = 1}) async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final users = await widget.api.getList('Users');
-      if (mounted) setState(() => _users = users);
+      final result = await widget.api.getPagedList(
+        'Users',
+        page: page,
+        pageSize: _pageSize,
+        queryParameters: _search.trim().isEmpty
+            ? const {}
+            : {'search': _search.trim()},
+      );
+      if (mounted) {
+        setState(() {
+          _users = result.items;
+          _totalCount = result.totalCount;
+          _totalPages = result.totalPages;
+          _page = result.page;
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -48,21 +73,7 @@ class _UsersScreenState extends State<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final query = _search.trim().toLowerCase();
-    final visible = _users.where((user) {
-      final text =
-          '${user['firstName'] ?? ''} ${user['lastName'] ?? ''} ${user['email'] ?? ''} ${user['role'] ?? ''}'
-              .toLowerCase();
-      return query.isEmpty || text.contains(query);
-    }).toList();
-    final totalPages = visible.isEmpty
-        ? 1
-        : (visible.length / _pageSize).ceil();
-    final safePage = _page.clamp(1, totalPages).toInt();
-    final pageItems = visible
-        .skip((safePage - 1) * _pageSize)
-        .take(_pageSize)
-        .toList();
+    final page = _page.clamp(1, _totalPages).toInt();
 
     return Column(
       children: [
@@ -76,16 +87,20 @@ class _UsersScreenState extends State<UsersScreen> {
                     labelText: 'Pretraži ime, email ili ulogu',
                     prefixIcon: Icon(Icons.search),
                   ),
-                  onChanged: (value) => setState(() {
-                    _search = value;
-                    _page = 1;
-                  }),
+                  onChanged: (value) {
+                    setState(() => _search = value);
+                    _searchDebounce?.cancel();
+                    _searchDebounce = Timer(
+                      const Duration(milliseconds: 350),
+                      () => _load(),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 12),
               Chip(
                 avatar: const Icon(Icons.people_outline, size: 18),
-                label: Text('${visible.length} korisnika'),
+                label: Text('$_totalCount korisnika'),
               ),
               const SizedBox(width: 8),
               IconButton(
@@ -96,7 +111,7 @@ class _UsersScreenState extends State<UsersScreen> {
             ],
           ),
         ),
-        Expanded(child: _buildBody(pageItems)),
+        Expanded(child: _buildBody(_users)),
         if (!_loading && _error == null)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -105,20 +120,20 @@ class _UsersScreenState extends State<UsersScreen> {
               children: [
                 IconButton(
                   tooltip: 'Prethodna stranica',
-                  onPressed: safePage <= 1
+                  onPressed: _loading || page <= 1
                       ? null
-                      : () => setState(() => _page = safePage - 1),
+                      : () => _load(page: page - 1),
                   icon: const Icon(Icons.chevron_left),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('Stranica $safePage od $totalPages'),
+                  child: Text('Stranica $page od $_totalPages'),
                 ),
                 IconButton(
                   tooltip: 'Sljedeća stranica',
-                  onPressed: safePage >= totalPages
+                  onPressed: _loading || page >= _totalPages
                       ? null
-                      : () => setState(() => _page = safePage + 1),
+                      : () => _load(page: page + 1),
                   icon: const Icon(Icons.chevron_right),
                 ),
               ],
@@ -149,7 +164,7 @@ class _UsersScreenState extends State<UsersScreen> {
     if (visible.isEmpty) {
       return Center(
         child: Text(
-          _users.isEmpty
+          _totalCount == 0
               ? 'Nema korisnika u bazi.'
               : 'Nema korisnika koji odgovaraju pretrazi.',
         ),
