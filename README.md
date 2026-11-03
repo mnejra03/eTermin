@@ -68,6 +68,15 @@ Ovi su zadani razvojni nalozi za praznu bazu kada se koriste vrijednosti iz `.en
 
 Ako lokalni `.env` mijenja `Docker__Seed__AdminEmail`, `Docker__Seed__AdminPassword`, `Docker__Seed__UserEmail` ili `Docker__Seed__UserPassword`, koristite te izmijenjene podatke. Za postojeću bazu pogledajte napomenu o trajnim podacima iznad.
 
+## Release paketi
+
+Najnoviji pripremljeni paket nalazi se na [GitHub Releases](https://github.com/mnejra03/eTermin/releases/latest). ZIP sadrži Android APK i kompletne Windows Flutter fajlove za desktop aplikaciju. Backend nije kopiran u ZIP: pokrenite ga iz izvornog projekta prema uputama ispod, pa će mu se desktop aplikacija povezati preko `http://localhost:5130/api/`, a Android emulator preko `http://10.0.2.2:5130/api/`.
+
+U ZIP-u su putanje:
+
+- `Desktop/eTermin.Admin/build/windows/x64/runner/Release/` — pokrenuti `etermin_admin.exe`.
+- `Mobile/eTermin.Mobile/build/app/outputs/flutter-apk/app-release.apk` — instalirati na Android uređaj/emulator.
+
 ## Pokretanje backend sistema
 
 Pokrenite Docker Desktop i sačekajte da bude spreman. Otvorite PowerShell ili terminal u **glavnom folderu projekta**, pa izvršite:
