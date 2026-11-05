@@ -51,7 +51,7 @@ flutter doctor -v
 ## Konfiguracija
 
 1. Otvorite glavni folder repozitorija, isti folder u kojem se nalazi `docker-compose.yml`.
-2. Repozitorij sadrži šifriranu arhivu `.env-tajne.zip`. Za predajnu konfiguraciju preuzmite šifru iz DLWMS-a i raspakujte `.env` u glavni folder. Ako arhivu ne koristite, kopirajte `.env.example` u novi fajl `.env`.
+2. Repozitorij sadrži šifriranu arhivu `.env-tajne.zip`. Za predajnu konfiguraciju koristite šifru dobijenu uz seminarski rad i raspakujte `.env` u glavni folder. Ako arhivu ne koristite, kopirajte `.env.example` u novi fajl `.env`.
 3. U `.env` postavite svoje lokalne vrijednosti. Compose koristi `Docker__ConnectionString` za SQL bazu `220043`, podatke za JWT i RabbitMQ te opcionalne PayPal i SMTP vrijednosti.
 4. Ne šaljite obični `.env` na GitHub. Repozitorij sadrži `.env.example` i šifrirani `.env-tajne.zip`, bez javno izloženog sadržaja `.env` fajla.
 
