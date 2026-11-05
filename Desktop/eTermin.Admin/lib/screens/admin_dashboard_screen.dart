@@ -1144,8 +1144,9 @@ class _TodayAppointmentsPanel extends StatelessWidget {
               );
             }
             final rows = snapshot.data ?? [];
-            if (rows.isEmpty)
+            if (rows.isEmpty) {
               return const Text('Danas nema zakazanih termina.');
+            }
             return Column(
               children: [
                 const _AppointmentHeaderRow(),

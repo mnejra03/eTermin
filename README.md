@@ -70,7 +70,7 @@ Ako lokalni `.env` mijenja `Docker__Seed__AdminEmail`, `Docker__Seed__AdminPassw
 
 ## Release paketi
 
-Najnoviji pripremljeni paket nalazi se na [GitHub Releases](https://github.com/mnejra03/eTermin/releases/latest). ZIP sadrži Android APK i kompletne Windows Flutter fajlove za desktop aplikaciju. Backend nije kopiran u ZIP: pokrenite ga iz izvornog projekta prema uputama ispod, pa će mu se desktop aplikacija povezati preko `http://localhost:5130/api/`, a Android emulator preko `http://10.0.2.2:5130/api/`.
+Predajni paket nalazi se na [GitHub Release-u za 5. novembar 2026](https://github.com/mnejra03/eTermin/releases/tag/predaja-26-11-05-r1). ZIP sadrži Android APK i kompletne Windows Flutter fajlove za desktop aplikaciju. Backend nije kopiran u ZIP: pokrenite ga iz izvornog projekta prema uputama ispod, pa će mu se desktop aplikacija povezati preko `http://localhost:5130/api/`, a Android emulator preko `http://10.0.2.2:5130/api/`.
 
 U ZIP-u su putanje:
 

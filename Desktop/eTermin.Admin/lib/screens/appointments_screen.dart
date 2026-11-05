@@ -196,10 +196,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         'createdAt': item['createdAt'],
       });
       if (!result.succeeded) {
-        if (mounted)
+        if (mounted) {
           _message(
             _friendlyStatusError(result.message ?? 'Zahtjev nije uspio.'),
           );
+        }
         return;
       }
       await _load();

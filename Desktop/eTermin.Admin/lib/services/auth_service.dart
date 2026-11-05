@@ -63,9 +63,8 @@ class AuthService {
 }
 
 class AuthResult {
-  const AuthResult.success(AdminSession session)
-    : session = session,
-      message = null;
+  const AuthResult.success(AdminSession this.session)
+    : message = null;
 
   const AuthResult.failure(this.message) : session = null;
 
