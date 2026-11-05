@@ -8,6 +8,7 @@
 .env.*
 !.env.example
 .env-tajne.*
+!.env-tajne.zip
 
 # User-specific files
 *.rsuser
