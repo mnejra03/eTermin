@@ -40,7 +40,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int? _pendingCreateForSection;
   late Future<DashboardStatistics> _todayStatistics;
   late Future<DashboardStatistics> _weekStatistics;
-  late Future<List<Map<String, dynamic>>> _todayAppointments;
+  int _todayAppointmentsPage = 1;
+  late Future<Map<String, dynamic>> _todayAppointments;
   late Future<Map<String, dynamic>> _availableSlots;
   Timer? _notificationTimer;
   int _unreadNotificationCount = 0;
@@ -122,12 +123,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void _reloadDashboard() {
     _todayStatistics = widget.dashboardService.fetchToday(_session.token);
     _weekStatistics = widget.dashboardService.fetchRecentWeek(_session.token);
-    _todayAppointments = widget.dashboardService.fetchTodayAppointments(
-      _session.token,
-    );
+    _loadTodayAppointments();
     _availableSlots = widget.dashboardService.fetchAvailableSlots(
       _session.token,
     );
+  }
+
+  void _loadTodayAppointments() {
+    _todayAppointments = widget.dashboardService.fetchTodayAppointments(
+      _session.token,
+      page: _todayAppointmentsPage,
+    );
+  }
+
+  void _changeTodayAppointmentsPage(int page) {
+    setState(() {
+      _todayAppointmentsPage = page;
+      _loadTodayAppointments();
+    });
   }
 
   void _onProfileUpdated(AdminSession updatedSession) {
@@ -235,6 +248,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       statistics: _todayStatistics,
                       weekStatistics: _weekStatistics,
                       todayAppointments: _todayAppointments,
+                      onTodayAppointmentsPageChanged:
+                          _changeTodayAppointmentsPage,
                       availableSlots: _availableSlots,
                       onNavigate: _navigateFromQuickAction,
                       onRetry: () => setState(_reloadDashboard),
@@ -285,6 +300,7 @@ class _WelcomePanel extends StatelessWidget {
     required this.statistics,
     required this.weekStatistics,
     required this.todayAppointments,
+    required this.onTodayAppointmentsPageChanged,
     required this.availableSlots,
     required this.onNavigate,
     required this.onRetry,
@@ -294,7 +310,8 @@ class _WelcomePanel extends StatelessWidget {
   final String email;
   final Future<DashboardStatistics> statistics;
   final Future<DashboardStatistics> weekStatistics;
-  final Future<List<Map<String, dynamic>>> todayAppointments;
+  final Future<Map<String, dynamic>> todayAppointments;
+  final ValueChanged<int> onTodayAppointmentsPageChanged;
   final Future<Map<String, dynamic>> availableSlots;
   final ValueChanged<int> onNavigate;
   final VoidCallback onRetry;
@@ -534,7 +551,10 @@ class _WelcomePanel extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      _TodayAppointmentsPanel(appointments: todayAppointments),
+                      _TodayAppointmentsPanel(
+                        appointments: todayAppointments,
+                        onPageChanged: onTodayAppointmentsPageChanged,
+                      ),
                     ],
                   ),
                 );
@@ -1103,9 +1123,13 @@ class _StatusDonutPainter extends CustomPainter {
 }
 
 class _TodayAppointmentsPanel extends StatelessWidget {
-  const _TodayAppointmentsPanel({required this.appointments});
+  const _TodayAppointmentsPanel({
+    required this.appointments,
+    required this.onPageChanged,
+  });
 
-  final Future<List<Map<String, dynamic>>> appointments;
+  final Future<Map<String, dynamic>> appointments;
+  final ValueChanged<int> onPageChanged;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1129,7 +1153,7 @@ class _TodayAppointmentsPanel extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        FutureBuilder<List<Map<String, dynamic>>>(
+        FutureBuilder<Map<String, dynamic>>(
           future: appointments,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -1143,18 +1167,73 @@ class _TodayAppointmentsPanel extends StatelessWidget {
                 'Današnje termine nije moguće učitati: ${snapshot.error}',
               );
             }
-            final rows = snapshot.data ?? [];
+            final result = snapshot.data ?? const <String, dynamic>{};
+            final rows = (result['items'] as List? ?? const [])
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
+            final page = (result['page'] as num?)?.toInt() ?? 1;
+            final totalPages = (result['totalPages'] as num?)?.toInt() ?? 1;
             if (rows.isEmpty) {
-              return const Text('Danas nema zakazanih termina.');
+              return Column(
+                children: [
+                  const Text('Danas nema zakazanih termina.'),
+                  if (totalPages > 1)
+                    _AppointmentPageControls(
+                      page: page,
+                      totalPages: totalPages,
+                      onPageChanged: onPageChanged,
+                    ),
+                ],
+              );
             }
             return Column(
               children: [
                 const _AppointmentHeaderRow(),
                 for (final appointment in rows)
                   _TodayAppointmentTile(appointment: appointment),
+                if (totalPages > 1)
+                  _AppointmentPageControls(
+                    page: page,
+                    totalPages: totalPages,
+                    onPageChanged: onPageChanged,
+                  ),
               ],
             );
           },
+        ),
+      ],
+    ),
+  );
+}
+
+class _AppointmentPageControls extends StatelessWidget {
+  const _AppointmentPageControls({
+    required this.page,
+    required this.totalPages,
+    required this.onPageChanged,
+  });
+
+  final int page;
+  final int totalPages;
+  final ValueChanged<int> onPageChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          tooltip: 'Prethodna stranica',
+          onPressed: page > 1 ? () => onPageChanged(page - 1) : null,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        Text('Stranica $page od $totalPages'),
+        IconButton(
+          tooltip: 'Sljedeća stranica',
+          onPressed: page < totalPages ? () => onPageChanged(page + 1) : null,
+          icon: const Icon(Icons.chevron_right),
         ),
       ],
     ),

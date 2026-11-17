@@ -6,6 +6,7 @@ using eTermin.Domain.Entities;
 using eTermin.Domain.StateMachines;
 using eTermin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace eTermin.Infrastructure.Services;
 
@@ -632,11 +633,13 @@ public class AppointmentService : IAppointmentService
         string reason,
         bool isAdmin)
     {
-        var appointment = await _context.Appointments
-            .FirstOrDefaultAsync(x => x.Id == id &&
-                (isAdmin || x.UserId == actorUserId));
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
-        if (appointment == null)
+        var appointment = await _context.LockForPaymentAsync(id);
+
+        if (appointment == null ||
+            (!isAdmin && appointment.UserId != actorUserId))
             return false;
 
         if (appointment.Status == AppointmentStatuses.Cancelled)
@@ -684,6 +687,7 @@ public class AppointmentService : IAppointmentService
         });
 
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
         return true;
     }
 
@@ -800,9 +804,11 @@ public class AppointmentService : IAppointmentService
         return availableSlots;
     }
 
-    public async Task<List<DashboardAppointmentDto>> GetDashboardAppointmentsAsync(
-    DateTime date,
-    int? salonId)
+    public async Task<PagedResult<DashboardAppointmentDto>> GetDashboardAppointmentsAsync(
+        DateTime date,
+        int? salonId,
+        int page,
+        int pageSize)
     {
         var query = _context.Appointments
             .Where(a =>
@@ -815,7 +821,12 @@ public class AppointmentService : IAppointmentService
                 a.SalonId == salonId.Value);
         }
 
-        return await (
+        var totalCount = await query.CountAsync();
+        var totalPages = Math.Max(
+            1,
+            (int)Math.Ceiling(totalCount / (double)pageSize));
+        page = Math.Min(page, totalPages);
+        var items = await (
             from appointment in query
             join user in _context.Users.AsNoTracking()
                 on appointment.UserId equals user.Id
@@ -823,7 +834,7 @@ public class AppointmentService : IAppointmentService
                 on appointment.SalonId equals salon.Id
             join service in _context.Services.AsNoTracking()
                 on appointment.ServiceId equals service.Id
-            orderby appointment.StartTime
+            orderby appointment.StartTime, appointment.Id
             select new DashboardAppointmentDto
             {
                 Id = appointment.Id,
@@ -835,7 +846,17 @@ public class AppointmentService : IAppointmentService
                 Status = appointment.Status,
                 Price = appointment.Price
             })
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
+
+        return new PagedResult<DashboardAppointmentDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<DashboardAvailableSlotsDto> GetDashboardAvailableSlotsAsync(

@@ -24,9 +24,11 @@ public interface IAppointmentService
     int serviceId,
     DateTime date);
 
-    Task<List<DashboardAppointmentDto>> GetDashboardAppointmentsAsync(
-    DateTime date,
-    int? salonId);
+    Task<PagedResult<DashboardAppointmentDto>> GetDashboardAppointmentsAsync(
+        DateTime date,
+        int? salonId,
+        int page,
+        int pageSize);
 
     Task<PagedResult<AppointmentListDto>> GetAllForListAsync(
         int page,

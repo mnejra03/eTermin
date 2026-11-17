@@ -13,14 +13,10 @@ namespace eTermin.Api.Controllers;
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
-    private readonly IPayPalService _payPalService;
 
-    public PaymentsController(
-     IPaymentService paymentService,
-     IPayPalService payPalService)
+    public PaymentsController(IPaymentService paymentService)
     {
         _paymentService = paymentService;
-        _payPalService = payPalService;
     }
 
     [HttpGet("{id}")]
@@ -141,24 +137,6 @@ public class PaymentsController : ControllerBase
         });
     }
 
-    [HttpGet("paypal/return")]
-    [AllowAnonymous]
-    public async Task<IActionResult> PayPalReturn(
-    [FromQuery] string token)
-    {
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            return BadRequest(new
-            {
-                message = "PayPal Order ID nije pronađen."
-            });
-        }
-
-        var order = await _payPalService.GetOrderDetailsAsync(token);
-        return Content(order, "application/json");
-    }
-
-
     [HttpGet("paypal/cancel")]
     [AllowAnonymous]
     public IActionResult PayPalCancel()
@@ -167,14 +145,6 @@ public class PaymentsController : ControllerBase
         {
             message = "PayPal plaćanje je otkazano."
         });
-    }
-
-    [HttpGet("paypal/order/{orderId}")]
-    public async Task<IActionResult> GetPayPalOrder(
-    string orderId)
-    {
-        var result = await _payPalService.GetOrderDetailsAsync(orderId);
-        return Content(result, "application/json");
     }
 
     private bool TryGetUserScope(out int? userId)

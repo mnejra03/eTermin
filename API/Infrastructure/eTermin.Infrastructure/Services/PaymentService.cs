@@ -5,6 +5,7 @@ using eTermin.Domain.Entities;
 using eTermin.Infrastructure.Data;
 using eTermin.Domain.StateMachines;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace eTermin.Infrastructure.Services;
 
@@ -62,12 +63,14 @@ public class PaymentService : IPaymentService
         PaymentDto paymentDto,
         int? userId = null)
     {
-        var appointment = await _context.Appointments
-            .FirstOrDefaultAsync(x =>
-                x.Id == paymentDto.AppointmentId &&
-                (userId == null || x.UserId == userId));
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
-        if (appointment == null)
+        var appointment = await _context.LockForPaymentAsync(
+            paymentDto.AppointmentId);
+
+        if (appointment == null ||
+            (userId != null && appointment.UserId != userId))
             return null;
 
         if (appointment.Status != AppointmentStatuses.Pending)
@@ -89,7 +92,10 @@ public class PaymentService : IPaymentService
             .FirstOrDefault(x => x.Status == PaymentStatuses.Pending);
 
         if (existingPendingPayment != null)
+        {
+            await transaction.CommitAsync();
             return MapToDto(existingPendingPayment);
+        }
 
         var payment = new Payment
         {
@@ -104,6 +110,7 @@ public class PaymentService : IPaymentService
         _context.Payments.Add(payment);
 
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return MapToDto(payment);
     }
@@ -112,6 +119,9 @@ public class PaymentService : IPaymentService
         int paymentId,
         int? userId = null)
     {
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.ReadCommitted);
+
         var payment = await _context.Payments
             .Where(x => x.Id == paymentId)
             .Where(x => userId == null || _context.Appointments.Any(a =>
@@ -121,18 +131,34 @@ public class PaymentService : IPaymentService
         if (payment == null)
             return null;
 
+        var appointment = await _context.LockForPaymentAsync(
+            payment.AppointmentId);
+        if (appointment == null ||
+            (userId != null && appointment.UserId != userId))
+            return null;
+
+        await _context.Entry(payment).ReloadAsync();
+
         if (payment.Status != PaymentStatuses.Pending)
             throw new BusinessException(
                 "PayPal nalog se može kreirati samo za uplatu na čekanju.");
-
-        var appointment = await _context.Appointments
-            .FirstAsync(x => x.Id == payment.AppointmentId);
 
         if (appointment.Status != AppointmentStatuses.Pending)
             throw new BusinessException(
                 appointment.Status == AppointmentStatuses.Cancelled
                     ? "Nije moguće kreirati PayPal nalog za otkazani termin."
                     : "Nije moguće platiti termin koji nije na čekanju.");
+
+        if (!string.IsNullOrWhiteSpace(payment.PayPalOrderId))
+        {
+            await transaction.CommitAsync();
+            return new PayPalOrderResult
+            {
+                OrderId = payment.PayPalOrderId,
+                ApprovalUrl = _payPalService.GetApprovalUrl(
+                    payment.PayPalOrderId)
+            };
+        }
 
         var serviceName = await _context.Services
             .Where(x => x.Id == appointment.ServiceId)
@@ -146,10 +172,12 @@ public class PaymentService : IPaymentService
         var order = await _payPalService.CreateOrderAsync(
             payment.Amount,
             "BAM",
-            $"{serviceName} - {salonName}");
+            $"{serviceName} - {salonName}",
+            $"payment-{payment.Id}");
 
         payment.PayPalOrderId = order.OrderId;
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return order;
     }
@@ -158,6 +186,9 @@ public class PaymentService : IPaymentService
         int paymentId,
         int? userId = null)
     {
+        await using var transaction = await _context.Database
+            .BeginTransactionAsync(IsolationLevel.ReadCommitted);
+
         var payment = await _context.Payments
             .Where(x => x.Id == paymentId)
             .Where(x => userId == null || _context.Appointments.Any(a =>
@@ -167,15 +198,22 @@ public class PaymentService : IPaymentService
         if (payment == null)
             return null;
 
-        var appointment = await _context.Appointments
-            .FirstAsync(x => x.Id == payment.AppointmentId);
+        var appointment = await _context.LockForPaymentAsync(
+            payment.AppointmentId);
+        if (appointment == null)
+            return null;
+
+        await _context.Entry(payment).ReloadAsync();
+
+        if (payment.Status == PaymentStatuses.Completed)
+        {
+            await transaction.CommitAsync();
+            return payment.TransactionId;
+        }
 
         if (appointment.Status == AppointmentStatuses.Cancelled)
             throw new BusinessException(
                 "Termin je otkazan; naplata nije pokrenuta.");
-
-        if (payment.Status == PaymentStatuses.Completed)
-            return payment.TransactionId;
 
         if (!AppointmentStateMachine.CanTransition(
                 appointment.Status,
@@ -193,15 +231,38 @@ public class PaymentService : IPaymentService
                 "Samo uplata na čekanju može biti naplaćena.");
 
         var captureId = await _payPalService.CaptureOrderAsync(
-            payment.PayPalOrderId);
+            payment.PayPalOrderId,
+            $"capture-{payment.Id}");
 
-        var updated = await UpdateStatusAsync(
-            paymentId,
-            PaymentStatuses.Completed,
-            captureId,
-            userId);
+        var previousStatus = appointment.Status;
+        payment.Status = PaymentStatuses.Completed;
+        payment.TransactionId = captureId;
+        appointment.Status = AppointmentStatuses.Confirmed;
+        _context.AppointmentStatusHistories.Add(
+            new AppointmentStatusHistory
+            {
+                AppointmentId = appointment.Id,
+                PreviousStatus = previousStatus,
+                NewStatus = appointment.Status,
+                ChangedByUserId = userId ?? appointment.UserId,
+                ChangedAt = DateTime.UtcNow
+            });
 
-        return updated ? captureId : null;
+        await _notificationService.CreateAsync(
+            new NotificationDto
+            {
+                UserId = appointment.UserId,
+                AppointmentId = appointment.Id,
+                Title = "PlaÄ‡anje uspjeĹˇno",
+                Message =
+                    $"VaĹˇe PayPal plaÄ‡anje u iznosu od " +
+                    $"{payment.Amount:0.00} KM je uspjeĹˇno izvrĹˇeno. " +
+                    "Termin je potvrÄ‘en.",
+                IsRead = false
+            });
+
+        await transaction.CommitAsync();
+        return captureId;
     }
 
     public async Task<bool> UpdateStatusAsync(

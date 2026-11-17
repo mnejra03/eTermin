@@ -56,8 +56,6 @@ public class RecommendationService : IRecommendationService
         var salonCounts = appointmentProfile
             .GroupBy(appointment => appointment.SalonId)
             .ToDictionary(group => group.Key, group => group.Count());
-        var popularity = await GetServicePopularityAsync();
-
         var rankedServices = services
             .Select(service => new
             {
@@ -69,9 +67,7 @@ public class RecommendationService : IRecommendationService
             .Where(item => item.CategoryCount > 0 || item.SalonCount > 0)
             .OrderByDescending(item =>
                 item.CategoryCount * 2 + item.SalonCount)
-            .ThenByDescending(item =>
-                popularity.GetValueOrDefault(item.Service.Id))
-            .ThenBy(item => item.Service.Name)
+            .ThenBy(item => item.Service.Id)
             .Take(5)
             .ToList();
 

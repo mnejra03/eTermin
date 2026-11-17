@@ -7,12 +7,14 @@ public interface IPayPalService
     Task<PayPalOrderResult> CreateOrderAsync(
         decimal amount,
         string currency,
-        string description);
+        string description,
+        string requestId);
 
     Task<string> CaptureOrderAsync(
-        string orderId);
+        string orderId,
+        string requestId);
 
-    Task<string> GetOrderDetailsAsync(string orderId);
+    string GetApprovalUrl(string orderId);
 
 }
 

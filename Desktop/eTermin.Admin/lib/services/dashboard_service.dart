@@ -65,10 +65,14 @@ class DashboardService {
     return DashboardStatistics.fromJson(decoded);
   }
 
-  Future<List<Map<String, dynamic>>> fetchTodayAppointments(
-    String token,
-  ) async {
-    final endpoint = _baseUri.resolve('Appointments/dashboard');
+  Future<Map<String, dynamic>> fetchTodayAppointments(
+    String token, {
+    int page = 1,
+    int pageSize = 8,
+  }) async {
+    final endpoint = _baseUri.resolve('Appointments/dashboard').replace(
+      queryParameters: {'page': '$page', 'pageSize': '$pageSize'},
+    );
     final request = await _client.getUrl(endpoint);
     request.headers
       ..set(HttpHeaders.acceptHeader, ContentType.json.mimeType)
@@ -81,10 +85,10 @@ class DashboardService {
         'Učitavanje današnjih termina nije uspjelo (HTTP ${response.statusCode}).',
       );
     }
-    if (decoded is! List) {
+    if (decoded is! Map<String, dynamic> || decoded['items'] is! List) {
       throw const DashboardException('API je vratio neočekivan odgovor.');
     }
-    return decoded.whereType<Map<String, dynamic>>().toList();
+    return decoded;
   }
 
   Future<Map<String, dynamic>> fetchAvailableSlots(String token) async {

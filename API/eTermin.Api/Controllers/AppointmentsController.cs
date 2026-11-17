@@ -224,13 +224,19 @@ public class AppointmentsController : ControllerBase
 
     [HttpGet("dashboard")]
     [Authorize(Roles = UserRoles.Admin)]
-    public async Task<ActionResult<List<DashboardAppointmentDto>>>
-    GetDashboardAppointments(int? salonId)
+    public async Task<ActionResult<PagedResult<DashboardAppointmentDto>>>
+    GetDashboardAppointments(
+        int? salonId,
+        int page = 1,
+        int pageSize = 8)
     {
+        (page, pageSize) = PaginationOptions.Normalize(page, pageSize);
         var appointments =
             await _appointmentService.GetDashboardAppointmentsAsync(
                 DateTime.Today,
-                salonId);
+                salonId,
+                page,
+                pageSize);
 
         return Ok(appointments);
     }

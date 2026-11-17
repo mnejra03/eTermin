@@ -1,5 +1,6 @@
 ﻿using eTermin.Application.Services;
 using Microsoft.Extensions.Configuration;
+using eTermin.Application.Exceptions;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
@@ -18,6 +19,16 @@ public class PayPalService : IPayPalService
     {
         _configuration = configuration;
         _httpClient = httpClient;
+    }
+
+    public string GetApprovalUrl(string orderId)
+    {
+        var baseUrl = _configuration["PayPal:BaseUrl"] ?? string.Empty;
+        var checkoutHost = baseUrl.Contains("sandbox", StringComparison.OrdinalIgnoreCase)
+            ? "https://www.sandbox.paypal.com"
+            : "https://www.paypal.com";
+
+        return $"{checkoutHost}/checkoutnow?token={Uri.EscapeDataString(orderId)}";
     }
 
     public async Task<string> GetAccessTokenAsync()
@@ -77,7 +88,8 @@ public class PayPalService : IPayPalService
     public async Task<PayPalOrderResult> CreateOrderAsync(
     decimal amount,
     string currency,
-    string description)
+    string description,
+    string requestId)
     {
         var accessToken =
             await GetAccessTokenAsync();
@@ -151,6 +163,9 @@ public class PayPalService : IPayPalService
             new AuthenticationHeaderValue(
                 "Bearer",
                 accessToken);
+        request.Headers.TryAddWithoutValidation(
+            "PayPal-Request-Id",
+            requestId);
 
         request.Content = content;
 
@@ -196,7 +211,8 @@ public class PayPalService : IPayPalService
     }
 
     public async Task<string> CaptureOrderAsync(
-    string orderId)
+    string orderId,
+    string requestId)
     {
         var accessToken =
             await GetAccessTokenAsync();
@@ -212,6 +228,9 @@ public class PayPalService : IPayPalService
             new AuthenticationHeaderValue(
                 "Bearer",
                 accessToken);
+        request.Headers.TryAddWithoutValidation(
+            "PayPal-Request-Id",
+            requestId);
 
         
 
@@ -233,7 +252,7 @@ public class PayPalService : IPayPalService
                 ? debugValues.FirstOrDefault()
                 : null;
 
-        var requestId =
+        var sentRequestId =
             request.Headers.TryGetValues(
                 "PayPal-Request-Id",
                 out var requestValues)
@@ -242,12 +261,15 @@ public class PayPalService : IPayPalService
 
         if (!response.IsSuccessStatusCode)
         {
+            if (TryGetCaptureDecline(responseContent, out var declineMessage))
+                throw new BusinessException(declineMessage);
+
             throw new Exception(
                 $"PayPal order capture failed.\n" +
                 $"HTTP Status: {(int)response.StatusCode} " +
                 $"{response.StatusCode}\n" +
                 $"PayPal-Debug-Id: {debugId}\n" +
-                $"PayPal-Request-Id: {requestId}\n" +
+                $"PayPal-Request-Id: {sentRequestId}\n" +
                 $"Response: {responseContent}");
         }
 
@@ -264,38 +286,62 @@ public class PayPalService : IPayPalService
 
         return captureId!;
     }
-    public async Task<string> GetOrderDetailsAsync(
-     string orderId)
+
+    private static bool TryGetCaptureDecline(
+        string responseContent,
+        out string message)
     {
-        var accessToken =
-            await GetAccessTokenAsync();
+        message = string.Empty;
+        string? issue = null;
 
-        var baseUrl =
-            _configuration["PayPal:BaseUrl"];
-
-        using var request =
-            new HttpRequestMessage(
-                HttpMethod.Get,
-                $"{baseUrl}/v2/checkout/orders/{orderId}");
-
-        request.Headers.Authorization =
-            new AuthenticationHeaderValue(
-                "Bearer",
-                accessToken);
-
-        var response =
-            await _httpClient.SendAsync(request);
-
-        var responseContent =
-            await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new Exception(
-                $"PayPal order details failed: " +
-                responseContent);
+            using var document = JsonDocument.Parse(responseContent);
+            var root = document.RootElement;
+            if (root.TryGetProperty("details", out var details) &&
+                details.ValueKind == JsonValueKind.Array)
+            {
+                issue = details.EnumerateArray()
+                    .Select(item => item.TryGetProperty("issue", out var value)
+                        ? value.GetString()
+                        : null)
+                    .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            }
+
+            issue ??= root.TryGetProperty("name", out var name)
+                ? name.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return false;
         }
 
-        return responseContent;
+        message = issue?.ToUpperInvariant() switch
+        {
+            "INSTRUMENT_DECLINED" or "PAYMENT_SOURCE_DECLINED" =>
+                "PayPal je odbio način plaćanja. Provjerite podatke ili odaberite drugi način plaćanja.",
+            "PAYER_CANNOT_PAY" =>
+                "PayPal račun trenutno ne može izvršiti plaćanje. Provjerite račun ili pokušajte drugim načinom plaćanja.",
+            "PAYER_ACCOUNT_RESTRICTED" =>
+                "PayPal račun ima ograničenja i ne može izvršiti plaćanje. Provjerite račun ili koristite drugi način plaćanja.",
+            "CARD_EXPIRED" =>
+                "Kartica povezana s PayPal računom je istekla. Ažurirajte način plaćanja i pokušajte ponovo.",
+            "MAX_NUMBER_OF_PAYMENT_ATTEMPTS_EXCEEDED" =>
+                "PayPal je odbio dodatne pokušaje plaćanja. Pokušajte drugim načinom plaćanja.",
+            "REDIRECT_PAYER_FOR_ALTERNATE_FUNDING" =>
+                "PayPal nije mogao koristiti izabrani izvor sredstava. Pokušajte drugim načinom plaćanja.",
+            "TRANSACTION_LIMIT_EXCEEDED" or "TRANSACTION_RECEIVING_LIMIT_EXCEEDED" =>
+                "PayPal ograničenje transakcije ne dozvoljava ovu uplatu. Pokušajte drugim načinom plaćanja ili kontaktirajte PayPal podršku.",
+            "TRANSACTION_REFUSED" =>
+                "PayPal je odbio transakciju. Provjerite račun ili pokušajte drugim načinom plaćanja.",
+            "PAYER_ACTION_REQUIRED" or "ORDER_NOT_APPROVED" =>
+                "PayPal plaćanje nije odobreno. Ponovo otvorite PayPal i odobrite plaćanje.",
+            "ORDER_ALREADY_CAPTURED" =>
+                "PayPal prijavljuje da je ova narudžba već naplaćena. Osvježite prikaz i provjerite status uplate.",
+            _ => string.Empty
+        };
+
+        return message.Length > 0;
     }
 }
